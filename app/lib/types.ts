@@ -76,3 +76,17 @@ export interface EssaySubmission {
   topicTitle?: string;
   previousVersions?: { text: string; versionNo: number }[];
 }
+
+export interface ChildProfile {
+  id: string;
+  nickname: string;
+  grade_band: GradeBand;
+}
+
+export interface RecentEssay {
+  id: string;
+  writing_type: WritingType;
+  topic_title: string | null;
+  created_at: string;
+  latest_summary: string | null;
+}

@@ -5,7 +5,18 @@ import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt";
 import { detectRewrittenStudentText } from "./guardrail";
 
 // API 키는 이 파일(서버 전용 lib) 안에서만 읽는다. 클라이언트 컴포넌트에서 직접 import하지 말 것.
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+//
+// ANTHROPIC_WORKSPACE_ID: 조직 전체(워크스페이스에 스코프되지 않은) API 키를 쓸 경우,
+// Anthropic이 어느 워크스페이스의 크레딧/설정을 쓸지 알 수 없어 400 에러
+// ("not scoped to a workspace")를 낸다. 콘솔에서 워크스페이스에 스코프된 키를 새로
+// 발급받으면 이 설정 없이도 되지만, 그게 안 되는 환경을 대비해 헤더로도 넘길 수 있게 해둔다.
+// (콘솔 > Settings > Workspaces 에서 워크스페이스 ID를 확인할 수 있다.)
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  defaultHeaders: process.env.ANTHROPIC_WORKSPACE_ID
+    ? { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID }
+    : undefined,
+});
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
 // 시스템 프롬프트는 모든 학생·모든 요청에서 완전히 동일하다 (에세이 본문은 user 메시지에만 들어감).

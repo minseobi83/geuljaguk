@@ -1,0 +1,16 @@
+# Node / Next.js
+app/node_modules/
+app/.next/
+app/out/
+app/tsconfig.tsbuildinfo
+app/next-env.d.ts
+
+# 환경변수 (API 키 등 비밀값 - 절대 커밋하지 않음)
+app/.env
+app/.env.local
+app/.env*.local
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+.vscode/

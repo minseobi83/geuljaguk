@@ -1,0 +1,69 @@
+import { EvaluationResult } from "./types";
+
+// 서버 측 가드레일: AI가 mechanics_table 밖에서 학생 문장을 그대로(또는 거의 그대로)
+// 베껴 썼는지 다시 한번 기계적으로 확인한다. AI의 자기 보고(guardrail_check)만 믿지 않는다.
+
+function splitSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?。다요])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 8); // 너무 짧은 조각은 우연히 겹칠 수 있으니 제외
+}
+
+function normalize(s: string): string {
+  return s.replace(/\s+/g, "").trim();
+}
+
+// 두 문자열의 문자 단위 유사도 (0~1). 완전 일치=1. 간단한 Levenshtein 기반 비율.
+function similarity(a: string, b: string): number {
+  const s1 = normalize(a);
+  const s2 = normalize(b);
+  if (s1.length === 0 || s2.length === 0) return 0;
+
+  const dp: number[][] = Array.from({ length: s1.length + 1 }, () =>
+    new Array(s2.length + 1).fill(0)
+  );
+  for (let i = 0; i <= s1.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= s2.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= s1.length; i++) {
+    for (let j = 1; j <= s2.length; j++) {
+      dp[i][j] =
+        s1[i - 1] === s2[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  const dist = dp[s1.length][s2.length];
+  const maxLen = Math.max(s1.length, s2.length);
+  return 1 - dist / maxLen;
+}
+
+const NARRATIVE_FIELDS_THRESHOLD = 0.9;
+
+export function detectRewrittenStudentText(
+  studentText: string,
+  result: EvaluationResult
+): boolean {
+  const originalSentences = splitSentences(studentText);
+  if (originalSentences.length === 0) return false;
+
+  const candidateSentences: string[] = [
+    ...result.strengths,
+    result.priority_issue?.note ?? "",
+    ...result.paragraph_feedback.flatMap((p) => [p.good, p.question]),
+    ...result.self_revision_questions,
+    result.next_task?.prompt ?? "",
+    result.summary ?? "",
+  ]
+    .flatMap((t) => splitSentences(t))
+    .filter(Boolean);
+
+  for (const candidate of candidateSentences) {
+    for (const original of originalSentences) {
+      if (similarity(candidate, original) >= NARRATIVE_FIELDS_THRESHOLD) {
+        return true;
+      }
+    }
+  }
+  return false;
+}

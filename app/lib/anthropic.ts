@@ -37,7 +37,20 @@ function extractJson(text: string): unknown {
   if (start === -1 || end === -1) {
     throw new Error("AI 응답에서 JSON을 찾지 못했습니다.");
   }
-  return JSON.parse(text.slice(start, end + 1));
+  const jsonText = text.slice(start, end + 1);
+  try {
+    return JSON.parse(jsonText);
+  } catch (e) {
+    console.error(
+      "[claude debug] JSON 파싱 실패. 응답 길이:",
+      jsonText.length,
+      "끝부분:",
+      jsonText.slice(-200)
+    );
+    throw new Error(
+      `AI 응답을 JSON으로 해석하지 못했습니다: ${e instanceof Error ? e.message : e}`
+    );
+  }
 }
 
 async function callModel(
@@ -52,7 +65,7 @@ async function callModel(
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 8192,
     system: CACHED_SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });
@@ -78,14 +91,40 @@ async function callModel(
     );
   }
 
+  // "생각(thinking)" 과정까지 포함해서 max_tokens에 걸려 JSON이 중간에 잘린 경우.
+  // 이 상태로 JSON.parse를 시도하면 항상 실패하니, 미리 걸러서 재시도를 유도한다.
+  if (response.stop_reason === "max_tokens") {
+    throw new TruncatedResponseError();
+  }
+
   return extractJson(textBlock.text) as EvaluationResult;
+}
+
+class TruncatedResponseError extends Error {
+  constructor() {
+    super("AI 응답이 길이 제한에 걸려 중간에 잘렸습니다.");
+  }
 }
 
 // 본분석 호출 + 가드레일 검사 + 필요 시 1회 재시도까지 담당하는 최상위 함수.
 export async function evaluateEssay(
   submission: EssaySubmission
 ): Promise<EvaluationResult> {
-  let result = await callModel(submission);
+  let result: EvaluationResult;
+  try {
+    result = await callModel(submission);
+  } catch (e) {
+    if (e instanceof TruncatedResponseError) {
+      // 한 번 더 시도. 생각 과정과 설명을 줄여서 JSON을 끝까지 완성하도록 유도한다.
+      result = await callModel(
+        submission,
+        "직전 응답이 너무 길어서 중간에 잘렸습니다. 각 항목을 더 간결하게 써서 " +
+          "JSON 전체를 반드시 끝까지 완성해서 응답하세요."
+      );
+    } else {
+      throw e;
+    }
+  }
   let rewrote = detectRewrittenStudentText(submission.studentText, result);
 
   if (rewrote) {

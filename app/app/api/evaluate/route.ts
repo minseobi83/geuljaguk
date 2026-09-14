@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     writingType: body.writingType as WritingType,
     gradeBand: body.gradeBand as GradeBand,
     versionNo: body.versionNo,
+    topicTitle: typeof body.topicTitle === "string" ? body.topicTitle : undefined,
     previousVersions: body.previousVersions,
   };
 

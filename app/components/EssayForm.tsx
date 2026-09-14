@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
+import { WRITING_TOPICS } from "@/lib/topics";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -14,12 +15,24 @@ const WRITING_TYPES: WritingType[] = [
   "서사적 글쓰기",
 ];
 
+const CUSTOM_TOPIC_ID = "__custom__";
+
+function findInitialTopicId(writingType: WritingType, topicTitle?: string): string {
+  if (!topicTitle) return WRITING_TOPICS[writingType][0].id;
+  const matched = WRITING_TOPICS[writingType].find((t) => t.title === topicTitle);
+  return matched ? matched.id : CUSTOM_TOPIC_ID;
+}
+
 interface Props {
   initialText?: string;
+  initialWritingType?: WritingType;
+  initialGradeBand?: GradeBand;
+  initialTopicTitle?: string;
   onSubmit: (data: {
     studentText: string;
     writingType: WritingType;
     gradeBand: GradeBand;
+    topicTitle?: string;
   }) => void;
   submitting: boolean;
   submitLabel: string;
@@ -27,13 +40,36 @@ interface Props {
 
 export default function EssayForm({
   initialText = "",
+  initialWritingType = "주장하는 글",
+  initialGradeBand = "5",
+  initialTopicTitle,
   onSubmit,
   submitting,
   submitLabel,
 }: Props) {
   const [text, setText] = useState(initialText);
-  const [writingType, setWritingType] = useState<WritingType>("주장하는 글");
-  const [gradeBand, setGradeBand] = useState<GradeBand>("5");
+  const [writingType, setWritingType] = useState<WritingType>(initialWritingType);
+  const [gradeBand, setGradeBand] = useState<GradeBand>(initialGradeBand);
+  const [selectedTopicId, setSelectedTopicId] = useState<string>(() =>
+    findInitialTopicId(initialWritingType, initialTopicTitle)
+  );
+  const [customTopic, setCustomTopic] = useState(
+    findInitialTopicId(initialWritingType, initialTopicTitle) === CUSTOM_TOPIC_ID
+      ? initialTopicTitle ?? ""
+      : ""
+  );
+
+  const topics = WRITING_TOPICS[writingType];
+  const selectedTopic = topics.find((t) => t.id === selectedTopicId);
+  const isCustom = selectedTopicId === CUSTOM_TOPIC_ID;
+  const topicTitle = isCustom ? customTopic.trim() || undefined : selectedTopic?.title;
+
+  function handleWritingTypeChange(newType: WritingType) {
+    setWritingType(newType);
+    // 글의 종류가 바뀌면 그 종류에 맞는 글감 목록으로 다시 골라야 하니 첫 번째 글감으로 초기화.
+    setSelectedTopicId(WRITING_TOPICS[newType][0].id);
+    setCustomTopic("");
+  }
 
   return (
     <form
@@ -41,7 +77,7 @@ export default function EssayForm({
       onSubmit={(e) => {
         e.preventDefault();
         if (submitting) return;
-        onSubmit({ studentText: text, writingType, gradeBand });
+        onSubmit({ studentText: text, writingType, gradeBand, topicTitle });
       }}
     >
       <div className="flex gap-3">
@@ -62,7 +98,7 @@ export default function EssayForm({
           <select
             className="mt-1 rounded-md border border-ink/20 bg-white px-3 py-2"
             value={writingType}
-            onChange={(e) => setWritingType(e.target.value as WritingType)}
+            onChange={(e) => handleWritingTypeChange(e.target.value as WritingType)}
           >
             {WRITING_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -71,6 +107,47 @@ export default function EssayForm({
             ))}
           </select>
         </label>
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm text-ink/70">글감을 골라보세요</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {topics.map((topic) => (
+            <button
+              key={topic.id}
+              type="button"
+              onClick={() => setSelectedTopicId(topic.id)}
+              className={`rounded-lg border p-3 text-left transition ${
+                selectedTopicId === topic.id
+                  ? "border-accent bg-accent/5"
+                  : "border-ink/15 bg-white"
+              }`}
+            >
+              <p className="font-medium">{topic.title}</p>
+              <p className="mt-1 text-xs text-ink/50">{topic.hint}</p>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setSelectedTopicId(CUSTOM_TOPIC_ID)}
+            className={`rounded-lg border p-3 text-left transition ${
+              isCustom ? "border-accent bg-accent/5" : "border-ink/15 bg-white"
+            }`}
+          >
+            <p className="font-medium">다른 주제로 직접 써보기</p>
+            <p className="mt-1 text-xs text-ink/50">
+              위 글감이 마음에 안 들면 내가 직접 주제를 정해요.
+            </p>
+          </button>
+        </div>
+        {isCustom && (
+          <input
+            className="mt-2 w-full rounded-md border border-ink/20 bg-white px-3 py-2"
+            placeholder="어떤 주제로 쓸지 짧게 적어주세요 (비워두면 자유롭게 써도 돼요)"
+            value={customTopic}
+            onChange={(e) => setCustomTopic(e.target.value)}
+          />
+        )}
       </div>
 
       <textarea

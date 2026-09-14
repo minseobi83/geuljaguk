@@ -45,8 +45,13 @@ create table if not exists public.essays (
   id uuid primary key default gen_random_uuid(),
   child_id uuid not null references public.children (id) on delete cascade,
   writing_type text not null,
+  topic_title text, -- 학생이 고른 글감 (관리자 콘솔이 생기면 topics 테이블 참조로 바꿀 예정)
   created_at timestamptz not null default now()
 );
+
+-- 이미 위 CREATE TABLE로 처음 만드는 경우엔 topic_title이 바로 포함되지만,
+-- 예전 버전으로 이미 테이블을 만들어둔 경우에도 안전하게 추가되도록 보장한다.
+alter table public.essays add column if not exists topic_title text;
 
 -- 에세이의 각 시도(버전). 재작성할 때마다 하나씩 늘어난다 (최대 4개: 최초 1 + 재작성 3).
 create table if not exists public.essay_versions (

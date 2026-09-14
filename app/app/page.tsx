@@ -10,6 +10,9 @@ const MAX_FREE_REWRITES = 3; // PRD 04 핵심 루프: 무료 재작성은 에세
 interface VersionRecord {
   text: string;
   versionNo: number;
+  writingType: WritingType;
+  gradeBand: GradeBand;
+  topicTitle?: string;
   result: EvaluationResult;
 }
 
@@ -29,6 +32,7 @@ export default function Home() {
     studentText: string;
     writingType: WritingType;
     gradeBand: GradeBand;
+    topicTitle?: string;
   }) {
     setSubmitting(true);
     setError(null);
@@ -40,6 +44,7 @@ export default function Home() {
           studentText: data.studentText,
           writingType: data.writingType,
           gradeBand: data.gradeBand,
+          topicTitle: data.topicTitle,
           versionNo: nextVersionNo,
           previousVersions: history.map((h) => ({
             text: h.text,
@@ -57,6 +62,9 @@ export default function Home() {
         {
           text: data.studentText,
           versionNo: nextVersionNo,
+          writingType: data.writingType,
+          gradeBand: data.gradeBand,
+          topicTitle: data.topicTitle,
           result: body.result as EvaluationResult,
         },
       ]);
@@ -109,6 +117,9 @@ export default function Home() {
           )}
           <EssayForm
             initialText={current?.text ?? ""}
+            initialWritingType={current?.writingType}
+            initialGradeBand={current?.gradeBand}
+            initialTopicTitle={current?.topicTitle}
             submitting={submitting}
             submitLabel={current ? "다시 보여주기" : "선생님께 보여주기"}
             onSubmit={submitEssay}
@@ -124,6 +135,7 @@ export default function Home() {
         <div className="flex flex-col gap-6">
           <p className="text-center text-sm text-ink/50">
             {current.versionNo}번째 시도
+            {current.topicTitle ? ` · ${current.topicTitle}` : ""}
           </p>
           <ResultView
             result={current.result}

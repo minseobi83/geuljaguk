@@ -64,7 +64,8 @@ guardrail_check.rewrote_student_text는 네가 mechanics_table 밖에서 학생 
 표시해라. (서버에서도 별도로 다시 검사한다.)`;
 
 export function buildUserPrompt(submission: EssaySubmission): string {
-  const { studentText, writingType, gradeBand, versionNo, previousVersions } = submission;
+  const { studentText, writingType, gradeBand, versionNo, topicTitle, previousVersions } =
+    submission;
 
   const historyBlock =
     previousVersions && previousVersions.length > 0
@@ -74,11 +75,15 @@ export function buildUserPrompt(submission: EssaySubmission): string {
           .join("\n\n")
       : "";
 
+  const topicBlock = topicTitle
+    ? `이번 글감(주제): ${topicTitle}\n(학생이 이 글감에 맞게 썼는지도 과제 충실도 판단에 참고해줘. 다만 창의적으로 살짝 비틀었다고 감점하지는 마.)\n`
+    : "";
+
   return `# 학생 정보
 학년: ${gradeBand}학년
 글의 종류: ${writingType}
 이번 시도 번호: ${versionNo}
-
+${topicBlock}
 # 학생이 쓴 글
 ${studentText}
 ${historyBlock}

@@ -73,5 +73,6 @@ export interface EssaySubmission {
   writingType: WritingType;
   gradeBand: GradeBand;
   versionNo: number;
+  topicTitle?: string;
   previousVersions?: { text: string; versionNo: number }[];
 }

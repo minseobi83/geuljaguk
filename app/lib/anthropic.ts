@@ -52,23 +52,31 @@ async function callModel(
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 2048,
+    max_tokens: 4096,
     system: CACHED_SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("AI가 텍스트 응답을 반환하지 않았습니다.");
-  }
-
-  // 캐시가 실제로 히트되는지 배포 로그에서 확인하기 위한 최소한의 관측 로그.
+  // 캐시가 실제로 히트되는지, 응답이 왜 비어있는지 배포 로그에서 바로 확인하기 위한 관측 로그.
   console.log(
-    `[claude usage] input=${response.usage.input_tokens} ` +
+    `[claude usage] stop_reason=${response.stop_reason} ` +
+      `content_types=${response.content.map((b) => b.type).join(",")} ` +
+      `input=${response.usage.input_tokens} ` +
       `cache_write=${response.usage.cache_creation_input_tokens ?? 0} ` +
       `cache_read=${response.usage.cache_read_input_tokens ?? 0} ` +
       `output=${response.usage.output_tokens}`
   );
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    console.error(
+      "[claude debug] no text block. full content:",
+      JSON.stringify(response.content)
+    );
+    throw new Error(
+      `AI가 텍스트 응답을 반환하지 않았습니다. (stop_reason=${response.stop_reason})`
+    );
+  }
 
   return extractJson(textBlock.text) as EvaluationResult;
 }

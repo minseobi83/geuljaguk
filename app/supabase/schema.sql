@@ -131,3 +131,15 @@ create policy "evaluations_own_rows" on public.evaluations
       where v.id = evaluations.essay_version_id and c.parent_id = auth.uid()
     )
   );
+
+-- RLS는 "이 행을 볼 수 있냐"만 걸러줄 뿐, 그 이전에 "이 테이블 자체를 만질 수 있냐"는
+-- Postgres의 기본 GRANT 권한으로 별도로 허용해줘야 한다. 이게 없으면 RLS 정책이 맞아도
+-- "permission denied for table ..." 에러가 난다. 로그인한 보호자(authenticated)에게만 허용.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on
+  public.parents,
+  public.children,
+  public.essays,
+  public.essay_versions,
+  public.evaluations
+  to authenticated;

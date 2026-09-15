@@ -112,7 +112,7 @@ export default function OnboardingFlow({
             별명
             <input
               className="mt-1 rounded-md border border-ink/20 bg-white px-3 py-2"
-              placeholder="예: 도윤"
+              placeholder="예: 주원"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
             />

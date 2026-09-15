@@ -6,7 +6,7 @@ import EssayForm from "@/components/EssayForm";
 import ResultView from "@/components/ResultView";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateShort } from "@/lib/format";
-import BrandMark from "@/components/BrandMark";
+import TopNav from "@/components/TopNav";
 import {
   ChildProfile,
   EvaluationResult,
@@ -120,42 +120,36 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
   }
 
   const header = (
-    <header className="mb-8 flex items-start justify-between">
-      <div className="flex items-center gap-2">
-        <BrandMark size={36} />
-        <div>
-          <h1 className="font-heading text-2xl text-accent">글자국</h1>
-          <p className="mt-1 text-sm text-ink/60">
-            네 생각이 자라는 흔적을 함께 살펴봐요.
-          </p>
+    <>
+      <TopNav />
+      <div className="mb-8 flex items-start justify-between">
+        <p className="text-sm text-ink/60">
+          네 생각이 자라는 흔적을 함께 살펴봐요.
+        </p>
+        <div className="flex flex-col items-end gap-2 text-sm">
+          {allChildren.length > 1 ? (
+            <select
+              className="rounded-md border border-ink/20 bg-white px-2 py-1"
+              value={child.id}
+              onChange={(e) => router.push(`/?child=${e.target.value}`)}
+            >
+              {allChildren.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nickname} ({c.grade_band}학년)
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-ink/70">
+              {child.nickname} ({child.grade_band}학년)
+            </span>
+          )}
+          <button onClick={handleLogout} className="text-ink/40 underline">
+            로그아웃
+          </button>
         </div>
       </div>
-      <div className="flex flex-col items-end gap-2 text-sm">
-        {allChildren.length > 1 ? (
-          <select
-            className="rounded-md border border-ink/20 bg-white px-2 py-1"
-            value={child.id}
-            onChange={(e) => router.push(`/?child=${e.target.value}`)}
-          >
-            {allChildren.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nickname} ({c.grade_band}학년)
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="text-ink/70">
-            {child.nickname} ({child.grade_band}학년)
-          </span>
-        )}
-        <a href={`/dashboard?child=${child.id}`} className="text-accent underline">
-          보호자 대시보드
-        </a>
-        <button onClick={handleLogout} className="text-ink/40 underline">
-          로그아웃
-        </button>
-      </div>
-    </header>
+    </>
   );
 
   if (view === "done") {

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getChildEssayHistory, EssayHistoryItem } from "@/lib/supabase/queries";
 import { computeIndicatorTrends, buildGrowthSummary } from "@/lib/growth";
 import DashboardTabs from "@/components/DashboardTabs";
+import TopNav from "@/components/TopNav";
 import { ChildProfile, RubricScores } from "@/lib/types";
 
 export default async function DashboardPage({
@@ -50,16 +51,12 @@ export default async function DashboardPage({
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <header className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="font-heading text-2xl text-accent">보호자 대시보드</h1>
-          <p className="mt-1 text-sm text-ink/60">
-            점수보다 흐름을 봐주세요 - 지난 글의 나와 비교한 변화예요.
-          </p>
-        </div>
-        <a href={`/?child=${activeChild.id}`} className="text-sm text-accent underline">
-          글쓰기로 돌아가기
-        </a>
+      <TopNav />
+      <header className="mb-8">
+        <h1 className="font-heading text-2xl text-accent">보호자 대시보드</h1>
+        <p className="mt-1 text-sm text-ink/60">
+          점수보다 흐름을 봐주세요 - 지난 글의 나와 비교한 변화예요.
+        </p>
       </header>
 
       {typedChildren.length > 1 && (

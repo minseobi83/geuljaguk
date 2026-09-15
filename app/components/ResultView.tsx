@@ -1,23 +1,7 @@
 "use client";
 
-import { EvaluationResult, Tier } from "@/lib/types";
-
-const TIER_STYLE: Record<Tier, string> = {
-  능숙: "bg-growth/10 text-growth border-growth/30",
-  보통: "bg-accent/10 text-accent border-accent/30",
-  도움필요: "bg-warn/10 text-warn border-warn/30",
-};
-
-function ScoreBadge({ label, tier }: { label: string; tier: Tier }) {
-  return (
-    <div
-      className={`flex flex-col items-center gap-1 rounded-xl border px-4 py-3 ${TIER_STYLE[tier]}`}
-    >
-      <span className="text-xs text-ink/60">{label}</span>
-      <span className="font-heading text-lg">{tier}</span>
-    </div>
-  );
-}
+import { EvaluationResult } from "@/lib/types";
+import TierBadge from "./TierBadge";
 
 interface Props {
   result: EvaluationResult;
@@ -52,10 +36,10 @@ export default function ResultView({
       </section>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ScoreBadge label="사고력" tier={result.scores.사고력} />
-        <ScoreBadge label="논리력" tier={result.scores.논리력} />
-        <ScoreBadge label="표현력" tier={result.scores.표현력} />
-        <ScoreBadge label="구성력" tier={result.scores.구성력} />
+        <TierBadge label="사고력" tier={result.scores.사고력} />
+        <TierBadge label="논리력" tier={result.scores.논리력} />
+        <TierBadge label="표현력" tier={result.scores.표현력} />
+        <TierBadge label="구성력" tier={result.scores.구성력} />
       </section>
 
       <section className="rounded-xl border border-growth/20 bg-growth/5 p-5">

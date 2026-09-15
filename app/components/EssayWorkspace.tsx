@@ -136,6 +136,9 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
             {child.nickname} ({child.grade_band}학년)
           </span>
         )}
+        <a href={`/dashboard?child=${child.id}`} className="text-accent underline">
+          보호자 대시보드
+        </a>
         <button onClick={handleLogout} className="text-ink/40 underline">
           로그아웃
         </button>

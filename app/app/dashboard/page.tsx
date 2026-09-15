@@ -95,24 +95,47 @@ export default async function DashboardPage({
         </section>
       )}
 
-      {scoredAsc.length > 1 && (
+      {scoredAsc.length > 0 && (
         <section className="mt-8">
-          <h3 className="mb-3 text-sm font-medium text-ink/60">지표별 변화 흐름</h3>
-          <div className="flex flex-col gap-3">
-            {(["사고력", "논리력", "표현력", "구성력"] as const).map((indicator) => (
-              <div key={indicator} className="flex items-center gap-2">
-                <span className="w-14 text-sm text-ink/60">{indicator}</span>
-                <div className="flex flex-wrap gap-1">
-                  {scoredAsc.map((h) => (
-                    <TierBadge key={h.id} tier={h.scores[indicator]} size="sm" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-ink/40">
-            왼쪽이 예전 글, 오른쪽이 가장 최근 글이에요.
+          <h3 className="mb-1 text-sm font-medium text-ink/60">지표별 변화 흐름</h3>
+          <p className="mb-4 text-xs text-ink/40">
+            같은 글의 종류끼리만 비교해요 (왼쪽이 예전 글, 오른쪽이 가장 최근 글).
           </p>
+          <div className="flex flex-col gap-6">
+            {Array.from(new Set(scoredAsc.map((h) => h.writingType))).map((category) => {
+              const items = scoredAsc.filter((h) => h.writingType === category);
+              return (
+                <div key={category}>
+                  <h4 className="mb-2 text-sm font-medium text-ink/70">{category}</h4>
+                  <div className="flex flex-col gap-3">
+                    {(["사고력", "논리력", "표현력", "구성력"] as const).map(
+                      (indicator) => (
+                        <div key={indicator} className="flex items-center gap-2">
+                          <span className="w-14 text-sm text-ink/60">{indicator}</span>
+                          <div className="flex flex-wrap gap-2">
+                            {items.map((h) => (
+                              <div
+                                key={h.id}
+                                className="flex flex-col items-center gap-0.5"
+                              >
+                                <span className="text-[10px] text-ink/40">
+                                  {new Date(h.createdAt).toLocaleDateString("ko-KR", {
+                                    month: "numeric",
+                                    day: "numeric",
+                                  })}
+                                </span>
+                                <TierBadge tier={h.scores[indicator]} size="sm" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
 

@@ -13,7 +13,10 @@ import {
   WritingType,
 } from "@/lib/types";
 
-const MAX_FREE_REWRITES = 3; // PRD 04 핵심 루프: 무료 재작성은 에세이당 3회까지
+interface TopicAttempt {
+  used: number;
+  max: number;
+}
 
 interface VersionRecord {
   text: string;
@@ -36,13 +39,15 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
   const router = useRouter();
   const [history, setHistory] = useState<VersionRecord[]>([]);
   const [essayId, setEssayId] = useState<string | null>(null);
+  const [topicAttempt, setTopicAttempt] = useState<TopicAttempt | null>(null);
   const [view, setView] = useState<ViewMode>("writing");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const current = history[history.length - 1];
   const nextVersionNo = history.length + 1;
-  const reachedLimit = history.length >= MAX_FREE_REWRITES;
+  // 글감이 있는 글만 제한한다 (직접 정한 자유 주제는 topicAttempt가 없어 제한 없음).
+  const reachedLimit = Boolean(topicAttempt && topicAttempt.used >= topicAttempt.max);
 
   async function submitEssay(data: {
     studentText: string;
@@ -76,6 +81,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
         return;
       }
       if (body.essayId) setEssayId(body.essayId);
+      setTopicAttempt(body.topicAttempt ?? null);
       setHistory((prev) => [
         ...prev,
         {
@@ -98,6 +104,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
   function startNewEssay() {
     setHistory([]);
     setEssayId(null);
+    setTopicAttempt(null);
     setError(null);
     setView("writing");
     router.refresh(); // 최근에 쓴 글 목록에 방금 저장한 글이 반영되도록
@@ -196,6 +203,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           <p className="text-center text-sm text-ink/50">
             {current.versionNo}번째 시도
             {current.topicTitle ? ` · ${current.topicTitle}` : ""}
+            {topicAttempt ? ` (이 글감 ${topicAttempt.used}/${topicAttempt.max}회)` : ""}
           </p>
           <ResultView
             result={current.result}
@@ -205,7 +213,8 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           />
           {reachedLimit && (
             <p className="text-center text-sm text-ink/50">
-              오늘은 여기까지 해볼까요? 내일 또 다른 글로 만나요.
+              이 글감은 오늘 {topicAttempt?.max}번 다 써봤어요. 다른 글감으로 새 글을
+              써볼까요?
             </p>
           )}
         </div>

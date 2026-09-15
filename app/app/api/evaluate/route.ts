@@ -5,6 +5,7 @@ import { EssaySubmission, WritingType, GradeBand } from "@/lib/types";
 
 const MIN_LENGTH = 20; // 경량 필터: 너무 짧은 글은 본분석 호출 전에 걸러낸다 (비용 절감)
 const MAX_LENGTH = 4000;
+const MAX_ATTEMPTS_PER_TOPIC = 3; // 같은 글감은 최대 3번까지만 제출 (한 주제에 집중하도록)
 
 function isValidSubmission(
   body: unknown
@@ -61,6 +62,36 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 같은 글감(topicTitle)에 이미 몇 번 제출했는지 확인 - AI를 부르기 전에 먼저 걸러서
+  // 한도를 넘겼으면 비용도 들이지 않고 바로 막는다. 글감이 없는 자유 주제는 제한하지 않는다.
+  let topicAttemptUsed = 0;
+  if (submission.topicTitle) {
+    const { data: matchingEssays } = await supabase
+      .from("essays")
+      .select("id")
+      .eq("child_id", body.childId)
+      .eq("topic_title", submission.topicTitle);
+
+    const essayIds = (matchingEssays ?? []).map((e) => e.id);
+    if (essayIds.length > 0) {
+      const { count } = await supabase
+        .from("essay_versions")
+        .select("id", { count: "exact", head: true })
+        .in("essay_id", essayIds);
+      topicAttemptUsed = count ?? 0;
+    }
+
+    if (topicAttemptUsed >= MAX_ATTEMPTS_PER_TOPIC) {
+      return NextResponse.json(
+        {
+          error: `이 글감은 이미 ${MAX_ATTEMPTS_PER_TOPIC}번 써봤어요. 다른 글감으로 써볼까요?`,
+          topicLimitReached: true,
+        },
+        { status: 429 }
+      );
+    }
+  }
+
   try {
     const result = await evaluateEssay(submission);
 
@@ -68,6 +99,7 @@ export async function POST(req: NextRequest) {
     // RLS가 자녀 소유권을 검증하므로, childId가 이 보호자의 자녀가 아니면 essays insert가
     // 그냥 실패한다 (그래도 evaluate 자체는 이미 끝났으니 결과는 돌려준다).
     let essayId: string | null = body.essayId ?? null;
+    let topicAttemptAfter = topicAttemptUsed;
     try {
       if (!essayId) {
         const { data: essay, error } = await supabase
@@ -101,12 +133,20 @@ export async function POST(req: NextRequest) {
         rewrote_student_text: result.guardrail_check.rewrote_student_text,
       });
       if (evalError) throw evalError;
+
+      topicAttemptAfter = topicAttemptUsed + 1;
     } catch (persistErr) {
       console.error("[supabase persist] 저장 실패, 학생에게는 결과만 반환:", persistErr);
       essayId = essayId ?? null;
     }
 
-    return NextResponse.json({ result, essayId });
+    return NextResponse.json({
+      result,
+      essayId,
+      topicAttempt: submission.topicTitle
+        ? { used: topicAttemptAfter, max: MAX_ATTEMPTS_PER_TOPIC }
+        : null,
+    });
   } catch (err) {
     if (err instanceof GuardrailViolationError) {
       return NextResponse.json(

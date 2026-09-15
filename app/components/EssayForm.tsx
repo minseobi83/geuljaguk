@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
 import { WRITING_TOPICS } from "@/lib/topics";
-import { BOOK_PROMPT_TEMPLATES, booksForGrade } from "@/lib/books";
+import { BOOK_PROMPT_TEMPLATES, booksFor } from "@/lib/books";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -63,11 +63,11 @@ export default function EssayForm({
       : ""
   );
   const [selectedBookId, setSelectedBookId] = useState<string | null>(
-    booksForGrade(initialGradeBand)[0]?.id ?? null
+    booksFor(initialGradeBand, initialWritingType)[0]?.id ?? null
   );
 
   const topics = WRITING_TOPICS[writingType];
-  const books = booksForGrade(gradeBand);
+  const books = booksFor(gradeBand, writingType);
   const isCustom = selectedTopicId === CUSTOM_TOPIC_ID;
   const selectedBook = books.find((b) => b.id === selectedBookId);
 
@@ -81,14 +81,18 @@ export default function EssayForm({
   function handleWritingTypeChange(newType: WritingType) {
     setWritingType(newType);
     // 글의 종류가 바뀌면 그 종류에 맞는 글감 목록으로 다시 골라야 하니 첫 번째 글감으로 초기화.
-    // (추천도서를 고른 상태라면 책은 그대로 두고, 그 책에 맞는 새 유형별 과제만 자동으로 바뀐다.)
     setSelectedTopicId(WRITING_TOPICS[newType][0].id);
     setCustomTopic("");
+    // 추천도서도 유형마다 어울리는 책이 다르므로, 새 유형에 맞는 책 목록의 첫 번째로 바꾼다.
+    const newBooks = booksFor(gradeBand, newType);
+    if (!newBooks.find((b) => b.id === selectedBookId)) {
+      setSelectedBookId(newBooks[0]?.id ?? null);
+    }
   }
 
   function handleGradeBandChange(newGrade: GradeBand) {
     setGradeBand(newGrade);
-    const newBooks = booksForGrade(newGrade);
+    const newBooks = booksFor(newGrade, writingType);
     if (!newBooks.find((b) => b.id === selectedBookId)) {
       setSelectedBookId(newBooks[0]?.id ?? null);
     }
@@ -197,8 +201,7 @@ export default function EssayForm({
         ) : (
           <>
             <p className="mb-2 text-xs text-ink/50">
-              {gradeBand}학년 추천도서예요. 책을 고르면 지금 고른 글의 종류에 맞는 과제로
-              바뀌어요.
+              {gradeBand}학년 · {writingType}에 어울리는 추천도서예요.
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {books.map((book) => (
@@ -206,14 +209,22 @@ export default function EssayForm({
                   key={book.id}
                   type="button"
                   onClick={() => setSelectedBookId(book.id)}
-                  className={`rounded-lg border p-3 text-left transition ${
+                  className={`flex gap-3 rounded-lg border p-3 text-left transition ${
                     selectedBookId === book.id
                       ? "border-growth bg-growth/5"
                       : "border-ink/15 bg-white"
                   }`}
                 >
-                  <p className="font-medium">『{book.title}』</p>
-                  <p className="mt-1 text-xs text-ink/50">{book.author}</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={book.coverUrl}
+                    alt={`${book.title} 표지`}
+                    className="h-20 w-14 shrink-0 rounded object-cover shadow-sm"
+                  />
+                  <div>
+                    <p className="font-medium">『{book.title}』</p>
+                    <p className="mt-1 text-xs text-ink/50">{book.author}</p>
+                  </div>
                 </button>
               ))}
             </div>

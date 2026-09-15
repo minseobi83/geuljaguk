@@ -6,6 +6,7 @@ import EssayForm from "@/components/EssayForm";
 import ResultView from "@/components/ResultView";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateShort } from "@/lib/format";
+import BrandMark from "@/components/BrandMark";
 import {
   ChildProfile,
   EvaluationResult,
@@ -120,11 +121,14 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
 
   const header = (
     <header className="mb-8 flex items-start justify-between">
-      <div>
-        <h1 className="font-heading text-2xl text-accent">글자국</h1>
-        <p className="mt-1 text-sm text-ink/60">
-          네 생각이 자라는 흔적을 함께 살펴봐요.
-        </p>
+      <div className="flex items-center gap-2">
+        <BrandMark size={36} />
+        <div>
+          <h1 className="font-heading text-2xl text-accent">글자국</h1>
+          <p className="mt-1 text-sm text-ink/60">
+            네 생각이 자라는 흔적을 함께 살펴봐요.
+          </p>
+        </div>
       </div>
       <div className="flex flex-col items-end gap-2 text-sm">
         {allChildren.length > 1 ? (

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import BrandMark from "@/components/BrandMark";
 
 type Mode = "signin" | "signup";
 
@@ -48,8 +49,9 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex max-w-sm flex-col gap-6 px-4 py-16">
-      <header className="text-center">
-        <h1 className="font-heading text-2xl text-accent">글자국</h1>
+      <header className="flex flex-col items-center text-center">
+        <BrandMark size={104} />
+        <h1 className="mt-2 font-heading text-2xl text-accent">글자국</h1>
         <p className="mt-1 text-sm text-ink/60">보호자 계정으로 시작해요</p>
       </header>
 

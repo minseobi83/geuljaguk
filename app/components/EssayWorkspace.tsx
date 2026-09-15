@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import EssayForm from "@/components/EssayForm";
 import ResultView from "@/components/ResultView";
 import { createClient } from "@/lib/supabase/client";
+import { formatDateShort } from "@/lib/format";
 import {
   ChildProfile,
   EvaluationResult,
@@ -234,7 +235,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
                 <p className="font-medium">
                   {essay.topic_title ?? essay.writing_type}
                   <span className="ml-2 text-xs text-ink/40">
-                    {new Date(essay.created_at).toLocaleDateString("ko-KR")}
+                    {formatDateShort(essay.created_at)}
                   </span>
                 </p>
                 {essay.latest_summary && (

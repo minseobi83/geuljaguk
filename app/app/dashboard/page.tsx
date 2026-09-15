@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getChildEssayHistory, EssayHistoryItem } from "@/lib/supabase/queries";
 import { computeIndicatorTrends, buildGrowthSummary } from "@/lib/growth";
+import { formatDateShort } from "@/lib/format";
 import TierBadge from "@/components/TierBadge";
+import IndicatorTrends from "@/components/IndicatorTrends";
 import { ChildProfile, RubricScores } from "@/lib/types";
 
 export default async function DashboardPage({
@@ -101,41 +103,7 @@ export default async function DashboardPage({
           <p className="mb-4 text-xs text-ink/40">
             같은 글의 종류끼리만 비교해요 (왼쪽이 예전 글, 오른쪽이 가장 최근 글).
           </p>
-          <div className="flex flex-col gap-6">
-            {Array.from(new Set(scoredAsc.map((h) => h.writingType))).map((category) => {
-              const items = scoredAsc.filter((h) => h.writingType === category);
-              return (
-                <div key={category}>
-                  <h4 className="mb-2 text-sm font-medium text-ink/70">{category}</h4>
-                  <div className="flex flex-col gap-3">
-                    {(["사고력", "논리력", "표현력", "구성력"] as const).map(
-                      (indicator) => (
-                        <div key={indicator} className="flex items-center gap-2">
-                          <span className="w-14 text-sm text-ink/60">{indicator}</span>
-                          <div className="flex flex-wrap gap-2">
-                            {items.map((h) => (
-                              <div
-                                key={h.id}
-                                className="flex flex-col items-center gap-0.5"
-                              >
-                                <span className="text-[10px] text-ink/40">
-                                  {new Date(h.createdAt).toLocaleDateString("ko-KR", {
-                                    month: "numeric",
-                                    day: "numeric",
-                                  })}
-                                </span>
-                                <TierBadge tier={h.scores[indicator]} size="sm" />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <IndicatorTrends items={scoredAsc} />
         </section>
       )}
 
@@ -155,7 +123,7 @@ export default async function DashboardPage({
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{essay.topicTitle ?? essay.writingType}</p>
                   <span className="text-xs text-ink/40">
-                    {new Date(essay.createdAt).toLocaleDateString("ko-KR")}
+                    {formatDateShort(essay.createdAt)}
                   </span>
                 </div>
                 {essay.summary && (

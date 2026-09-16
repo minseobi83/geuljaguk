@@ -101,7 +101,16 @@ export function buildUserPrompt(submission: EssaySubmission): string {
     previousVersions && previousVersions.length > 0
       ? `\n\n# 이전 시도 (참고용, 성장을 확인하되 비교로 아이를 평가하지 말 것)\n` +
         previousVersions
-          .map((v) => `-- ${v.versionNo}번째 시도 --\n${v.text}`)
+          .map((v) => {
+            const answersBlock =
+              v.paragraphAnswers && v.paragraphAnswers.length > 0
+                ? `\n[이 시도의 문단별 질문에 아이가 직접 적은 생각 - 답을 안 했다고 감점하지 말 것]\n` +
+                  v.paragraphAnswers
+                    .map((a) => `${a.paragraph_no}번째 문단 답변: ${a.answer}`)
+                    .join("\n")
+                : "";
+            return `-- ${v.versionNo}번째 시도 --\n${v.text}${answersBlock}`;
+          })
           .join("\n\n")
       : "";
 

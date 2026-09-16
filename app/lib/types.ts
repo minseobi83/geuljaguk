@@ -68,13 +68,22 @@ export interface EvaluationResult {
   };
 }
 
+export interface ParagraphAnswer {
+  paragraph_no: number;
+  answer: string;
+}
+
 export interface EssaySubmission {
   studentText: string;
   writingType: WritingType;
   gradeBand: GradeBand;
   versionNo: number;
   topicTitle?: string;
-  previousVersions?: { text: string; versionNo: number }[];
+  previousVersions?: {
+    text: string;
+    versionNo: number;
+    paragraphAnswers?: ParagraphAnswer[];
+  }[];
 }
 
 export interface ChildProfile {

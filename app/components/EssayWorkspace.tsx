@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import EssayForm from "@/components/EssayForm";
 import ResultView from "@/components/ResultView";
+import VersionCompare from "@/components/VersionCompare";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateShort } from "@/lib/format";
 import TopNav from "@/components/TopNav";
@@ -11,6 +12,7 @@ import {
   ChildProfile,
   EvaluationResult,
   GradeBand,
+  ParagraphAnswer,
   RecentEssay,
   WritingType,
 } from "@/lib/types";
@@ -27,9 +29,10 @@ interface VersionRecord {
   gradeBand: GradeBand;
   topicTitle?: string;
   result: EvaluationResult;
+  paragraphAnswers?: ParagraphAnswer[];
 }
 
-type ViewMode = "writing" | "result" | "done";
+type ViewMode = "writing" | "result" | "done" | "compare";
 
 interface Props {
   child: ChildProfile;
@@ -45,8 +48,10 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
   const [view, setView] = useState<ViewMode>("writing");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paragraphAnswers, setParagraphAnswers] = useState<Record<number, string>>({});
 
   const current = history[history.length - 1];
+  const previous = history[history.length - 2];
   const nextVersionNo = history.length + 1;
   // 글감이 있는 글만 제한한다 (직접 정한 자유 주제는 topicAttempt가 없어 제한 없음).
   const reachedLimit = Boolean(topicAttempt && topicAttempt.used >= topicAttempt.max);
@@ -74,6 +79,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           previousVersions: history.map((h) => ({
             text: h.text,
             versionNo: h.versionNo,
+            paragraphAnswers: h.paragraphAnswers,
           })),
         }),
       });
@@ -95,6 +101,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           result: body.result as EvaluationResult,
         },
       ]);
+      setParagraphAnswers({});
       setView("result");
     } catch {
       setError("서버와 통신하는 중 문제가 생겼어요. 다시 시도해 주세요.");
@@ -103,11 +110,32 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
     }
   }
 
+  function handleParagraphAnswerChange(paragraphNo: number, value: string) {
+    setParagraphAnswers((prev) => ({ ...prev, [paragraphNo]: value }));
+  }
+
+  function handleRewrite() {
+    // 지금까지 적은 문단별 답변을 이번 시도 기록에 붙여둔다 - 다음 채점 때 아이 생각을 참고하도록.
+    const answers: ParagraphAnswer[] = Object.entries(paragraphAnswers)
+      .filter(([, answer]) => answer.trim().length > 0)
+      .map(([paragraphNo, answer]) => ({
+        paragraph_no: Number(paragraphNo),
+        answer: answer.trim(),
+      }));
+    if (answers.length > 0) {
+      setHistory((prev) =>
+        prev.map((h, i) => (i === prev.length - 1 ? { ...h, paragraphAnswers: answers } : h))
+      );
+    }
+    setView("writing");
+  }
+
   function startNewEssay() {
     setHistory([]);
     setEssayId(null);
     setTopicAttempt(null);
     setError(null);
+    setParagraphAnswers({});
     setView("writing");
     router.refresh(); // 최근에 쓴 글 목록에 방금 저장한 글이 반영되도록
   }
@@ -206,9 +234,14 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           </p>
           <ResultView
             result={current.result}
+            studentText={current.text}
+            paragraphAnswers={paragraphAnswers}
+            onParagraphAnswerChange={handleParagraphAnswerChange}
             canRewrite={!reachedLimit}
-            onRewrite={() => setView("writing")}
+            onRewrite={handleRewrite}
             onDone={() => setView("done")}
+            canCompare={Boolean(previous)}
+            onCompare={() => setView("compare")}
           />
           {reachedLimit && (
             <p className="text-center text-sm text-ink/50">
@@ -217,6 +250,14 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
             </p>
           )}
         </div>
+      )}
+
+      {view === "compare" && current && previous && (
+        <VersionCompare
+          before={{ text: previous.text, versionNo: previous.versionNo }}
+          after={{ text: current.text, versionNo: current.versionNo }}
+          onClose={() => setView("result")}
+        />
       )}
 
       {view === "writing" && !current && recentEssays.length > 0 && (

@@ -2,21 +2,34 @@
 
 import { EvaluationResult } from "@/lib/types";
 import TierBadge from "./TierBadge";
+import ParagraphFeedbackCard from "./ParagraphFeedbackCard";
+import { splitParagraphs } from "@/lib/highlight";
 
 interface Props {
   result: EvaluationResult;
+  studentText: string;
+  paragraphAnswers: Record<number, string>;
+  onParagraphAnswerChange: (paragraphNo: number, value: string) => void;
   canRewrite: boolean;
   onRewrite: () => void;
   onDone: () => void;
+  canCompare: boolean;
+  onCompare: () => void;
 }
 
 export default function ResultView({
   result,
+  studentText,
+  paragraphAnswers,
+  onParagraphAnswerChange,
   canRewrite,
   onRewrite,
   onDone,
+  canCompare,
+  onCompare,
 }: Props) {
   const isUncertain = result.scores.confidence === "판단하기 어려움";
+  const paragraphs = splitParagraphs(studentText);
 
   return (
     <div className="flex flex-col gap-6">
@@ -61,17 +74,18 @@ export default function ResultView({
       {result.paragraph_feedback.length > 0 && (
         <section className="flex flex-col gap-3">
           <h3 className="font-heading text-base">문단별로 살펴보기</h3>
+          <p className="text-xs text-ink/50">
+            강조된 표현은 고쳐볼 만한 부분이에요. 질문에 대한 내 생각도 적어보세요.
+          </p>
           {result.paragraph_feedback.map((p) => (
-            <div
+            <ParagraphFeedbackCard
               key={p.paragraph_no}
-              className="rounded-lg border border-ink/10 bg-white p-4"
-            >
-              <p className="text-xs font-mono text-ink/50">
-                {p.paragraph_no}번째 문단 · {p.role}
-              </p>
-              <p className="mt-1">{p.good}</p>
-              <p className="mt-2 text-accent">{p.question}</p>
-            </div>
+              feedback={p}
+              paragraphText={paragraphs[p.paragraph_no - 1]}
+              mechanicsTable={result.mechanics_table}
+              answer={paragraphAnswers[p.paragraph_no] ?? ""}
+              onAnswerChange={(value) => onParagraphAnswerChange(p.paragraph_no, value)}
+            />
           ))}
         </section>
       )}
@@ -118,7 +132,15 @@ export default function ResultView({
         <p className="mt-2 leading-7">{result.next_task.prompt}</p>
       </section>
 
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-wrap justify-end gap-3">
+        {canCompare && (
+          <button
+            onClick={onCompare}
+            className="rounded-full border border-ink/20 px-6 py-2 font-medium text-ink/70"
+          >
+            이전 글과 비교하기
+          </button>
+        )}
         {canRewrite && (
           <button
             onClick={onRewrite}

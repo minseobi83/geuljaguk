@@ -4,6 +4,7 @@ import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
 import { WRITING_TOPICS } from "@/lib/topics";
 import { BOOK_PROMPT_TEMPLATES, booksFor } from "@/lib/books";
+import BookInfoPopover from "@/components/BookInfoPopover";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -205,11 +206,18 @@ export default function EssayForm({
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {books.map((book) => (
-                <button
+                <div
                   key={book.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelectedBookId(book.id)}
-                  className={`flex gap-3 rounded-lg border p-3 text-left transition ${
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedBookId(book.id);
+                    }
+                  }}
+                  className={`flex cursor-pointer gap-3 rounded-lg border p-3 text-left transition ${
                     selectedBookId === book.id
                       ? "border-growth bg-growth/5"
                       : "border-ink/15 bg-white"
@@ -221,11 +229,14 @@ export default function EssayForm({
                     alt={`${book.title} 표지`}
                     className="h-20 w-14 shrink-0 rounded object-cover shadow-sm"
                   />
-                  <div>
-                    <p className="font-medium">『{book.title}』</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-1">
+                      <p className="font-medium">『{book.title}』</p>
+                      <BookInfoPopover book={book} />
+                    </div>
                     <p className="mt-1 text-xs text-ink/50">{book.author}</p>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
             {selectedBook && (

@@ -48,7 +48,7 @@ export default async function GrowthPage({
   const latestScores = scoredAsc[scoredAsc.length - 1]?.scores ?? null;
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
+    <main className="mx-auto max-w-2xl px-4 py-10 lg:max-w-4xl xl:max-w-5xl">
       <TopNav />
       <header className="mb-8">
         <h1 className="font-heading text-2xl text-accent">

@@ -32,7 +32,7 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    <main className="mx-auto max-w-3xl px-4 py-10 lg:max-w-5xl">
       <TopNav />
       <header className="mb-8">
         <h1 className="font-heading text-2xl text-accent">관리자</h1>
@@ -41,7 +41,7 @@ export default async function AdminPage() {
         </p>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-5 lg:gap-4">
         <StatCard label="보호자" value={stats.totalParents} />
         <StatCard label="자녀" value={stats.totalChildren} />
         <StatCard label="전체 제출 글" value={stats.totalEssays} />
@@ -59,7 +59,7 @@ export default async function AdminPage() {
         {flagged.length === 0 ? (
           <p className="text-sm text-ink/50">지금은 확인할 항목이 없어요.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="grid gap-2 lg:grid-cols-2">
             {flagged.map((f) => (
               <li
                 key={f.versionId}

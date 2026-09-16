@@ -56,7 +56,7 @@ export default function GrowthTabs({
           </section>
 
           {latestScores && (
-            <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:max-w-xl">
               <TierBadge label="사고력" tier={latestScores.사고력} />
               <TierBadge label="논리력" tier={latestScores.논리력} />
               <TierBadge label="표현력" tier={latestScores.표현력} />
@@ -87,7 +87,7 @@ export default function GrowthTabs({
           {historyDesc.length === 0 ? (
             <p className="text-sm text-ink/50">아직 쓴 글이 없어요.</p>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="grid gap-2 lg:grid-cols-2">
               {historyDesc.map((essay) => (
                 <li
                   key={essay.id}

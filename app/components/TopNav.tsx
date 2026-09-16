@@ -16,7 +16,13 @@ interface Menu {
 
 // 대메뉴는 우선 학생/학부모만. 나중에 항목이 늘어나면 여기 items만 추가하면 된다.
 const MENUS: Menu[] = [
-  { label: "학생", items: [{ label: "글쓰기", href: "/" }] },
+  {
+    label: "학생",
+    items: [
+      { label: "글쓰기", href: "/" },
+      { label: "추천도서", href: "/books" },
+    ],
+  },
   { label: "학부모", items: [{ label: "대시보드", href: "/dashboard" }] },
 ];
 

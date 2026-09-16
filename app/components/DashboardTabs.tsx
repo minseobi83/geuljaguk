@@ -30,6 +30,7 @@ export default function DashboardTabs({
   historyDesc,
 }: Props) {
   const [tab, setTab] = useState<TabId>("recent");
+  const flaggedEssays = historyDesc.filter((e) => e.safetyNote);
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "recent", label: "최근 변화" },
@@ -39,6 +40,20 @@ export default function DashboardTabs({
 
   return (
     <div>
+      {flaggedEssays.length > 0 && (
+        <section className="mb-6 rounded-xl border border-warn/40 bg-warn/10 p-5">
+          <h2 className="font-heading text-base text-warn">확인해 주세요</h2>
+          <ul className="mt-2 flex flex-col gap-2">
+            {flaggedEssays.map((e) => (
+              <li key={e.id} className="text-sm leading-6">
+                <span className="text-ink/50">{formatDateShort(e.createdAt)} · </span>
+                {e.safetyNote}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="mb-6 flex gap-1 rounded-full border border-ink/15 bg-white p-1 text-sm">
         {tabs.map((t) => (
           <button
@@ -107,8 +122,14 @@ export default function DashboardTabs({
                   className="rounded-lg border border-ink/10 bg-white p-3 text-sm"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="font-medium">
+                    <p className="flex items-center gap-1.5 font-medium">
                       {essay.topicTitle ?? essay.writingType}
+                      {essay.safetyNote && (
+                        <span
+                          title={essay.safetyNote}
+                          className="h-1.5 w-1.5 rounded-full bg-warn"
+                        />
+                      )}
                     </p>
                     <span className="text-xs text-ink/40">
                       {formatDateShort(essay.createdAt)}

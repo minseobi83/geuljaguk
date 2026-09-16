@@ -66,11 +66,28 @@ export interface EvaluationResult {
   guardrail_check: {
     rewrote_student_text: boolean;
   };
+  safety: {
+    concern: boolean;
+    note: string;
+  };
 }
 
 export interface ParagraphAnswer {
   paragraph_no: number;
   answer: string;
+}
+
+export interface PreviousVersionEntry {
+  text: string;
+  versionNo: number;
+  writingType: WritingType;
+  gradeBand: GradeBand;
+  topicTitle?: string;
+  paragraphAnswers?: ParagraphAnswer[];
+  // 그 시도에서 AI가 실제로 반환한 원문 텍스트 (재파싱한 JSON이 아니라 그대로).
+  // 다음 요청을 실제 멀티턴 대화(user/assistant)로 재구성할 때 assistant 턴으로 다시 보내서
+  // 프롬프트 캐시가 이어지게 하는 용도 - 재직렬화하면 캐시가 깨지므로 원문 그대로 저장·전송해야 한다.
+  rawResponseText: string;
 }
 
 export interface EssaySubmission {
@@ -79,11 +96,7 @@ export interface EssaySubmission {
   gradeBand: GradeBand;
   versionNo: number;
   topicTitle?: string;
-  previousVersions?: {
-    text: string;
-    versionNo: number;
-    paragraphAnswers?: ParagraphAnswer[];
-  }[];
+  previousVersions?: PreviousVersionEntry[];
 }
 
 export interface ChildProfile {

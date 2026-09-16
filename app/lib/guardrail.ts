@@ -40,6 +40,19 @@ function similarity(a: string, b: string): number {
 
 const NARRATIVE_FIELDS_THRESHOLD = 0.9;
 
+// AI의 자체 판단(safety.concern)만 믿지 않고, 아주 명백한 신호는 서버에서도 한 번 더 잡아낸다.
+// 이 목록은 일부러 좁고 명확한 표현만 담는다 (오탐이 많으면 보호자가 알림을 무시하게 되므로).
+const SAFETY_KEYWORDS = [
+  "죽고싶", "죽고싶다", "자살", "자해", "손목을그", "뛰어내리고싶",
+  "때렸어", "맞았어", "맞고있어", "폭행", "성폭행", "성추행",
+  "가정폭력", "학대당", "굶겨", "가두고", "가출하고싶",
+];
+
+export function detectSafetyKeywords(studentText: string): boolean {
+  const normalized = normalize(studentText);
+  return SAFETY_KEYWORDS.some((kw) => normalized.includes(kw));
+}
+
 export function detectRewrittenStudentText(
   studentText: string,
   result: EvaluationResult

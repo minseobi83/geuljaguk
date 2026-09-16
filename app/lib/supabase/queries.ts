@@ -8,6 +8,7 @@ export interface EssayHistoryItem {
   createdAt: string;
   scores: RubricScores | null;
   summary: string | null;
+  safetyNote: string | null;
 }
 
 // 에세이별로 "가장 마지막 시도(재작성 포함 최신 버전)"의 평가만 골라서 돌려준다.
@@ -40,6 +41,7 @@ export async function getChildEssayHistory(
       createdAt: e.created_at,
       scores: result?.scores ?? null,
       summary: result?.summary ?? null,
+      safetyNote: result?.safety?.concern ? result.safety.note : null,
     };
   });
 }

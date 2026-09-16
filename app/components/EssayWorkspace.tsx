@@ -30,6 +30,9 @@ interface VersionRecord {
   topicTitle?: string;
   result: EvaluationResult;
   paragraphAnswers?: ParagraphAnswer[];
+  // AI가 그 시도에서 실제로 반환한 원문 텍스트. 다음 시도를 채점할 때 대화 턴으로
+  // 다시 보내서(멀티턴 프롬프트 캐싱) 매번 이전 글 전체를 새 토큰으로 청구하지 않게 한다.
+  rawResponseText: string;
 }
 
 type ViewMode = "writing" | "result" | "done" | "compare";
@@ -47,6 +50,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
   const [topicAttempt, setTopicAttempt] = useState<TopicAttempt | null>(null);
   const [view, setView] = useState<ViewMode>("writing");
   const [submitting, setSubmitting] = useState(false);
+  const [progressChars, setProgressChars] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [paragraphAnswers, setParagraphAnswers] = useState<Record<number, string>>({});
 
@@ -64,6 +68,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
   }) {
     setSubmitting(true);
     setError(null);
+    setProgressChars(0);
     try {
       const res = await fetch("/api/evaluate", {
         method: "POST",
@@ -79,17 +84,71 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           previousVersions: history.map((h) => ({
             text: h.text,
             versionNo: h.versionNo,
+            writingType: h.writingType,
+            gradeBand: h.gradeBand,
+            topicTitle: h.topicTitle,
             paragraphAnswers: h.paragraphAnswers,
+            rawResponseText: h.rawResponseText,
           })),
         }),
       });
-      const body = await res.json();
+
+      // 실패(로그인 필요/입력 오류/글감 한도 등)는 예전과 똑같이 상태 코드가 있는 JSON.
       if (!res.ok) {
-        setError(body.error ?? "알 수 없는 오류가 발생했어요.");
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "알 수 없는 오류가 발생했어요.");
         return;
       }
-      if (body.essayId) setEssayId(body.essayId);
-      setTopicAttempt(body.topicAttempt ?? null);
+      if (!res.body) {
+        setError("서버 응답을 받지 못했어요. 다시 시도해 주세요.");
+        return;
+      }
+
+      // 성공(200)은 NDJSON 스트림: 채점이 진행되는 동안 progress 이벤트로 진행 상황을 받고,
+      // 끝나면 done(성공) 또는 error(실패) 이벤트를 받는다.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let doneEvent: {
+        result: EvaluationResult;
+        rawResponseText: string;
+        essayId: string | null;
+        topicAttempt: TopicAttempt | null;
+      } | null = null;
+      let streamErrorMessage: string | null = null;
+
+      while (true) {
+        const { done: readerDone, value } = await reader.read();
+        if (readerDone) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, newlineIndex).trim();
+          buffer = buffer.slice(newlineIndex + 1);
+          if (!line) continue;
+          const event = JSON.parse(line);
+          if (event.type === "progress") {
+            setProgressChars(event.chars);
+          } else if (event.type === "done") {
+            doneEvent = event;
+          } else if (event.type === "error") {
+            streamErrorMessage = event.error;
+          }
+        }
+      }
+
+      if (streamErrorMessage) {
+        setError(streamErrorMessage);
+        return;
+      }
+      if (!doneEvent) {
+        setError("피드백을 받지 못했어요. 다시 시도해 주세요.");
+        return;
+      }
+
+      if (doneEvent.essayId) setEssayId(doneEvent.essayId);
+      setTopicAttempt(doneEvent.topicAttempt ?? null);
       setHistory((prev) => [
         ...prev,
         {
@@ -98,7 +157,8 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           writingType: data.writingType,
           gradeBand: data.gradeBand,
           topicTitle: data.topicTitle,
-          result: body.result as EvaluationResult,
+          result: doneEvent.result,
+          rawResponseText: doneEvent.rawResponseText,
         },
       ]);
       setParagraphAnswers({});
@@ -107,6 +167,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
       setError("서버와 통신하는 중 문제가 생겼어요. 다시 시도해 주세요.");
     } finally {
       setSubmitting(false);
+      setProgressChars(0);
     }
   }
 
@@ -218,6 +279,13 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
             submitLabel={current ? "다시 보여주기" : "선생님께 보여주기"}
             onSubmit={submitEssay}
           />
+          {submitting && (
+            <p className="mt-3 text-center text-xs text-ink/40">
+              {progressChars > 0
+                ? `선생님이 벌써 ${progressChars}자 정도 써주고 있어요...`
+                : "글을 읽고 있어요..."}
+            </p>
+          )}
         </>
       )}
 

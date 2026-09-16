@@ -33,6 +33,16 @@ export default function ResultView({
 
   return (
     <div className="flex flex-col gap-6">
+      {result.safety.concern && (
+        <section className="rounded-xl border border-warn/40 bg-warn/10 p-5">
+          <h3 className="font-heading text-base text-warn">잠깐, 이것도 알아두세요</h3>
+          <p className="mt-2 leading-7">
+            혹시 지금 힘들거나 무서운 일이 있다면, 언제든 부모님이나 선생님한테 이야기해도
+            괜찮아요. 말하기 어려우면 청소년상담1388(전화·문자 1388)에 물어봐도 돼요.
+          </p>
+        </section>
+      )}
+
       <section className="rounded-xl border border-ink/10 bg-white p-5">
         <h2 className="font-heading text-lg text-accent">총평</h2>
         <p className="mt-2 leading-7">{result.summary}</p>

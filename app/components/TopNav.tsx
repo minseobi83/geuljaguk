@@ -20,6 +20,7 @@ const MENUS: Menu[] = [
     label: "학생",
     items: [
       { label: "글쓰기", href: "/" },
+      { label: "성장 기록", href: "/growth" },
       { label: "추천도서", href: "/books" },
     ],
   },

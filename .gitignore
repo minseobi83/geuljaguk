@@ -17,3 +17,6 @@ app/.env*.local
 .DS_Store
 Thumbs.db
 .vscode/
+
+# 개인 작업 기록 (커밋 불필요)
+/optimizations/

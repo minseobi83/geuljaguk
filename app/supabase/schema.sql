@@ -81,12 +81,18 @@ alter table public.essays enable row level security;
 alter table public.essay_versions enable row level security;
 alter table public.evaluations enable row level security;
 
+-- create policy에는 if not exists가 없어서, 이미 만들어진 정책을 다시 만들려고 하면
+-- "policy ... already exists" 에러가 난다. drop trigger if exists와 같은 이유로,
+-- 이 파일을 스크립트 전체로 다시 실행해도 안전하도록 매번 drop 후 create한다.
+drop policy if exists "parents_own_row" on public.parents;
 create policy "parents_own_row" on public.parents
   for all using (auth.uid() = id) with check (auth.uid() = id);
 
+drop policy if exists "children_own_rows" on public.children;
 create policy "children_own_rows" on public.children
   for all using (auth.uid() = parent_id) with check (auth.uid() = parent_id);
 
+drop policy if exists "essays_own_rows" on public.essays;
 create policy "essays_own_rows" on public.essays
   for all using (
     exists (
@@ -100,6 +106,7 @@ create policy "essays_own_rows" on public.essays
     )
   );
 
+drop policy if exists "essay_versions_own_rows" on public.essay_versions;
 create policy "essay_versions_own_rows" on public.essay_versions
   for all using (
     exists (
@@ -115,6 +122,7 @@ create policy "essay_versions_own_rows" on public.essay_versions
     )
   );
 
+drop policy if exists "evaluations_own_rows" on public.evaluations;
 create policy "evaluations_own_rows" on public.evaluations
   for all using (
     exists (
@@ -158,6 +166,7 @@ create table if not exists public.admins (
 alter table public.admins enable row level security;
 
 -- 본인이 관리자인지 스스로 확인하는 것만 허용 (다른 사람이 관리자인지는 알 수 없음).
+drop policy if exists "admins_read_own_membership" on public.admins;
 create policy "admins_read_own_membership" on public.admins
   for select using (auth.uid() = id);
 
@@ -166,17 +175,22 @@ grant select on public.admins to authenticated;
 -- 기존 "본인 자녀만" 정책은 그대로 두고, admins 테이블에 등록된 유저에게는 추가로
 -- 전체 읽기 권한을 얹는다. Postgres RLS는 같은 명령(select)에 대한 여러 정책을 OR로
 -- 합치므로, 이 정책들을 더한다고 기존 보호자 권한이 줄어들지 않는다.
+drop policy if exists "admins_read_all_parents" on public.parents;
 create policy "admins_read_all_parents" on public.parents
   for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
 
+drop policy if exists "admins_read_all_children" on public.children;
 create policy "admins_read_all_children" on public.children
   for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
 
+drop policy if exists "admins_read_all_essays" on public.essays;
 create policy "admins_read_all_essays" on public.essays
   for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
 
+drop policy if exists "admins_read_all_essay_versions" on public.essay_versions;
 create policy "admins_read_all_essay_versions" on public.essay_versions
   for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
 
+drop policy if exists "admins_read_all_evaluations" on public.evaluations;
 create policy "admins_read_all_evaluations" on public.evaluations
   for select using (exists (select 1 from public.admins where admins.id = auth.uid()));

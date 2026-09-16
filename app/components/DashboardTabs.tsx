@@ -87,57 +87,61 @@ export default function DashboardTabs({
       </div>
 
       {tab === "recent" && (
-        <div>
-          <section className="rounded-xl border border-ink/10 bg-white p-5">
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="font-heading text-lg text-accent">
-                {nickname}의 최근 변화
-              </h2>
-              {latestDate && (
-                <span className="whitespace-nowrap text-xs text-ink/40">
-                  최근 제출 {formatDateShort(latestDate)}
-                </span>
-              )}
-            </div>
-            <p className="mt-2 leading-7 text-ink/80">{summary}</p>
-          </section>
-
-          {latestScores && (
-            <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <TierBadge label="사고력" tier={latestScores.사고력} />
-              <TierBadge label="논리력" tier={latestScores.논리력} />
-              <TierBadge label="표현력" tier={latestScores.표현력} />
-              <TierBadge label="구성력" tier={latestScores.구성력} />
+        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+          <div>
+            <section className="rounded-xl border border-ink/10 bg-white p-5">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="font-heading text-lg text-accent">
+                  {nickname}의 최근 변화
+                </h2>
+                {latestDate && (
+                  <span className="whitespace-nowrap text-xs text-ink/40">
+                    최근 제출 {formatDateShort(latestDate)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 leading-7 text-ink/80">{summary}</p>
             </section>
-          )}
 
-          <section className="mt-6 rounded-xl border border-ink/10 bg-white p-5">
-            <h3 className="font-heading text-base">학습 성실도 · 수정 참여도</h3>
-            <p className="mt-2 leading-7 text-ink/80">{engagementSummary}</p>
-          </section>
+            {latestScores && (
+              <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+                <TierBadge label="사고력" tier={latestScores.사고력} />
+                <TierBadge label="논리력" tier={latestScores.논리력} />
+                <TierBadge label="표현력" tier={latestScores.표현력} />
+                <TierBadge label="구성력" tier={latestScores.구성력} />
+              </section>
+            )}
+          </div>
 
-          {repeatedIssues.length > 0 && (
-            <section className="mt-6 rounded-xl border border-ink/10 bg-white p-5">
-              <h3 className="font-heading text-base">자주 반복되는 부분</h3>
-              <ul className="mt-2 flex flex-wrap gap-2">
-                {repeatedIssues.map((issue) => (
-                  <li
-                    key={issue.category}
-                    className="rounded-full border border-warn/30 bg-warn/5 px-3 py-1 text-xs text-warn"
-                  >
-                    {issue.category} · {issue.count}번
-                  </li>
-                ))}
-              </ul>
+          <div className="mt-6 lg:mt-0">
+            <section className="rounded-xl border border-ink/10 bg-white p-5">
+              <h3 className="font-heading text-base">학습 성실도 · 수정 참여도</h3>
+              <p className="mt-2 leading-7 text-ink/80">{engagementSummary}</p>
             </section>
-          )}
 
-          {recommendation && (
-            <section className="mt-6 rounded-xl border border-accent/20 bg-accent/5 p-5">
-              <h3 className="font-heading text-base text-accent">다음 학습 추천</h3>
-              <p className="mt-2 leading-7">{recommendation}</p>
-            </section>
-          )}
+            {repeatedIssues.length > 0 && (
+              <section className="mt-6 rounded-xl border border-ink/10 bg-white p-5">
+                <h3 className="font-heading text-base">자주 반복되는 부분</h3>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {repeatedIssues.map((issue) => (
+                    <li
+                      key={issue.category}
+                      className="rounded-full border border-warn/30 bg-warn/5 px-3 py-1 text-xs text-warn"
+                    >
+                      {issue.category} · {issue.count}번
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {recommendation && (
+              <section className="mt-6 rounded-xl border border-accent/20 bg-accent/5 p-5">
+                <h3 className="font-heading text-base text-accent">다음 학습 추천</h3>
+                <p className="mt-2 leading-7">{recommendation}</p>
+              </section>
+            )}
+          </div>
         </div>
       )}
 
@@ -160,7 +164,7 @@ export default function DashboardTabs({
           {historyDesc.length === 0 ? (
             <p className="text-sm text-ink/50">아직 쓴 글이 없어요.</p>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="grid gap-2 lg:grid-cols-2">
               {historyDesc.map((essay) => (
                 <li
                   key={essay.id}

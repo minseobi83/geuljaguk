@@ -62,7 +62,7 @@ export default function ParagraphFeedbackCard({
       <p className="mt-2 text-accent">{feedback.question}</p>
 
       <textarea
-        className="mt-2 w-full rounded-md border border-ink/15 bg-paper/60 p-2 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-accent/30"
+        className="mt-2 w-full rounded-md border border-ink/15 bg-ink/[0.03] p-2 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-accent/30"
         placeholder="이 질문에 대한 내 생각을 적어보세요"
         rows={2}
         value={answer}

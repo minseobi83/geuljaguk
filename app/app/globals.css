@@ -3,11 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --paper: #f1f3ef;
+  --paper: #ffffff;
   --ink: #1f2933;
   --accent: #2c4c74;
   --growth: #3f7a5c;
   --warn: #9c6a26;
+}
+
+html,
+body {
+  /* flex 자식은 기본적으로 min-width:auto라 내용이 길면 줄바꿈 대신 옆으로 넘칠 수 있다.
+     각 flex 컨테이너에 min-w-0을 개별적으로 다 챙기는 게 이상적이지만, 놓치는 곳이 있어도
+     화면 전체가 가로로 밀리지 않도록 최후의 안전장치로 막아둔다. */
+  overflow-x: hidden;
 }
 
 body {

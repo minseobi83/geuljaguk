@@ -243,7 +243,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
 
   if (view === "done") {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-16 text-center">
+      <main className="mx-auto max-w-2xl px-4 py-16 text-center lg:max-w-3xl">
         {header}
         <h2 className="font-heading text-2xl text-growth">오늘 글쓰기 완료!</h2>
         <p className="mt-3 text-ink/70">
@@ -260,41 +260,68 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
+    <main className="mx-auto max-w-2xl px-4 py-10 lg:max-w-4xl xl:max-w-5xl">
       {header}
 
       {view === "writing" && (
-        <>
-          {current && (
-            <p className="mb-4 text-center text-sm text-ink/50">
-              {nextVersionNo}번째 시도 · 앞의 피드백을 보고 고쳐 써보세요.
-            </p>
-          )}
-          <EssayForm
-            initialText={current?.text ?? ""}
-            initialWritingType={current?.writingType}
-            initialGradeBand={current?.gradeBand ?? child.grade_band}
-            initialTopicTitle={current?.topicTitle}
-            submitting={submitting}
-            submitLabel={current ? "다시 보여주기" : "선생님께 보여주기"}
-            onSubmit={submitEssay}
-          />
-          {submitting && (
-            <p className="mt-3 text-center text-xs text-ink/40">
-              {progressChars > 0
-                ? `선생님이 벌써 ${progressChars}자 정도 써주고 있어요...`
-                : "글을 읽고 있어요..."}
-            </p>
-          )}
-        </>
-      )}
+        <div className="lg:flex lg:items-start lg:gap-8">
+          <div className="lg:max-w-2xl lg:flex-1">
+            {current && (
+              <p className="mb-4 text-center text-sm text-ink/50">
+                {nextVersionNo}번째 시도 · 앞의 피드백을 보고 고쳐 써보세요.
+              </p>
+            )}
+            <EssayForm
+              initialText={current?.text ?? ""}
+              initialWritingType={current?.writingType}
+              initialGradeBand={current?.gradeBand ?? child.grade_band}
+              initialTopicTitle={current?.topicTitle}
+              submitting={submitting}
+              submitLabel={current ? "다시 보여주기" : "선생님께 보여주기"}
+              onSubmit={submitEssay}
+            />
+            {submitting && (
+              <p className="mt-3 text-center text-xs text-ink/40">
+                {progressChars > 0
+                  ? `선생님이 벌써 ${progressChars}자 정도 써주고 있어요...`
+                  : "글을 읽고 있어요..."}
+              </p>
+            )}
+            {error && (
+              <p className="mt-4 rounded-md bg-warn/10 p-3 text-sm text-warn">{error}</p>
+            )}
+          </div>
 
-      {error && (
-        <p className="mt-4 rounded-md bg-warn/10 p-3 text-sm text-warn">{error}</p>
+          {!current && recentEssays.length > 0 && (
+            <section className="mt-10 lg:mt-0 lg:w-72 lg:shrink-0">
+              <h2 className="mb-3 text-sm font-medium text-ink/60">
+                {child.nickname}가 최근에 쓴 글
+              </h2>
+              <ul className="flex flex-col gap-2">
+                {recentEssays.map((essay) => (
+                  <li
+                    key={essay.id}
+                    className="rounded-lg border border-ink/10 bg-white p-3 text-sm"
+                  >
+                    <p className="font-medium">
+                      {essay.topic_title ?? essay.writing_type}
+                      <span className="ml-2 text-xs text-ink/40">
+                        {formatDateShort(essay.created_at)}
+                      </span>
+                    </p>
+                    {essay.latest_summary && (
+                      <p className="mt-1 text-ink/60">{essay.latest_summary}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
 
       {view === "result" && current && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:mx-auto lg:max-w-2xl">
           <p className="text-center text-sm text-ink/50">
             {current.versionNo}번째 시도
             {current.topicTitle ? ` · ${current.topicTitle}` : ""}
@@ -321,37 +348,13 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
       )}
 
       {view === "compare" && current && previous && (
-        <VersionCompare
-          before={{ text: previous.text, versionNo: previous.versionNo }}
-          after={{ text: current.text, versionNo: current.versionNo }}
-          onClose={() => setView("result")}
-        />
-      )}
-
-      {view === "writing" && !current && recentEssays.length > 0 && (
-        <section className="mt-10">
-          <h2 className="mb-3 text-sm font-medium text-ink/60">
-            {child.nickname}가 최근에 쓴 글
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {recentEssays.map((essay) => (
-              <li
-                key={essay.id}
-                className="rounded-lg border border-ink/10 bg-white p-3 text-sm"
-              >
-                <p className="font-medium">
-                  {essay.topic_title ?? essay.writing_type}
-                  <span className="ml-2 text-xs text-ink/40">
-                    {formatDateShort(essay.created_at)}
-                  </span>
-                </p>
-                {essay.latest_summary && (
-                  <p className="mt-1 text-ink/60">{essay.latest_summary}</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <div className="lg:mx-auto lg:max-w-2xl">
+          <VersionCompare
+            before={{ text: previous.text, versionNo: previous.versionNo }}
+            after={{ text: current.text, versionNo: current.versionNo }}
+            onClose={() => setView("result")}
+          />
+        </div>
       )}
     </main>
   );

@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import TierBadge from "./TierBadge";
 import IndicatorTrends from "./IndicatorTrends";
 import { formatDateShort } from "@/lib/format";
 import { withYiGa } from "@/lib/korean";
+import {
+  buildDashboardRecommendation,
+  buildEngagementSummary,
+  computeEngagementStats,
+  computeRepeatedIssues,
+} from "@/lib/growth";
 import { EssayHistoryItem } from "@/lib/supabase/queries";
 import { RubricScores } from "@/lib/types";
 
@@ -31,6 +37,17 @@ export default function DashboardTabs({
 }: Props) {
   const [tab, setTab] = useState<TabId>("recent");
   const flaggedEssays = historyDesc.filter((e) => e.safetyNote);
+
+  const repeatedIssues = useMemo(() => computeRepeatedIssues(historyDesc), [historyDesc]);
+  const engagementStats = useMemo(() => computeEngagementStats(historyDesc), [historyDesc]);
+  const engagementSummary = useMemo(
+    () => buildEngagementSummary(engagementStats, nickname),
+    [engagementStats, nickname]
+  );
+  const recommendation = useMemo(
+    () => buildDashboardRecommendation(repeatedIssues, historyDesc[0]?.nextTaskSkill ?? null),
+    [repeatedIssues, historyDesc]
+  );
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "recent", label: "최근 변화" },
@@ -91,6 +108,34 @@ export default function DashboardTabs({
               <TierBadge label="논리력" tier={latestScores.논리력} />
               <TierBadge label="표현력" tier={latestScores.표현력} />
               <TierBadge label="구성력" tier={latestScores.구성력} />
+            </section>
+          )}
+
+          <section className="mt-6 rounded-xl border border-ink/10 bg-white p-5">
+            <h3 className="font-heading text-base">학습 성실도 · 수정 참여도</h3>
+            <p className="mt-2 leading-7 text-ink/80">{engagementSummary}</p>
+          </section>
+
+          {repeatedIssues.length > 0 && (
+            <section className="mt-6 rounded-xl border border-ink/10 bg-white p-5">
+              <h3 className="font-heading text-base">자주 반복되는 부분</h3>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {repeatedIssues.map((issue) => (
+                  <li
+                    key={issue.category}
+                    className="rounded-full border border-warn/30 bg-warn/5 px-3 py-1 text-xs text-warn"
+                  >
+                    {issue.category} · {issue.count}번
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {recommendation && (
+            <section className="mt-6 rounded-xl border border-accent/20 bg-accent/5 p-5">
+              <h3 className="font-heading text-base text-accent">다음 학습 추천</h3>
+              <p className="mt-2 leading-7">{recommendation}</p>
             </section>
           )}
         </div>

@@ -143,3 +143,40 @@ grant select, insert, update, delete on
   public.essay_versions,
   public.evaluations
   to authenticated;
+
+-- 관리자 (2026-09-16 추가: 관리자 기능 1차분 - 인증 + 이용 현황/안전 경고 검토)
+--
+-- 서비스 롤 키(RLS 우회)는 쓰지 않는다는 원칙을 관리자 기능에도 그대로 지킨다 - 대신
+-- "이 유저 id가 admins 테이블에 있으면 모든 계정 데이터를 읽을 수 있다"는 RLS 정책을
+-- 기존 테이블에 추가로 얹는 방식으로 만든다. 관리자를 늘리려면 이 테이블에 직접(SQL로)
+-- 행을 추가해야 한다 - 앱 화면에서 self-serve로 관리자를 지정하는 기능은 없음(의도적).
+create table if not exists public.admins (
+  id uuid primary key references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+alter table public.admins enable row level security;
+
+-- 본인이 관리자인지 스스로 확인하는 것만 허용 (다른 사람이 관리자인지는 알 수 없음).
+create policy "admins_read_own_membership" on public.admins
+  for select using (auth.uid() = id);
+
+grant select on public.admins to authenticated;
+
+-- 기존 "본인 자녀만" 정책은 그대로 두고, admins 테이블에 등록된 유저에게는 추가로
+-- 전체 읽기 권한을 얹는다. Postgres RLS는 같은 명령(select)에 대한 여러 정책을 OR로
+-- 합치므로, 이 정책들을 더한다고 기존 보호자 권한이 줄어들지 않는다.
+create policy "admins_read_all_parents" on public.parents
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+create policy "admins_read_all_children" on public.children
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+create policy "admins_read_all_essays" on public.essays
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+create policy "admins_read_all_essay_versions" on public.essay_versions
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+create policy "admins_read_all_evaluations" on public.evaluations
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));

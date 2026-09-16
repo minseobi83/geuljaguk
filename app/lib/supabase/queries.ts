@@ -9,6 +9,10 @@ export interface EssayHistoryItem {
   scores: RubricScores | null;
   summary: string | null;
   safetyNote: string | null;
+  priorityCategory: string | null;
+  nextTaskSkill: string | null;
+  // 이 글을 몇 번 써봤는지(재작성 횟수 포함). 2 이상이면 피드백을 보고 스스로 고쳐 썼다는 뜻.
+  versionCount: number;
 }
 
 // 에세이별로 "가장 마지막 시도(재작성 포함 최신 버전)"의 평가만 골라서 돌려준다.
@@ -42,6 +46,9 @@ export async function getChildEssayHistory(
       scores: result?.scores ?? null,
       summary: result?.summary ?? null,
       safetyNote: result?.safety?.concern ? result.safety.note : null,
+      priorityCategory: result?.priority_issue?.category ?? null,
+      nextTaskSkill: result?.next_task?.skill ?? null,
+      versionCount: versions.length,
     };
   });
 }

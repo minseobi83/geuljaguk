@@ -13,6 +13,8 @@ export interface EssayHistoryItem {
   nextTaskSkill: string | null;
   // 이 글을 몇 번 써봤는지(재작성 횟수 포함). 2 이상이면 피드백을 보고 스스로 고쳐 썼다는 뜻.
   versionCount: number;
+  // 아이가 마지막 시도에서 실제로 쓴 글. 성장 기록에서 AI 총평 대신 "쓴 글" 자체를 보여주기 위한 값.
+  latestText: string | null;
 }
 
 // 에세이별로 "가장 마지막 시도(재작성 포함 최신 버전)"의 평가만 골라서 돌려준다.
@@ -25,7 +27,7 @@ export async function getChildEssayHistory(
   const { data: essays } = await supabase
     .from("essays")
     .select(
-      "id, writing_type, topic_title, created_at, essay_versions(version_no, evaluations(result))"
+      "id, writing_type, topic_title, created_at, essay_versions(version_no, student_text, evaluations(result))"
     )
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
@@ -34,6 +36,7 @@ export async function getChildEssayHistory(
   return (essays ?? []).map((e) => {
     const versions = (e.essay_versions ?? []) as {
       version_no: number;
+      student_text: string;
       evaluations: { result: EvaluationResult }[];
     }[];
     const latestVersion = [...versions].sort((a, b) => b.version_no - a.version_no)[0];
@@ -49,6 +52,7 @@ export async function getChildEssayHistory(
       priorityCategory: result?.priority_issue?.category ?? null,
       nextTaskSkill: result?.next_task?.skill ?? null,
       versionCount: versions.length,
+      latestText: latestVersion?.student_text ?? null,
     };
   });
 }

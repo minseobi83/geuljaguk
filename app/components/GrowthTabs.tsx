@@ -25,6 +25,8 @@ export default function GrowthTabs({
   historyDesc,
 }: Props) {
   const [tab, setTab] = useState<TabId>("recent");
+  // 글이 길면 접어두고, 누르면 전체를 펼친다.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "recent", label: "최근 변화" },
@@ -93,31 +95,66 @@ export default function GrowthTabs({
             <p className="text-sm text-ink/50">아직 쓴 글이 없어요.</p>
           ) : (
             <ul className="grid gap-x-10 lg:grid-cols-2">
-              {historyDesc.map((essay) => (
-                <li key={essay.id} className="border-b border-ink/15 py-4">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="break-keep text-base font-bold tracking-tight text-ink">
-                      {essay.topicTitle ?? essay.writingType}
-                    </p>
-                    <span className="shrink-0 font-mono text-xs text-ink/40">
-                      {formatDateShort(essay.createdAt)}
-                    </span>
-                  </div>
-                  {essay.summary && (
-                    <p className="mt-1 break-keep text-sm leading-6 text-ink/55">
-                      {essay.summary}
-                    </p>
-                  )}
-                  {essay.scores && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <TierBadge label="사고력" tier={essay.scores.사고력} size="sm" />
-                      <TierBadge label="논리력" tier={essay.scores.논리력} size="sm" />
-                      <TierBadge label="표현력" tier={essay.scores.표현력} size="sm" />
-                      <TierBadge label="구성력" tier={essay.scores.구성력} size="sm" />
+              {historyDesc.map((essay) => {
+                const expanded = expandedId === essay.id;
+                const text = essay.latestText;
+                const isLong = Boolean(text && text.length > 160);
+                return (
+                  <li key={essay.id} className="border-b border-ink/15 py-5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="break-keep text-base font-bold tracking-tight text-ink">
+                        {essay.topicTitle ?? essay.writingType}
+                      </p>
+                      <span className="shrink-0 font-mono text-xs text-ink/40">
+                        {formatDateShort(essay.createdAt)}
+                      </span>
                     </div>
-                  )}
-                </li>
-              ))}
+
+                    {/* 내가 실제로 쓴 글 */}
+                    {text ? (
+                      <>
+                        <p
+                          className={`mt-3 whitespace-pre-wrap break-keep border-l-2 border-ink/20 pl-3 font-heading text-[15px] leading-8 text-ink/85 ${
+                            expanded ? "" : "line-clamp-4"
+                          }`}
+                        >
+                          {text}
+                        </p>
+                        {isLong && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedId(expanded ? null : essay.id)}
+                            className="mt-2 text-[10px] uppercase tracking-[0.2em] text-ink/45 underline underline-offset-4"
+                          >
+                            {expanded ? "접기" : "전체 보기"}
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <p className="mt-3 text-sm text-ink/40">글 내용을 불러오지 못했어요.</p>
+                    )}
+
+                    {/* 선생님 총평은 보조로 */}
+                    {essay.summary && (
+                      <p className="mt-3 break-keep text-xs leading-6 text-ink/45">
+                        <span className="mr-1 font-bold uppercase tracking-[0.15em] text-ink/35">
+                          선생님 총평
+                        </span>
+                        {essay.summary}
+                      </p>
+                    )}
+
+                    {essay.scores && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        <TierBadge label="사고력" tier={essay.scores.사고력} size="sm" />
+                        <TierBadge label="논리력" tier={essay.scores.논리력} size="sm" />
+                        <TierBadge label="표현력" tier={essay.scores.표현력} size="sm" />
+                        <TierBadge label="구성력" tier={essay.scores.구성력} size="sm" />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

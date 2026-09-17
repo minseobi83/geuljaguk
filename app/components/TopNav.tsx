@@ -57,7 +57,9 @@ export default function TopNav() {
             type="button"
             onClick={() => setOpenIndex(openIndex === i ? null : i)}
             className={`flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition ${
-              openIndex === i ? "bg-accent/10 text-accent" : "text-ink/70"
+              openIndex === i
+                ? "bg-accent/10 text-accent"
+                : "text-ink/70 hover:bg-accent/10 hover:text-accent"
             }`}
           >
             {menu.label}
@@ -84,7 +86,7 @@ export default function TopNav() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="block rounded-md px-3 py-2 text-sm text-ink/80 hover:bg-accent/5"
+                  className="block rounded-md px-3 py-2 text-sm text-ink/80 transition hover:bg-accent/10 hover:text-accent"
                   onClick={() => setOpenIndex(null)}
                 >
                   {item.label}

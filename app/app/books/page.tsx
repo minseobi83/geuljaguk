@@ -38,16 +38,18 @@ export default async function BooksPage() {
                 {books.map((book) => (
                   <div
                     key={book.id}
-                    className="flex flex-col gap-2 rounded-lg border border-ink/10 bg-white p-3"
+                    className="flex flex-col gap-1.5 rounded-lg border border-ink/10 bg-white p-3"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={book.coverUrl}
-                      alt={`${book.title} 표지`}
-                      className="mx-auto h-32 w-24 rounded object-cover shadow-sm"
-                    />
-                    <div className="flex items-center justify-end">
-                      <BookInfoPopover book={book} />
+                    <div className="relative mx-auto">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={book.coverUrl}
+                        alt={`${book.title} 표지`}
+                        className="h-32 w-24 rounded object-cover shadow-sm"
+                      />
+                      <div className="absolute -right-1.5 -top-1.5">
+                        <BookInfoPopover book={book} />
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {book.suitableTypes.map((t) => (

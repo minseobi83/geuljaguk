@@ -22,8 +22,9 @@ export default function BookInfoPopover({ book }: { book: RecommendedBook }) {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [open]);
 
-  // 모바일 2열 그리드처럼 카드 폭이 좁으면, 버튼에 중앙 정렬된 240px짜리 팝업이
-  // 화면 밖으로 삐져나갈 수 있다. 열릴 때 실제 위치를 재서 화면 안으로 밀어 넣는다.
+  // 팝업은 버튼의 오른쪽 위 모서리를 기준으로 열린다(오른쪽 끝을 버튼에 맞추고
+  // 아래로 펼침). 모바일 2열 그리드처럼 카드 폭이 좁으면 그래도 왼쪽으로 화면
+  // 밖에 삐져나갈 수 있어서, 열릴 때 실제 위치를 재서 화면 안으로 밀어 넣는다.
   useLayoutEffect(() => {
     if (!open) {
       setShiftX(0);
@@ -52,10 +53,10 @@ export default function BookInfoPopover({ book }: { book: RecommendedBook }) {
         }}
         aria-label={`${book.title} 소개 보기`}
         aria-expanded={open}
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium transition ${
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border shadow-sm text-[11px] font-medium transition ${
           open
             ? "border-accent bg-accent text-white"
-            : "border-ink/20 text-ink/50 hover:border-accent hover:text-accent"
+            : "border-ink/20 bg-white text-ink/50 hover:border-accent hover:text-accent"
         }`}
       >
         i
@@ -66,16 +67,15 @@ export default function BookInfoPopover({ book }: { book: RecommendedBook }) {
           ref={popoverRef}
           role="tooltip"
           onClick={(e) => e.stopPropagation()}
-          style={{ transform: `translateX(calc(-50% + ${shiftX}px))` }}
-          className="absolute left-1/2 top-full z-20 mt-2 w-60 max-w-[calc(100vw-1.5rem)] rounded-lg border border-ink/10 bg-white p-3 text-left shadow-lg"
+          style={{ transform: `translateX(${shiftX}px)` }}
+          className="absolute right-0 top-full z-20 pt-2 w-60 max-w-[calc(100vw-1.5rem)]"
         >
-          <div
-            className="absolute -top-1.5 h-3 w-3 rotate-45 border-l border-t border-ink/10 bg-white"
-            style={{ left: `calc(50% - ${shiftX}px)`, transform: "translateX(-50%) rotate(45deg)" }}
-          />
-          <p className="text-sm font-medium text-ink">『{book.title}』</p>
-          <p className="mt-0.5 text-xs text-ink/50">{book.author}</p>
-          <p className="mt-2 text-xs leading-5 text-ink/70">{book.summary}</p>
+          <div className="relative rounded-lg border border-ink/10 bg-white p-3 text-left shadow-lg">
+            <div className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 border-l border-t border-ink/10 bg-white" />
+            <p className="text-sm font-medium text-ink">『{book.title}』</p>
+            <p className="mt-0.5 text-xs text-ink/50">{book.author}</p>
+            <p className="mt-2 text-xs leading-5 text-ink/70">{book.summary}</p>
+          </div>
         </div>
       )}
     </div>

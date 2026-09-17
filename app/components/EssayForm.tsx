@@ -254,7 +254,8 @@ export default function EssayForm({
       ) : (
         <>
           <p className="mt-4 text-xs text-ink/40">표지를 누르면 책 소개가 열려요.</p>
-          <ul className="mt-2">
+          {/* 한 줄에 2권씩 (좁은 화면에서는 1권씩) */}
+          <ul className="mt-2 grid gap-x-8 sm:grid-cols-2">
             {books.map((book, i) => {
               const selected = selectedBookId === book.id;
               return (
@@ -269,7 +270,7 @@ export default function EssayForm({
                         setSelectedBookId(book.id);
                       }
                     }}
-                    className={`flex cursor-pointer items-center gap-5 border-b border-ink/15 py-4 text-left transition ${
+                    className={`flex h-full cursor-pointer items-center gap-4 border-b border-ink/15 py-4 text-left transition ${
                       selected ? "bg-ink/[0.04]" : "hover:bg-ink/[0.02]"
                     }`}
                   >
@@ -291,7 +292,7 @@ export default function EssayForm({
                       />
                     </BookInfoPopover>
                     <div className="min-w-0 flex-1">
-                      <p className="break-keep text-lg font-bold tracking-tight text-ink">
+                      <p className="break-keep text-base font-bold leading-snug tracking-tight text-ink">
                         『{book.title}』
                       </p>
                       <p className="mt-1 text-sm text-ink/50">{book.author}</p>

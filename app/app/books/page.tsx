@@ -21,6 +21,11 @@ export default async function BooksPage() {
           글쓰기 화면의 "추천도서로 쓰기"에서 고를 수 있는 책들이에요. 학년마다 15권씩,
           글쓰기 유형에 맞춰 골랐습니다.
         </p>
+        <p className="mt-2 text-xs text-ink/45">
+          선정 기준: 여러 초등 추천도서 목록(교육 정보 사이트, 학교도서관 추천 목록,
+          국립어린이청소년도서관·출판사 소개 자료 등)에 공통으로 등장하거나 국어
+          교과서에 수록된, 학년 눈높이에 맞는 스테디셀러 위주로 골랐어요.
+        </p>
       </header>
 
       <div className="flex flex-col gap-10">
@@ -41,11 +46,7 @@ export default async function BooksPage() {
                       alt={`${book.title} 표지`}
                       className="mx-auto h-32 w-24 rounded object-cover shadow-sm"
                     />
-                    <div className="flex items-start justify-between gap-1">
-                      <div>
-                        <p className="text-sm font-medium">『{book.title}』</p>
-                        <p className="text-xs text-ink/50">{book.author}</p>
-                      </div>
+                    <div className="flex items-center justify-end">
                       <BookInfoPopover book={book} />
                     </div>
                     <div className="flex flex-wrap gap-1">

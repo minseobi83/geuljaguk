@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
 import { WRITING_TOPICS } from "@/lib/topics";
-import { BOOK_PROMPT_TEMPLATES, argumentGuideFor, booksFor } from "@/lib/books";
+import { BOOK_PROMPT_TEMPLATES, bookGuideFor, booksFor } from "@/lib/books";
 import BookInfoPopover from "@/components/BookInfoPopover";
 
 const WRITING_TYPES: WritingType[] = [
@@ -239,8 +239,8 @@ export default function EssayForm({
                 </div>
               ))}
             </div>
-            {selectedBook && writingType === "주장하는 글" && (() => {
-              const guide = argumentGuideFor(selectedBook);
+            {selectedBook && (() => {
+              const guide = bookGuideFor(selectedBook, writingType);
               return (
                 <div className="mt-2 rounded-md bg-growth/5 p-3 text-sm text-growth">
                   <p>{guide.intro}</p>
@@ -254,11 +254,6 @@ export default function EssayForm({
                 </div>
               );
             })()}
-            {selectedBook && writingType !== "주장하는 글" && (
-              <p className="mt-2 rounded-md bg-growth/5 p-3 text-sm text-growth">
-                {BOOK_PROMPT_TEMPLATES[writingType](selectedBook.title)}
-              </p>
-            )}
           </>
         )}
       </div>

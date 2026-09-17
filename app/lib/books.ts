@@ -20,11 +20,12 @@ export interface RecommendedBook {
   // 틀린 사실을 단정하는 위험을 피하기 위해 제목·장르에서 유추한 일반적인 소개로 적었다
   // (지침의 "사실을 지어내지 않는다" 원칙과 동일하게 적용).
   summary: string;
-  // "주장하는 글" 글감으로 이 책을 고를 때, 모든 책에 똑같이 "인물의 선택에 찬성/반대"만
-  // 묻지 말고 그 책만의 핵심 쟁점 2가지를 짚어달라는 요청으로 추가한 필드.
-  // summary에 이미 나온 내용(사실로 확인된 것)만 근거로 뽑아서, 새로운 사실을 지어내지 않는다.
-  // 없으면(요약이 너무 일반적이라 구체적 쟁점을 뽑기 애매한 책) 기존 범용 템플릿으로 대신한다.
-  argumentPoints?: [string, string];
+  // 글쓰기 유형별로, 모든 책에 똑같은 범용 템플릿 한 문장만 보여주지 말고 그 책만의
+  // 핵심 포인트 2가지를 짚어달라는 요청으로 추가한 필드. summary에 이미 나온 내용
+  // (사실로 확인된 것)만 근거로 뽑아서, 새로운 사실을 지어내지 않는다.
+  // 유형별로 없으면(요약이 너무 일반적이라 구체적 포인트를 뽑기 애매한 책) 기존
+  // 범용 템플릿으로 대신한다. suitableTypes에 없는 유형은 애초에 채우지 않는다.
+  guidePoints?: Partial<Record<WritingType, [string, string]>>;
 }
 
 export const RECOMMENDED_BOOKS: RecommendedBook[] = [
@@ -38,6 +39,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     suitableTypes: ["독후감", "감상문"],
     summary:
       "또래 친구들의 일상 속 작은 소동을 담은 단편 동화집. 표제작은 자꾸 다른 사람으로 오해받는 한 아이의 이야기를 그린다.",
+    guidePoints: {
+      "독후감": [
+        "표제작 속 아이가 자꾸 다른 사람으로 오해받을 때 어떤 기분이었을지",
+        "이 책에 나온 이야기 중 가장 기억에 남는 소동은 무엇이고, 왜 그런지",
+      ],
+      "감상문": [
+        "오해를 받아본 적이 있다면, 그때 느꼈던 마음과 비교해서 쓰기",
+        "이 책을 읽고 친구를 대하는 태도에 대해 새롭게 든 생각",
+      ],
+    },
   },
   {
     id: "jumun-village",
@@ -47,6 +58,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/3620/27/cover500/8966660843_1.jpg",
     suitableTypes: ["서사적 글쓰기", "문제 해결 글"],
     summary: "이상한 일들이 잇따라 벌어지는 마을에서 아이들이 그 비밀을 파헤쳐 가는 이야기.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "마을의 비밀이 밝혀진 뒤, 아이들과 마을은 어떻게 달라졌을지 상상해서 쓰기",
+        "내가 이 마을에 살았다면 이상한 일을 처음 발견했을 때 어떻게 행동했을지",
+      ],
+      "문제 해결 글": [
+        "아이들이 이상한 일의 비밀을 파헤치기 위해 사용한 방법이 좋은 방법이었는지",
+        "낯선 마을에서 이상한 일이 자꾸 벌어진다면, 나라면 어떤 순서로 문제를 해결해 나갈지",
+      ],
+    },
   },
   {
     id: "yok-killer",
@@ -56,10 +77,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/8497/71/cover500/8937837943_1.jpg",
     suitableTypes: ["주장하는 글", "경험을 담은 글"],
     summary: "친구들 사이에 퍼진 욕설 문제를 주인공이 나서서 해결해 가는 학교 생활동화.",
-    argumentPoints: [
-      "주인공이 욕설 문제를 직접 나서서 해결하려 한 행동이 옳았다고 생각하는지",
-      "친구의 나쁜 말버릇을 고쳐주고 싶을 때, 스스로 나서는 것과 선생님께 알리는 것 중 어느 쪽이 더 좋은 방법인지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "주인공이 욕설 문제를 직접 나서서 해결하려 한 행동이 옳았다고 생각하는지",
+        "친구의 나쁜 말버릇을 고쳐주고 싶을 때, 스스로 나서는 것과 선생님께 알리는 것 중 어느 쪽이 더 좋은 방법인지",
+      ],
+      "경험을 담은 글": [
+        "우리 반이나 주변에서 욕설 문제로 힘들었던 경험이 있다면 무엇인지",
+        "그때 나는 어떻게 대처했는지, 지금이라면 다르게 하고 싶은 점이 있는지",
+      ],
+    },
   },
   {
     id: "suspicious-transfer",
@@ -69,6 +96,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/10092/99/cover500/8958076232_1.jpg",
     suitableTypes: ["비교·대조 글", "서사적 글쓰기"],
     summary: "전학 온 아이를 둘러싼 오해와 편견, 그리고 그 사이에서 싹트는 우정을 다룬 이야기.",
+    guidePoints: {
+      "비교·대조 글": [
+        "전학 온 아이에 대한 첫인상(오해·편견)과, 우정이 싹튼 뒤 달라진 모습을 비교하기",
+        "내가 전학생이었을 때와 전학생을 맞이했을 때, 마음이 어떻게 다를지 비교하기",
+      ],
+      "서사적 글쓰기": [
+        "오해가 풀리고 우정이 시작되는 장면 이후, 두 사람의 관계가 어떻게 이어질지 상상해서 쓰기",
+        "내가 이 이야기의 등장인물이라면, 전학생과 처음 만났을 때 어떻게 행동했을지",
+      ],
+    },
   },
   {
     id: "justice-class",
@@ -78,10 +115,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/24038/50/cover500/8969022619_1.jpg",
     suitableTypes: ["설명하는 글", "주장하는 글"],
     summary: "질문과 답 형식으로 '정의'라는 어려운 개념을 아이 눈높이에서 풀어내는 인문 교양서.",
-    argumentPoints: [
-      "책에 나온 '정의'에 관한 질문 중, 내가 가장 공감하거나 반대하는 주장은 무엇인지",
-      "우리 반이나 우리 사회에서 정의롭지 않다고 느꼈던 일이 있다면, 어떻게 바뀌면 좋을지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "책에 나온 '정의'에 관한 질문 중, 내가 가장 공감하거나 반대하는 주장은 무엇인지",
+        "우리 반이나 우리 사회에서 정의롭지 않다고 느꼈던 일이 있다면, 어떻게 바뀌면 좋을지",
+      ],
+      "설명하는 글": [
+        "이 책이 다루는 '정의'라는 주제를 한 번도 안 들어본 친구에게 어떻게 설명할지",
+        "책 속 질문과 답 중 하나를 골라, 그 내용을 내 말로 풀어 설명하기",
+      ],
+    },
   },
   {
     id: "liar-and-spy",
@@ -91,6 +134,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/2585/26/cover500/8994077553_2.jpg",
     suitableTypes: ["서사적 글쓰기", "비교·대조 글"],
     summary: "이웃이 스파이일지도 모른다는 의심에서 시작해, 두 아이의 우정과 각자의 비밀이 얽히는 미스터리 성장소설.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "두 아이가 서로의 비밀을 알게 된 뒤, 우정이 어떻게 이어질지 상상해서 쓰기",
+        "내가 이웃이 스파이일지도 모른다고 의심하게 된다면, 어떤 행동을 했을지 이야기로 써보기",
+      ],
+      "비교·대조 글": [
+        "두 아이 각각이 가진 비밀과 성격을 비교해서 쓰기",
+        "의심하는 마음과 믿는 마음, 이 둘 사이에서 내가 더 기울어지는 쪽은 어디인지",
+      ],
+    },
   },
   {
     id: "chat-ghost",
@@ -100,10 +153,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/27353/36/cover500/e162538611_1.jpg",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "단체 채팅방에서 시작된 이상한 소문을 둘러싸고 벌어지는 이야기로, 온라인 소통의 그림자를 다룬다.",
-    argumentPoints: [
-      "단체 채팅방에서 퍼진 소문을 보면 그냥 넘겨야 할지, 사실인지 확인해야 할지",
-      "온라인에서 친구와 이야기할 때 꼭 지켜야 할 것과 조심해야 할 것은 무엇인지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "단체 채팅방에서 퍼진 소문을 보면 그냥 넘겨야 할지, 사실인지 확인해야 할지",
+        "온라인에서 친구와 이야기할 때 꼭 지켜야 할 것과 조심해야 할 것은 무엇인지",
+      ],
+      "문제 해결 글": [
+        "단체 채팅방에서 이상한 소문이 퍼지기 시작했을 때, 등장인물들이 어떻게 대처했는지",
+        "나라면 단톡방에서 이상한 소문을 봤을 때 어떤 순서로 해결해 나갈지",
+      ],
+    },
   },
   {
     id: "blanket-sea-fish",
@@ -113,6 +172,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/25516/22/cover500/8901246112_1.jpg",
     suitableTypes: ["서사적 글쓰기", "감상문"],
     summary: "상상력 가득한 이야기로 아이의 마음속 세계를 그려낸 동화.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "이 책처럼 내 이불이나 방이 상상 속 세계로 변한다면 어떤 모습일지 상상해서 쓰기",
+        "그 상상 속 세계에서 내가 겪고 싶은 모험은 무엇인지",
+      ],
+      "감상문": [
+        "이 책을 읽으면서 내 어린 시절 상상 놀이와 비슷하다고 느낀 부분이 있는지",
+        "책 속 상상의 세계 중 가장 마음에 들었던 장면과 그 이유",
+      ],
+    },
   },
   {
     id: "treasure-map-legend",
@@ -122,6 +191,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/22900/47/cover500/8956188432_1.jpg",
     suitableTypes: ["경험을 담은 글", "문제 해결 글"],
     summary: "오래된 지도를 따라 보물을 찾아 나서는 아이들의 모험 이야기.",
+    guidePoints: {
+      "경험을 담은 글": [
+        "지도나 단서를 따라 무언가를 찾아본 경험이 있다면 무엇인지",
+        "보물찾기처럼 끝까지 포기하지 않고 무언가에 도전했던 나만의 경험",
+      ],
+      "문제 해결 글": [
+        "아이들이 지도를 해석하다 막혔을 때 어떻게 문제를 풀어나갔을지",
+        "내가 오래된 지도만 갖고 보물을 찾아야 한다면, 어떤 순서로 단서를 풀어갈지",
+      ],
+    },
   },
   {
     id: "world-changing-rules",
@@ -131,10 +210,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/9855/48/cover500/k222535352_1.jpg",
     suitableTypes: ["설명하는 글", "주장하는 글"],
     summary: "우리 주변의 다양한 사회 현상과 규칙을 아이 눈높이에서 설명하는 교양서.",
-    argumentPoints: [
-      "책 속 규칙 중, 우리 사회에 꼭 필요하다고 생각하는 것과 그 이유",
-      "더 나은 세상을 위해 바뀌어야 한다고 생각하는 규칙과 그 이유",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "책 속 규칙 중, 우리 사회에 꼭 필요하다고 생각하는 것과 그 이유",
+        "더 나은 세상을 위해 바뀌어야 한다고 생각하는 규칙과 그 이유",
+      ],
+      "설명하는 글": [
+        "책에 나온 사회 현상이나 규칙 중 하나를 골라, 안 읽은 친구에게 설명하기",
+        "그 규칙이 왜 생겼는지, 내가 이해한 대로 풀어서 설명하기",
+      ],
+    },
   },
   {
     id: "bad-child-ticket",
@@ -144,10 +229,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/96/34/cover500/8901068591_2.jpg",
     suitableTypes: ["주장하는 글", "경험을 담은 글"],
     summary: "선생님이 나눠주는 '나쁜 어린이표'를 받은 아이의 억울한 마음을 솔직하게 그린 생활동화.",
-    argumentPoints: [
-      "'나쁜 어린이표'처럼 벌점을 주는 방식이 아이의 행동을 바꾸는 데 정말 도움이 되는지",
-      "억울하게 혼났던 경험이 있다면, 그때 내가 진짜로 원했던 건 무엇이었는지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "'나쁜 어린이표'처럼 벌점을 주는 방식이 아이의 행동을 바꾸는 데 정말 도움이 되는지",
+        "억울하게 혼났던 경험이 있다면, 그때 내가 진짜로 원했던 건 무엇이었는지",
+      ],
+      "경험을 담은 글": [
+        "선생님이나 어른에게 억울하게 혼났던 나만의 경험은 무엇인지",
+        "그때 내가 하고 싶었던 말이나 행동은 무엇이었는지",
+      ],
+    },
   },
   {
     id: "chojeongri-letter",
@@ -157,6 +248,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/69/5/cover500/8936442295_2.jpg",
     suitableTypes: ["설명하는 글", "경험을 담은 글"],
     summary: "한글이 만들어지던 시기를 배경으로, 신분을 뛰어넘은 우정과 배움을 그린 역사동화.",
+    guidePoints: {
+      "설명하는 글": [
+        "한글이 만들어지던 시기를 배경으로 한 이 책을, 역사를 잘 모르는 친구에게 어떻게 소개할지",
+        "신분을 뛰어넘은 우정이라는 이 책의 주제를 내 말로 설명하기",
+      ],
+      "경험을 담은 글": [
+        "나와 다른 환경에 있는 친구와 우정을 나눴던 경험이 있다면 무엇인지",
+        "무언가를 배우기 위해 애썼던 나만의 경험",
+      ],
+    },
   },
   {
     id: "stone-eating-kid",
@@ -166,6 +267,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/5004/62/cover500/8954626580_1.jpg",
     suitableTypes: ["독후감", "감상문"],
     summary: "평범하지 않은 능력을 가진 아이들의 이야기를 담은 개성 강한 단편 동화집.",
+    guidePoints: {
+      "독후감": [
+        "이 책에 나온 아이들 중 가장 기억에 남는 능력을 가진 아이는 누구이고, 왜 그런지",
+        "평범하지 않은 능력을 가진 아이들의 이야기를 읽고 새롭게 든 생각",
+      ],
+      "감상문": [
+        "나도 특별한 능력이 있다면 어떤 능력을 갖고 싶은지, 그 이유",
+        "이 책 속 이야기 중 가장 인상 깊었던 장면과 그때 느낀 감정",
+      ],
+    },
   },
   {
     id: "bonjour-tours",
@@ -175,10 +286,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/787/83/cover500/8954612881_2.jpg",
     suitableTypes: ["주장하는 글", "비교·대조 글"],
     summary: "프랑스의 작은 도시 뚜르를 배경으로, 낯선 곳에서 만난 인연과 비밀을 그린 이야기.",
-    argumentPoints: [
-      "낯선 곳에서 혼자 지내야 했던 주인공의 마음이 어땠을지",
-      "친구의 비밀을 알게 되었을 때, 지켜줘야 할지 다른 사람에게 알려야 할지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "낯선 곳에서 혼자 지내야 했던 주인공의 마음이 어땠을지",
+        "친구의 비밀을 알게 되었을 때, 지켜줘야 할지 다른 사람에게 알려야 할지",
+      ],
+      "비교·대조 글": [
+        "낯선 프랑스에서의 생활과 우리나라에서의 생활을 비교해서 쓰기",
+        "비밀을 알기 전과 안 뒤, 주인공의 마음이 어떻게 달라졌을지 비교하기",
+      ],
+    },
   },
   {
     id: "toad-tuesday",
@@ -188,6 +305,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/3981/11/cover500/8958287489_1.jpg",
     suitableTypes: ["서사적 글쓰기", "비교·대조 글"],
     summary: "성격이 정반대인 두꺼비와 올빼미가 뜻밖의 사정으로 함께 겨울을 나며 우정을 쌓아가는 이야기.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "겨울이 끝난 뒤, 두꺼비와 올빼미의 우정이 어떻게 이어질지 상상해서 쓰기",
+        "성격이 정반대인 친구와 함께 지내야 한다면 나는 어떤 일이 생길지 이야기로 써보기",
+      ],
+      "비교·대조 글": [
+        "두꺼비와 올빼미의 성격을 비교해서 쓰기",
+        "나는 두꺼비와 올빼미 중 어느 쪽 성격에 더 가까운지",
+      ],
+    },
   },
 
   // ---------- 5학년 (15권) ----------
@@ -199,6 +326,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/1634/54/cover500/893643389x_2.jpg",
     suitableTypes: ["독후감", "경험을 담은 글"],
     summary: "6·25 전쟁 전후의 힘든 시절, 어린 나이에 동생을 돌보며 씩씩하게 살아가는 몽실이의 이야기.",
+    guidePoints: {
+      "독후감": [
+        "어린 나이에 동생을 돌보며 씩씩하게 살아가는 몽실이의 모습 중 가장 기억에 남는 장면",
+        "몽실이의 삶을 읽고 지금 내 생활과 비교하며 새롭게 든 생각",
+      ],
+      "경험을 담은 글": [
+        "동생이나 어린 누군가를 돌봐준 경험이 있다면 무엇인지",
+        "힘든 상황에서도 씩씩하게 버텨냈던 나만의 경험",
+      ],
+    },
   },
   {
     id: "last-prince",
@@ -208,6 +345,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/3033/27/cover500/e895798093_1.jpg",
     suitableTypes: ["서사적 글쓰기", "비교·대조 글"],
     summary: "나라가 무너져가는 역사적 격변기를 배경으로, 한 왕자의 운명을 그린 역사동화.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "나라가 무너진 뒤 왕자의 삶이 어떻게 이어졌을지 상상해서 쓰기",
+        "내가 이 시대에 살았다면 어떤 선택을 하며 살아갔을지 이야기로 써보기",
+      ],
+      "비교·대조 글": [
+        "왕자였을 때의 삶과 나라가 무너진 뒤의 삶을 비교해서 쓰기",
+        "역사적 격변기를 살아간 왕자와, 평화로운 시대를 사는 나의 삶을 비교하기",
+      ],
+    },
   },
   {
     id: "inbox",
@@ -217,6 +364,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/57/36/cover500/8980408447_1.jpg",
     suitableTypes: ["감상문", "경험을 담은 글"],
     summary: "편지(메일)를 주고받으며 서로의 마음을 알아가는 아이들의 이야기를 그린 생활동화.",
+    guidePoints: {
+      "감상문": [
+        "편지를 주고받으며 서로의 마음을 알아가는 장면 중 가장 인상 깊었던 부분",
+        "글로 마음을 전하는 것과 말로 전하는 것, 어느 쪽이 더 편한지 내 생각",
+      ],
+      "경험을 담은 글": [
+        "편지나 문자로 누군가에게 마음을 전했던 나만의 경험",
+        "그 경험에서 어떤 마음이 들었는지, 전하고 나서 무엇이 달라졌는지",
+      ],
+    },
   },
   {
     id: "dont-sell-weapons",
@@ -226,10 +383,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/24081/64/cover500/k172639130_1.jpg",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "장난감 총 같은 무기를 팔지 말아 달라고 나서는 아이의 이야기를 통해 평화와 폭력의 문제를 생각해보게 하는 책.",
-    argumentPoints: [
-      "장난감이라도 무기 모양 장난감을 파는 것을 막아야 한다고 생각하는지",
-      "한 사람의 작은 행동(캠페인)이 정말 사회를 바꿀 수 있다고 생각하는지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "장난감이라도 무기 모양 장난감을 파는 것을 막아야 한다고 생각하는지",
+        "한 사람의 작은 행동(캠페인)이 정말 사회를 바꿀 수 있다고 생각하는지",
+      ],
+      "문제 해결 글": [
+        "장난감 무기를 파는 문제를 해결하기 위해 주인공이 어떤 방법을 썼는지",
+        "나라면 이 문제를 해결하기 위해 어떤 방법을 더 시도해볼지",
+      ],
+    },
   },
   {
     id: "gandhi",
@@ -239,10 +402,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/25/99/cover500/8936441906_1.jpg",
     suitableTypes: ["설명하는 글", "주장하는 글"],
     summary: "비폭력·불복종 운동으로 인도의 독립을 이끈 간디의 삶을 다룬 위인전.",
-    argumentPoints: [
-      "간디가 폭력을 쓰지 않고 저항한 방법이 정말 효과적이었다고 생각하는지, 그 이유",
-      "간디처럼 옳다고 믿는 것을 위해 자신을 희생하는 태도에 찬성하는지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "간디가 폭력을 쓰지 않고 저항한 방법이 정말 효과적이었다고 생각하는지, 그 이유",
+        "간디처럼 옳다고 믿는 것을 위해 자신을 희생하는 태도에 찬성하는지",
+      ],
+      "설명하는 글": [
+        "간디의 비폭력·불복종 운동이 무엇인지, 안 배운 친구에게 설명하기",
+        "간디가 인도 독립을 이끈 과정을 내 말로 요약해서 설명하기",
+      ],
+    },
   },
   {
     id: "universe-topsy-turvy",
@@ -252,6 +421,12 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/18/94/cover500/8934903996_2.jpg",
     suitableTypes: ["설명하는 글"],
     summary: "우주와 별, 블랙홀 같은 어려운 과학 개념을 유쾌하고 재미있게 풀어낸 과학 교양서.",
+    guidePoints: {
+      "설명하는 글": [
+        "우주, 별, 블랙홀 중 하나를 골라 안 읽은 친구에게 설명하기",
+        "이 책에서 가장 신기했던 과학 개념을 내 말로 풀어 설명하기",
+      ],
+    },
   },
   {
     id: "babdegi-jukdegi",
@@ -261,6 +436,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/52/19/cover500/893310724x_2.jpg",
     suitableTypes: ["서사적 글쓰기", "문제 해결 글"],
     summary: "옛이야기 같은 상상력으로 분단과 평화의 문제를 그린 동화.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "이야기가 끝난 뒤, 분단과 평화의 문제가 어떻게 풀려갔을지 상상해서 쓰기",
+        "내가 이 옛이야기 속 인물이라면 평화를 위해 어떤 일을 했을지",
+      ],
+      "문제 해결 글": [
+        "이 책이 다루는 분단 문제를 풀기 위해 등장인물들이 어떤 방법을 썼는지",
+        "평화를 위해 나라면 어떤 방법을 시도해볼지",
+      ],
+    },
   },
   {
     id: "real-thief",
@@ -270,10 +455,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/33/6/cover500/8984881201_2.gif",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "보물을 지키던 거위가 도둑 누명을 쓰고 쫓겨나면서, 진짜 범인을 찾아가는 이야기.",
-    argumentPoints: [
-      "제대로 확인하지도 않고 거위에게 누명을 씌운 주변 인물들의 행동이 옳았는지",
-      "억울한 누명을 벗기 위해 포기하지 않고 진실을 밝히려 한 거위의 태도를 어떻게 생각하는지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "제대로 확인하지도 않고 거위에게 누명을 씌운 주변 인물들의 행동이 옳았는지",
+        "억울한 누명을 벗기 위해 포기하지 않고 진실을 밝히려 한 거위의 태도를 어떻게 생각하는지",
+      ],
+      "문제 해결 글": [
+        "누명을 쓴 거위가 억울함을 풀기 위해 어떤 방법으로 문제를 해결해 나갔는지",
+        "나라면 억울한 누명을 썼을 때 어떤 방법으로 진실을 밝히려 할지",
+      ],
+    },
   },
   {
     id: "happy-prince",
@@ -283,10 +474,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/16/83/cover500/8936440470_1.jpg",
     suitableTypes: ["독후감", "주장하는 글"],
     summary: "가난한 이웃을 위해 자신의 보석과 금박을 나눠주는 동상과 제비의 헌신을 그린 고전 동화.",
-    argumentPoints: [
-      "왕자가 가진 보석과 금박을 다 내어준 선택에 찬성하는지, 그 이유",
-      "제비가 따뜻한 나라로 가는 여행을 포기하고 왕자를 도운 선택을 어떻게 생각하는지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "왕자가 가진 보석과 금박을 다 내어준 선택에 찬성하는지, 그 이유",
+        "제비가 따뜻한 나라로 가는 여행을 포기하고 왕자를 도운 선택을 어떻게 생각하는지",
+      ],
+      "독후감": [
+        "왕자와 제비의 헌신 중 가장 기억에 남는 장면과 그 이유",
+        "이 책을 읽고 나눔이나 헌신에 대해 새롭게 든 생각",
+      ],
+    },
   },
   {
     id: "my-sister",
@@ -296,6 +493,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/38/18/cover500/890103896x_2.jpg",
     suitableTypes: ["경험을 담은 글", "감상문"],
     summary: "장애가 있는 누나와 동생의 관계를 따뜻한 시선으로 그린 이야기.",
+    guidePoints: {
+      "경험을 담은 글": [
+        "가족을 돌보거나 가족에게 도움을 받았던 나만의 경험",
+        "가족과의 관계에서 따뜻함을 느꼈던 순간은 언제인지",
+      ],
+      "감상문": [
+        "누나와 동생의 관계를 보며 가장 마음이 따뜻해졌던 장면",
+        "이 책을 읽고 가족을 대하는 마음이 어떻게 달라졌는지",
+      ],
+    },
   },
   {
     id: "play-with-scientists",
@@ -305,6 +512,12 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/39/26/cover500/8936445340_2.jpg",
     suitableTypes: ["설명하는 글"],
     summary: "여러 과학자들의 발견과 삶의 이야기를 재미있게 들려주는 과학 교양서.",
+    guidePoints: {
+      "설명하는 글": [
+        "책에 나온 과학자 중 한 명을 골라, 그 과학자의 발견을 친구에게 설명하기",
+        "그 과학자의 삶에서 내가 배우고 싶은 점을 설명하기",
+      ],
+    },
   },
   {
     id: "kkaengibulimal",
@@ -314,6 +527,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/30/41/cover500/893643344x_2.jpg",
     suitableTypes: ["경험을 담은 글", "비교·대조 글"],
     summary: "가난한 동네 괭이부리말에 사는 아이들의 삶과 우정, 그리고 희망을 그린 이야기.",
+    guidePoints: {
+      "경험을 담은 글": [
+        "어려운 상황에서도 친구와 함께 희망을 가졌던 나만의 경험",
+        "이 책 속 아이들처럼 우정으로 힘을 얻었던 순간이 있는지",
+      ],
+      "비교·대조 글": [
+        "괭이부리말 아이들의 생활과 나의 생활을 비교해서 쓰기",
+        "어려운 상황 속에서도 희망을 잃지 않는 태도와, 힘들면 쉽게 포기하는 태도를 비교하기",
+      ],
+    },
   },
   {
     id: "charlottes-web",
@@ -323,6 +546,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/17163/92/cover500/8952787595_1.jpg",
     suitableTypes: ["서사적 글쓰기", "감상문"],
     summary: "도살될 위기에 처한 아기 돼지 윌버를, 거미 샬롯이 지혜와 우정으로 구해내는 이야기.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "샬롯이 윌버를 구해준 뒤, 둘의 우정이 어떻게 이어졌을지 상상해서 쓰기",
+        "내가 윌버라면 샬롯에게 어떻게 고마움을 표현했을지 이야기로 써보기",
+      ],
+      "감상문": [
+        "샬롯이 지혜와 우정으로 윌버를 구해내는 장면에서 느낀 감정",
+        "진정한 우정이란 무엇인지, 이 책을 읽고 든 생각",
+      ],
+    },
   },
   {
     id: "man-who-planted-trees",
@@ -332,10 +565,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/36/71/cover500/8995302100_2.jpg",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "황무지에 홀로 나무를 심어 숲을 되살린 한 양치기의 이야기를 담은 우화.",
-    argumentPoints: [
-      "한 사람의 꾸준한 노력만으로 황무지를 숲으로 바꾸는 것 같은 큰 변화가 가능하다고 생각하는지",
-      "아무도 알아주지 않아도 묵묵히 좋은 일을 계속하는 태도에 대해 어떻게 생각하는지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "한 사람의 꾸준한 노력만으로 황무지를 숲으로 바꾸는 것 같은 큰 변화가 가능하다고 생각하는지",
+        "아무도 알아주지 않아도 묵묵히 좋은 일을 계속하는 태도에 대해 어떻게 생각하는지",
+      ],
+      "문제 해결 글": [
+        "황무지 문제를 해결하기 위해 양치기가 선택한 방법은 무엇이었는지",
+        "내 주변에 이런 황폐한 문제가 있다면, 나라면 어떤 방법으로 오랜 시간 해결해나갈지",
+      ],
+    },
   },
   {
     id: "anne-frank-diary",
@@ -345,6 +584,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/35118/40/cover500/893193453x_1.jpg",
     suitableTypes: ["독후감", "경험을 담은 글"],
     summary: "2차 세계대전 중 나치를 피해 숨어 지내야 했던 소녀 안네가 남긴 실제 일기.",
+    guidePoints: {
+      "독후감": [
+        "안네가 숨어 지내며 쓴 일기 중 가장 기억에 남는 장면과 그 이유",
+        "이 책을 읽고 전쟁과 자유에 대해 새롭게 든 생각",
+      ],
+      "경험을 담은 글": [
+        "힘든 시간을 견디기 위해 일기나 글을 써본 나만의 경험",
+        "안네처럼 좁은 공간에서 오래 지내야 했던 경험이 있다면(방학, 여행 등) 그때 마음이 어땠는지",
+      ],
+    },
   },
 
   // ---------- 6학년 (15권) ----------
@@ -356,6 +605,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/34/91/cover500/8971968710_2.gif",
     suitableTypes: ["독후감", "감상문"],
     summary: "양계장을 나온 암탉 잎싹이 스스로 알을 품어 새끼를 키워내는, 모성과 자유를 그린 이야기.",
+    guidePoints: {
+      "독후감": [
+        "잎싹이 알을 품고 새끼를 키워내는 장면 중 가장 기억에 남는 부분과 그 이유",
+        "이 책을 읽고 자유와 모성에 대해 새롭게 든 생각",
+      ],
+      "감상문": [
+        "잎싹이 양계장을 나와 자유를 찾아가는 과정에서 느낀 감정",
+        "내가 잎싹이라면 그 선택을 했을지, 그때 마음이 어땠을지",
+      ],
+    },
   },
   {
     id: "flawed-hero",
@@ -365,10 +624,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/59/27/cover500/8937420201_1.jpg",
     suitableTypes: ["주장하는 글", "비교·대조 글"],
     summary: "한 학급을 지배하는 반장의 권력과 그에 맞서는 전학생의 이야기를 통해 권력의 속성을 그린 소설.",
-    argumentPoints: [
-      "반 친구들이 반장의 부당한 힘에 맞서지 않고 따랐던 행동을 어떻게 생각하는지",
-      "옳지 않다고 느끼는 힘에 맞설지, 일단 따르고 지켜볼지 나라면 어떻게 할지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "반 친구들이 반장의 부당한 힘에 맞서지 않고 따랐던 행동을 어떻게 생각하는지",
+        "옳지 않다고 느끼는 힘에 맞설지, 일단 따르고 지켜볼지 나라면 어떻게 할지",
+      ],
+      "비교·대조 글": [
+        "반의 힘을 가진 반장과, 그에 맞서는 전학생의 태도를 비교해서 쓰기",
+        "부당한 힘에 순응하는 태도와 맞서는 태도, 나라면 어느 쪽에 더 가까울지 비교하기",
+      ],
+    },
   },
   {
     id: "momo",
@@ -378,6 +643,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/19/10/cover500/8949190028_2.jpg",
     suitableTypes: ["서사적 글쓰기", "문제 해결 글"],
     summary: "시간을 훔치는 회색 신사들에 맞서, 사람들에게 진짜 시간의 소중함을 되찾아주는 소녀 모모의 이야기.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "모모가 시간을 되찾아준 뒤, 사람들의 삶이 어떻게 달라졌을지 상상해서 쓰기",
+        "내가 모모라면 회색 신사들에 맞서 어떤 방법을 썼을지 이야기로 써보기",
+      ],
+      "문제 해결 글": [
+        "회색 신사들에게 빼앗긴 시간을 되찾기 위해 모모가 어떤 방법을 썼는지",
+        "요즘 나도 시간에 쫓긴다고 느낄 때가 있다면, 이 책처럼 시간을 되찾을 방법은 무엇일지",
+      ],
+    },
   },
   {
     id: "korean-history-letters",
@@ -387,6 +662,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/323/33/cover500/8991221440_3.jpg",
     suitableTypes: ["설명하는 글", "경험을 담은 글"],
     summary: "편지 형식으로 한국의 역사를 시대순으로 쉽게 풀어 설명하는 역사 교양서.",
+    guidePoints: {
+      "설명하는 글": [
+        "이 책에서 다룬 역사 이야기 중 하나를 골라, 편지 형식으로 친구에게 설명하기",
+        "이 책이 역사를 편지 형식으로 설명하는 방식이 왜 이해하기 쉬운지 설명하기",
+      ],
+      "경험을 담은 글": [
+        "역사를 배우면서 특별히 흥미로웠거나 인상 깊었던 나만의 경험",
+        "누군가에게 편지를 써서 무언가를 설명해본 경험이 있다면 무엇인지",
+      ],
+    },
   },
   {
     id: "whats-law-dad",
@@ -396,10 +681,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/9/41/cover500/8936441418_2.jpg",
     suitableTypes: ["설명하는 글", "주장하는 글"],
     summary: "생활 속 다양한 상황을 통해 법이 왜 필요한지 쉽게 설명하는 법 교양서.",
-    argumentPoints: [
-      "법이 없다면 우리 생활이 어떻게 달라질지",
-      "책에서 다룬 법 중, 더 강해지거나 바뀌어야 한다고 생각하는 것과 그 이유",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "법이 없다면 우리 생활이 어떻게 달라질지",
+        "책에서 다룬 법 중, 더 강해지거나 바뀌어야 한다고 생각하는 것과 그 이유",
+      ],
+      "설명하는 글": [
+        "법이 왜 필요한지, 책 속 예시 하나를 골라 안 읽은 친구에게 설명하기",
+        "우리 생활 속에서 법이 적용되는 예를 하나 찾아 설명하기",
+      ],
+    },
   },
   {
     id: "rich-poor-nations",
@@ -409,6 +700,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/30139/58/cover500/8974784599_1.jpg",
     suitableTypes: ["설명하는 글", "비교·대조 글"],
     summary: "나라마다 경제적 차이가 생기는 이유를 아이 눈높이에서 설명하는 경제 교양서.",
+    guidePoints: {
+      "설명하는 글": [
+        "나라마다 경제적 차이가 생기는 이유를 이 책에서 배운 대로 친구에게 설명하기",
+        "책에서 다룬 경제 개념 중 하나를 골라 쉽게 풀어 설명하기",
+      ],
+      "비교·대조 글": [
+        "책에서 다룬 잘사는 나라와 못사는 나라의 차이를 비교해서 쓰기",
+        "그 차이를 만드는 원인 중 내가 가장 중요하다고 생각하는 것과 그 이유",
+      ],
+    },
   },
   {
     id: "yalu-river-flows",
@@ -418,6 +719,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/828/85/cover500/8963650405_1.jpg",
     suitableTypes: ["독후감", "경험을 담은 글"],
     summary: "일제강점기, 고향을 떠나 독일에서 살아간 저자 자신의 어린 시절과 유학 생활을 그린 자전적 소설.",
+    guidePoints: {
+      "독후감": [
+        "고향을 떠나 낯선 나라에서 살아간 저자의 삶 중 가장 기억에 남는 장면",
+        "이 책을 읽고 고향과 타향에 대해 새롭게 든 생각",
+      ],
+      "경험을 담은 글": [
+        "낯선 곳(새 학교, 새 동네 등)에 가서 적응해야 했던 나만의 경험",
+        "그때 가장 힘들었던 점과, 그것을 어떻게 이겨냈는지",
+      ],
+    },
   },
   {
     id: "salmon",
@@ -427,6 +738,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/11376/75/cover500/k322531496_1.jpg",
     suitableTypes: ["감상문", "서사적 글쓰기"],
     summary: "태어난 강으로 돌아가는 연어의 여정을 통해 삶과 사랑, 죽음의 의미를 돌아보게 하는 이야기.",
+    guidePoints: {
+      "감상문": [
+        "태어난 강으로 돌아가는 연어의 여정에서 가장 마음에 남는 장면",
+        "이 책을 읽고 삶과 사랑에 대해 새롭게 든 생각",
+      ],
+      "서사적 글쓰기": [
+        "연어가 태어난 강에 도착한 뒤 이야기가 어떻게 이어질지 상상해서 쓰기",
+        "내가 이 연어라면 긴 여정 중 가장 힘들 때 어떤 마음이었을지 이야기로 써보기",
+      ],
+    },
   },
   {
     id: "handwriting-on-palm",
@@ -436,10 +757,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/34/58/cover500/8936441981_1.jpg",
     suitableTypes: ["주장하는 글", "경험을 담은 글"],
     summary: "가족과 이웃 사이의 정을 담담하게 그린 생활동화.",
-    argumentPoints: [
-      "가족이나 이웃에게 정을 나눴던 나만의 경험은 무엇인지",
-      "요즘도 이 책처럼 이웃과 정을 나누는 문화가 필요하다고 생각하는지, 그 이유",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "가족이나 이웃에게 정을 나눴던 나만의 경험은 무엇인지",
+        "요즘도 이 책처럼 이웃과 정을 나누는 문화가 필요하다고 생각하는지, 그 이유",
+      ],
+      "경험을 담은 글": [
+        "가족이 아닌 이웃에게 도움을 주거나 받았던 나만의 경험",
+        "정이 많다고 느꼈던 우리 동네나 가족의 모습은 어떤 모습인지",
+      ],
+    },
   },
   {
     id: "little-prince",
@@ -449,6 +776,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/6853/49/cover500/8932917248_2.jpg",
     suitableTypes: ["감상문", "독후감"],
     summary: "사막에 불시착한 비행사가 만난, 작은 별에서 온 어린 왕자와의 만남을 통해 삶의 소중한 가치를 되돌아보게 하는 이야기.",
+    guidePoints: {
+      "감상문": [
+        "어린 왕자와 비행사의 만남 중 가장 마음에 남는 장면과 그 이유",
+        "이 책을 읽고 내 삶에서 소중한 것이 무엇인지 새롭게 든 생각",
+      ],
+      "독후감": [
+        "이 책에서 가장 기억에 남는 장면과 그 이유",
+        "어린 왕자를 통해 배운 삶의 가치 중 하나를 골라 쓰기",
+      ],
+    },
   },
   {
     id: "flying-classroom",
@@ -458,6 +795,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/23112/33/cover500/k542637696_1.jpg",
     suitableTypes: ["비교·대조 글", "서사적 글쓰기"],
     summary: "크리스마스를 앞둔 기숙학교 아이들이 연극을 준비하며 겪는 우정과 성장의 이야기.",
+    guidePoints: {
+      "비교·대조 글": [
+        "연극을 준비하기 전과 후, 아이들의 우정이 어떻게 달라졌는지 비교하기",
+        "기숙학교에서 함께 지내는 생활과 우리 학교 생활을 비교해서 쓰기",
+      ],
+      "서사적 글쓰기": [
+        "크리스마스 연극이 끝난 뒤, 아이들의 이야기가 어떻게 이어질지 상상해서 쓰기",
+        "내가 이 기숙학교 아이들 중 한 명이라면 연극 준비 중 어떤 역할을 하고 싶을지 이야기로 써보기",
+      ],
+    },
   },
   {
     id: "korean-symbols-100",
@@ -467,6 +814,12 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/91/48/cover500/895354162x_2.jpg",
     suitableTypes: ["설명하는 글"],
     summary: "태극기, 한글, 탈춤 등 우리 문화를 대표하는 상징 100가지를 소개하는 교양서.",
+    guidePoints: {
+      "설명하는 글": [
+        "책 속 우리 문화 상징 중 하나를 골라, 외국 친구에게 설명하기",
+        "그 상징이 왜 우리 문화를 대표한다고 생각하는지 설명하기",
+      ],
+    },
   },
   {
     id: "geumo-sinhwa",
@@ -476,6 +829,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/23/95/cover500/8970656022_1.gif",
     suitableTypes: ["설명하는 글", "독후감"],
     summary: "우리나라 최초의 한문 소설집으로 꼽히는 작품으로, 신비롭고 기이한 이야기 다섯 편을 담고 있다.",
+    guidePoints: {
+      "설명하는 글": [
+        "우리나라 최초의 한문 소설집이라는 이 책을, 안 읽은 친구에게 소개하기",
+        "다섯 편의 이야기 중 하나를 골라 줄거리를 요약해서 설명하기",
+      ],
+      "독후감": [
+        "다섯 편의 신비롭고 기이한 이야기 중 가장 기억에 남는 이야기와 그 이유",
+        "이 책을 읽고 옛이야기에 대해 새롭게 든 생각",
+      ],
+    },
   },
   {
     id: "eye-of-eagle",
@@ -485,10 +848,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/24/98/cover500/8980408269_2.jpg",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "위기 속에서 용기와 지혜를 발휘하는 주인공의 모습을 그린 모험 소설.",
-    argumentPoints: [
-      "위기 상황에서 주인공이 보여준 용기와 지혜 중, 내가 따라 하고 싶은 태도는 무엇인지",
-      "위험한 상황에서는 무조건 조심하는 게 좋을지, 용기를 내야 할 때도 있다고 생각하는지",
-    ],
+    guidePoints: {
+      "주장하는 글": [
+        "위기 상황에서 주인공이 보여준 용기와 지혜 중, 내가 따라 하고 싶은 태도는 무엇인지",
+        "위험한 상황에서는 무조건 조심하는 게 좋을지, 용기를 내야 할 때도 있다고 생각하는지",
+      ],
+      "문제 해결 글": [
+        "주인공이 위기 속에서 겪은 어려움을 어떤 방법으로 해결했는지",
+        "내가 같은 위기에 처한다면 어떤 순서로 문제를 해결해 나갈지",
+      ],
+    },
   },
   {
     id: "tom-sawyer",
@@ -498,6 +867,16 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/18558/31/cover500/8952787870_1.jpg",
     suitableTypes: ["서사적 글쓰기", "문제 해결 글"],
     summary: "미시시피강 마을을 배경으로, 장난꾸러기 톰 소여가 친구들과 겪는 모험을 그린 고전 소설.",
+    guidePoints: {
+      "서사적 글쓰기": [
+        "톰 소여의 모험이 끝난 뒤, 친구들과 어떤 새로운 모험을 떠났을지 상상해서 쓰기",
+        "내가 톰 소여라면 미시시피강 마을에서 어떤 모험을 하고 싶을지 이야기로 써보기",
+      ],
+      "문제 해결 글": [
+        "톰 소여와 친구들이 모험 중 겪은 어려움을 어떻게 해결했는지",
+        "내가 낯선 모험 중 어려움에 부딪힌다면 어떤 방법으로 헤쳐나갈지",
+      ],
+    },
   },
 ];
 
@@ -515,17 +894,30 @@ export const BOOK_PROMPT_TEMPLATES: Record<WritingType, (title: string) => strin
   "설명하는 글": (t) => `『${t}』을 안 읽은 친구에게 이 책이 어떤 책인지 소개하기`,
 };
 
-// "주장하는 글"에서 책을 고르면, 모든 책에 똑같은 "인물의 선택에 찬성/반대" 한 문장 대신
-// 그 책의 핵심 쟁점 2가지를 보여준다. argumentPoints가 없는 책(구체적 쟁점을 뽑기엔
-// 요약이 너무 일반적인 책)은 기존 범용 템플릿 문장 하나로 대신한다.
-export function argumentGuideFor(book: RecommendedBook): { intro: string; points: string[] } {
-  if (book.argumentPoints) {
-    return {
-      intro: `『${book.title}』을 읽고, 다음 중 하나를 골라 내 생각을 근거 들어 쓰기`,
-      points: book.argumentPoints,
-    };
+// 유형별로 "다음 중 하나를 골라 ~쓰기" 안내문. 유형의 성격에 맞게 동사만 다르게 썼다.
+const GUIDE_INTRO: Record<WritingType, (title: string) => string> = {
+  "독후감": (t) => `『${t}』을 읽고, 다음 중 하나를 골라 쓰기`,
+  "감상문": (t) => `『${t}』을 읽고, 다음 중 하나를 골라 느낌을 쓰기`,
+  "경험을 담은 글": (t) => `『${t}』을 읽고, 다음 중 하나를 골라 내 경험을 떠올려 쓰기`,
+  "비교·대조 글": (t) => `『${t}』을 읽고, 다음 중 하나를 골라 비교해서 쓰기`,
+  "문제 해결 글": (t) => `『${t}』을 읽고, 다음 중 하나를 골라 나라면 어떻게 할지 쓰기`,
+  "주장하는 글": (t) => `『${t}』을 읽고, 다음 중 하나를 골라 내 생각을 근거 들어 쓰기`,
+  "서사적 글쓰기": (t) => `『${t}』을 읽고, 다음 중 하나를 골라 이야기를 상상해서 쓰기`,
+  "설명하는 글": (t) => `『${t}』을 읽고, 다음 중 하나를 골라 설명하는 글로 쓰기`,
+};
+
+// 책을 고르면, 모든 책에 똑같은 범용 템플릿 한 문장 대신 그 책의 핵심 포인트 2가지를
+// 보여준다. guidePoints에 그 유형이 없는 책(구체적 포인트를 뽑기엔 요약이 너무
+// 일반적인 책)은 기존 범용 템플릿 문장 하나로 대신한다.
+export function bookGuideFor(
+  book: RecommendedBook,
+  writingType: WritingType
+): { intro: string; points: string[] } {
+  const points = book.guidePoints?.[writingType];
+  if (points) {
+    return { intro: GUIDE_INTRO[writingType](book.title), points };
   }
-  return { intro: BOOK_PROMPT_TEMPLATES["주장하는 글"](book.title), points: [] };
+  return { intro: BOOK_PROMPT_TEMPLATES[writingType](book.title), points: [] };
 }
 
 // 학년 + 글의 종류에 맞는 책만 골라 돌려준다. 혹시 그 조합에 맞는 책이 하나도 없으면

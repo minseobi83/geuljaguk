@@ -7,6 +7,7 @@ import ResultView from "@/components/ResultView";
 import VersionCompare from "@/components/VersionCompare";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateShort } from "@/lib/format";
+import { withYiGa } from "@/lib/korean";
 import TopNav from "@/components/TopNav";
 import {
   ChildProfile,
@@ -295,7 +296,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           {!current && recentEssays.length > 0 && (
             <section className="mt-10 lg:mt-0 lg:w-72 lg:shrink-0">
               <h2 className="mb-3 text-sm font-medium text-ink/60">
-                {child.nickname}가 최근에 쓴 글
+                {withYiGa(child.nickname)} 최근에 쓴 글
               </h2>
               <ul className="flex flex-col gap-2">
                 {recentEssays.map((essay) => (

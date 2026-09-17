@@ -27,6 +27,35 @@ const LATEST_TICKER_ITEMS = TICKER_ITEMS.filter(
   (item) => item.date === LATEST_RELEASE_DATE
 );
 
+// 답변은 전부 실제 동작 기준으로 적는다 (횟수·글자 수 제한은 app/api/evaluate/route.ts 값과 같아야 함).
+const FAQ = [
+  {
+    no: "01",
+    q: "평가 기준은 어떤 건가요?",
+    a: "사고력·논리력·표현력·구성력 네 가지를 봅니다. 100점 만점 같은 점수 대신 능숙·보통·도움필요 3단계로만 표시하고, 아이의 학년과 글의 종류를 함께 고려해요. 글자 수가 많다고 더 좋은 평가를 주지 않고, 한 편만으로 판단하기 어려우면 '판단하기 어려움'이라고 솔직하게 표시합니다.",
+  },
+  {
+    no: "02",
+    q: "한 번에 몇 번까지 첨삭받을 수 있나요?",
+    a: "같은 글감은 최대 3번까지 제출할 수 있어요. 처음 한 번 쓰고, 피드백을 보고 두 번 더 고쳐 쓰는 구조입니다. 여러 주제를 얕게 훑기보다 한 주제를 끝까지 다듬게 하려는 제한이고, 아이가 직접 정한 주제는 횟수 제한 없이 쓸 수 있어요. 한 편은 20자 이상 4,000자까지 받습니다.",
+  },
+  {
+    no: "03",
+    q: "AI가 아이 글을 대신 써주는 건 아닌가요?",
+    a: "대신 써주지 않습니다. 잘한 점을 먼저 찾고, 오늘 고칠 것은 하나만 고르고, 나머지는 질문으로 되돌려줘요. 맞춤법·띄어쓰기처럼 분명한 오류만 고친 표현을 보여줍니다. 그 밖의 문장을 AI가 대신 완성하려 하면 서버가 걸러내고 다시 만들게 합니다.",
+  },
+  {
+    no: "04",
+    q: "아이 개인정보는 어떻게 관리되나요?",
+    a: "별명과 학년만 받습니다. 실명·학교·주소는 수집하지 않아요. 아이가 쓴 글은 보호자 계정 아래에만 저장되고, 시작할 때 법정대리인(보호자) 동의를 받습니다.",
+  },
+  {
+    no: "05",
+    q: "아이 글에 걱정되는 내용이 있으면 어떻게 되나요?",
+    a: "자해·폭력·학대처럼 어른이 알아야 할 신호가 보이면 보호자 대시보드에 따로 표시해 알려드립니다. 아이 화면에서는 놀라지 않도록, 힘든 일이 있으면 부모님·선생님이나 청소년상담1388에 이야기해도 괜찮다고 부드럽게 안내해요.",
+  },
+];
+
 const FEATURES = [
   {
     no: "01",
@@ -336,6 +365,35 @@ export default function LoginPage() {
               </button>
             </form>
           </div>
+        </section>
+
+        {/* ───────── 자주 묻는 질문 ───────── */}
+        <section className="border-t-2 border-ink pb-16 pt-8">
+          <div className="flex items-baseline justify-between">
+            <h3 className="text-2xl font-black tracking-tight text-ink">
+              자주 묻는 질문
+            </h3>
+            <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
+              FAQ
+            </span>
+          </div>
+          <dl className="mt-8 grid gap-x-12 lg:grid-cols-2">
+            {FAQ.map((item) => (
+              <div key={item.no} className="border-b border-ink/15 py-5">
+                <dt className="flex gap-4">
+                  <span className="shrink-0 bg-ink px-2 py-1 text-[11px] font-bold tracking-widest text-white">
+                    {item.no}
+                  </span>
+                  <span className="break-keep text-base font-extrabold leading-snug tracking-tight text-ink">
+                    {item.q}
+                  </span>
+                </dt>
+                <dd className="mt-3 break-keep pl-[3.25rem] text-sm leading-7 text-ink/65">
+                  {item.a}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
       </div>
 

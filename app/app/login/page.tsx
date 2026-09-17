@@ -27,13 +27,6 @@ const LATEST_TICKER_ITEMS = TICKER_ITEMS.filter(
   (item) => item.date === LATEST_RELEASE_DATE
 );
 
-const CONTENTS = [
-  { no: "01", title: "코치하는 방식", page: "질문으로 되돌려주기" },
-  { no: "02", title: "성장의 기록", page: "지난 글과의 비교" },
-  { no: "03", title: "안전 장치", page: "보호자에게 알리기" },
-  { no: "04", title: "추천 도서", page: "학년별 45권" },
-];
-
 const FEATURES = [
   {
     no: "01",
@@ -117,9 +110,7 @@ export default function LoginPage() {
       <section className="bg-ink text-white">
         <div className="mx-auto max-w-6xl px-5 lg:px-10">
           <div className="flex items-center justify-between gap-4 border-b border-white/20 py-3 text-[10px] uppercase tracking-[0.3em] text-white/55">
-            <span>{LATEST_RELEASE_DATE.slice(0, 7)}</span>
-            <span className="hidden sm:inline">Vol. 01</span>
-            <span className="hidden md:inline">AI Writing Coach</span>
+            <span>AI Writing Coach</span>
             <a href="#auth" className="text-white underline underline-offset-4">
               로그인
             </a>
@@ -139,10 +130,7 @@ export default function LoginPage() {
               </p>
 
               <div className="mt-10 border-t border-white/20 pt-8">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">
-                  Cover Story
-                </p>
-                <p className="mt-4 max-w-xl break-keep text-2xl font-extrabold leading-snug sm:text-3xl">
+                <p className="max-w-xl break-keep text-2xl font-extrabold leading-snug sm:text-3xl">
                   아이가 스스로 다시 쓰게 만드는 글쓰기 코치
                 </p>
                 <p className="mt-4 max-w-lg break-keep text-sm leading-7 text-white/60">
@@ -187,27 +175,6 @@ export default function LoginPage() {
       </section>
 
       <div className="mx-auto max-w-6xl px-5 lg:px-10">
-        {/* ───────── 목차 ───────── */}
-        <section className="border-b-2 border-ink py-8">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-2xl font-black tracking-tight text-ink">이번 호</h2>
-            <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
-              Contents
-            </span>
-          </div>
-          <ul className="mt-6 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
-            {CONTENTS.map((c) => (
-              <li key={c.no} className="border-t border-ink/20 pt-3">
-                <span className="text-xs font-bold tracking-widest text-accent">
-                  {c.no}
-                </span>
-                <p className="mt-1 break-keep text-base font-bold text-ink">{c.title}</p>
-                <p className="mt-0.5 break-keep text-xs text-ink/50">{c.page}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
         {/* ───────── 리드 기사 + 시그니처 ───────── */}
         <section className="grid gap-10 py-14 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-7">

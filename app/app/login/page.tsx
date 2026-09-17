@@ -89,7 +89,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 lg:px-8">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 lg:px-8">
         <div className="flex items-center gap-2">
           <BrandMark size={32} />
           <span className="font-heading text-lg text-accent">글자국</span>
@@ -103,15 +103,15 @@ export default function LoginPage() {
         </a>
       </nav>
 
-      <section className="mx-auto flex max-w-6xl flex-col items-center gap-10 px-4 py-10 lg:flex-row lg:gap-16 lg:py-20 lg:px-8">
+      <section className="mx-auto flex max-w-7xl flex-col items-center gap-10 px-4 py-10 lg:flex-row lg:gap-16 lg:py-20 lg:px-8">
         <div className="w-full min-w-0 flex-1 text-center lg:w-auto lg:text-left">
-          <span className="inline-block rounded-full bg-growth/10 px-3 py-1 text-xs font-medium text-growth">
+          <span className="inline-block break-keep rounded-full bg-growth/10 px-3 py-1 text-xs font-medium text-growth">
             초등 4~6학년을 위한 AI 글쓰기 코치
           </span>
-          <h1 className="mx-auto mt-4 max-w-md font-heading text-3xl leading-snug text-ink sm:text-4xl lg:mx-0 lg:max-w-lg lg:text-5xl">
+          <h1 className="mx-auto mt-4 max-w-lg break-keep font-heading text-3xl leading-snug text-ink sm:text-4xl lg:mx-0 lg:max-w-xl lg:text-5xl">
             아이가 스스로 다시 쓰게 만드는 글쓰기 코치
           </h1>
-          <p className="mx-auto mt-4 max-w-md text-ink/70 leading-7 sm:text-lg lg:mx-0">
+          <p className="mx-auto mt-4 max-w-lg break-keep text-ink/70 leading-7 sm:text-lg lg:mx-0">
             정답을 대신 써주지 않아요. 잘한 점을 먼저 찾고, 오늘은 딱 하나만 짚어주고,
             질문으로 아이가 스스로 고쳐 쓰게 도와줘요.
           </p>
@@ -143,19 +143,19 @@ export default function LoginPage() {
 
       {/* 시그니처 멘트: "글자국" = 글(쓰기) + 자국(흔적)이라는 이름 자체에서 따온 문구 */}
       <section className="border-y border-ink/10 bg-growth/5 px-4 py-10 text-center lg:px-8">
-        <p className="font-heading text-xl leading-relaxed text-ink sm:text-2xl">
+        <p className="break-keep font-heading text-xl leading-relaxed text-ink sm:text-2xl">
           모든 문장에는, 아이가 자란 자국이 남아요.
         </p>
-        <p className="mx-auto mt-2 max-w-md text-sm text-ink/60">
+        <p className="mx-auto mt-2 max-w-lg break-keep text-sm text-ink/60">
           글자국은 그 자국을 함께 따라가며, 아이가 스스로 다시 쓰도록 돕는 AI 코치예요.
         </p>
       </section>
 
       <div className="overflow-hidden border-b border-ink/10 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-xs lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-xs lg:px-8">
           <span className="shrink-0 font-medium text-accent">최근 업데이트</span>
           {TICKER_ITEMS.map((item) => (
-            <span key={item.text} className="flex shrink-0 items-center gap-1.5 text-ink/50">
+            <span key={item.text} className="flex shrink-0 items-center gap-1.5 break-keep text-ink/50">
               <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
                 {item.tag}
               </span>
@@ -165,8 +165,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <section className="mx-auto max-w-6xl px-4 py-12 lg:px-8">
-        <h2 className="text-center font-heading text-xl text-ink sm:text-2xl">
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
+        <h2 className="break-keep text-center font-heading text-xl text-ink sm:text-2xl">
           글자국이 하는 일
         </h2>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -178,8 +178,8 @@ export default function LoginPage() {
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-growth/10 text-lg">
                 {f.icon}
               </span>
-              <p className="mt-3 font-heading text-base text-ink">{f.title}</p>
-              <p className="mt-1.5 text-sm leading-6 text-ink/60">{f.text}</p>
+              <p className="mt-3 break-keep font-heading text-base text-ink">{f.title}</p>
+              <p className="mt-1.5 break-keep text-sm leading-6 text-ink/60">{f.text}</p>
             </div>
           ))}
         </div>

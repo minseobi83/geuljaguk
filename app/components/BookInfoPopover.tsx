@@ -3,9 +3,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { RecommendedBook } from "@/lib/books";
 
-// 책 카드를 누르면(추천도서 화면) 또는 책을 고르면(글쓰기 화면) 선택 동작과 겹치지 않도록,
-// 정보 버튼을 따로 두고 눌렀을 때만 저자·소개를 담은 작은 팝업을 띄운다.
-export default function BookInfoPopover({ book }: { book: RecommendedBook }) {
+// 책 표지를 누르면 저자·소개를 담은 작은 팝업이 열린다.
+// children으로 트리거(보통 표지 이미지)를 넘기고, 없으면 기본 "i" 버튼을 쓴다.
+// 글쓰기 화면처럼 바깥 요소에 선택 동작이 걸려 있는 경우를 위해 클릭은 전파를 막는다.
+export default function BookInfoPopover({
+  book,
+  children,
+}: {
+  book: RecommendedBook;
+  children?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [shiftX, setShiftX] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
@@ -53,13 +60,17 @@ export default function BookInfoPopover({ book }: { book: RecommendedBook }) {
         }}
         aria-label={`${book.title} 소개 보기`}
         aria-expanded={open}
-        className={`flex h-5 w-5 shrink-0 items-center justify-center border text-[11px] font-bold transition ${
-          open
-            ? "border-ink bg-ink text-white"
-            : "border-ink/30 bg-white text-ink/50 hover:border-ink hover:text-ink"
-        }`}
+        className={
+          children
+            ? "block cursor-pointer"
+            : `flex h-5 w-5 shrink-0 items-center justify-center border text-[11px] font-bold transition ${
+                open
+                  ? "border-ink bg-ink text-white"
+                  : "border-ink/30 bg-white text-ink/50 hover:border-ink hover:text-ink"
+              }`
+        }
       >
-        i
+        {children ?? "i"}
       </button>
 
       {open && (

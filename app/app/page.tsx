@@ -42,6 +42,7 @@ export default async function Home({
     topic_title: h.topicTitle,
     created_at: h.createdAt,
     latest_summary: h.summary,
+    priority_category: h.priorityCategory,
   }));
 
   return (

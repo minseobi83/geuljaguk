@@ -352,6 +352,11 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
                         {essay.latest_summary}
                       </p>
                     )}
+                    {essay.priority_category && (
+                      <p className="mt-2 inline-block border border-warn px-2 py-0.5 text-[11px] font-bold text-warn">
+                        보완 · {essay.priority_category}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>

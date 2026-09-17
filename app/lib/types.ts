@@ -111,4 +111,6 @@ export interface RecentEssay {
   topic_title: string | null;
   created_at: string;
   latest_summary: string | null;
+  // 그 글에서 AI가 고른 "이번에 고쳐볼 것 하나" (보완해야 할 부분). 최근 글 목록에서 색으로 표시한다.
+  priority_category: string | null;
 }

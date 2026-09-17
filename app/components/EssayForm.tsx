@@ -117,7 +117,7 @@ export default function EssayForm({
             Grade · 학년
           </span>
           <select
-            className="border-b-2 border-ink bg-transparent pb-1 text-lg font-extrabold tracking-tight outline-none"
+            className="border-b-2 border-ink bg-transparent pb-1 text-base font-extrabold tracking-tight outline-none"
             value={gradeBand}
             onChange={(e) => handleGradeBandChange(e.target.value as GradeBand)}
           >
@@ -131,7 +131,7 @@ export default function EssayForm({
             Genre · 글의 종류
           </span>
           <select
-            className="border-b-2 border-ink bg-transparent pb-1 text-lg font-extrabold tracking-tight outline-none"
+            className="border-b-2 border-ink bg-transparent pb-1 text-base font-extrabold tracking-tight outline-none"
             value={writingType}
             onChange={(e) => handleWritingTypeChange(e.target.value as WritingType)}
           >
@@ -253,9 +253,7 @@ export default function EssayForm({
         </>
       ) : (
         <>
-          <p className="mt-4 text-[10px] uppercase tracking-[0.25em] text-ink/45">
-            {gradeBand}학년 · {writingType}
-          </p>
+          <p className="mt-4 text-xs text-ink/40">표지를 누르면 책 소개가 열려요.</p>
           <ul className="mt-2">
             {books.map((book, i) => {
               const selected = selectedBookId === book.id;
@@ -282,21 +280,20 @@ export default function EssayForm({
                     >
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={book.coverUrl}
-                      alt={`${book.title} 표지`}
-                      className={`h-20 w-14 shrink-0 border border-ink/10 object-cover transition ${
-                        selected ? "" : "grayscale"
-                      }`}
-                    />
+                    <BookInfoPopover book={book}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={book.coverUrl}
+                        alt={`${book.title} 표지 (누르면 책 소개가 열려요)`}
+                        className={`h-20 w-14 shrink-0 border border-ink/10 object-cover transition ${
+                          selected ? "" : "grayscale"
+                        }`}
+                      />
+                    </BookInfoPopover>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="break-keep text-lg font-bold tracking-tight text-ink">
-                          『{book.title}』
-                        </p>
-                        <BookInfoPopover book={book} />
-                      </div>
+                      <p className="break-keep text-lg font-bold tracking-tight text-ink">
+                        『{book.title}』
+                      </p>
                       <p className="mt-1 text-sm text-ink/50">{book.author}</p>
                     </div>
                   </div>

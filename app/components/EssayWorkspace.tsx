@@ -7,6 +7,7 @@ import ResultView from "@/components/ResultView";
 import VersionCompare from "@/components/VersionCompare";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateShort } from "@/lib/format";
+import { splitByTone } from "@/lib/tone";
 import TopNav from "@/components/TopNav";
 import {
   ChildProfile,
@@ -53,6 +54,8 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
   const [progressChars, setProgressChars] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [paragraphAnswers, setParagraphAnswers] = useState<Record<number, string>>({});
+  // 첨삭 노트가 길면 접어두고, 누르면 펼친다.
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
 
   const current = history[history.length - 1];
   const previous = history[history.length - 2];
@@ -336,28 +339,63 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
                 Editor’s Note · 선생님 첨삭 노트
               </p>
               <ul>
-                {recentEssays.map((essay) => (
-                  <li key={essay.id} className="border-b border-ink/15 py-3">
-                    <div className="flex items-baseline gap-3">
-                      <span className="shrink-0 font-mono text-xs text-ink/40">
-                        {formatDateShort(essay.created_at)}
-                      </span>
-                      <span className="break-keep text-base font-bold tracking-tight text-ink">
-                        {essay.topic_title ?? essay.writing_type}
-                      </span>
-                    </div>
-                    {essay.latest_summary && (
-                      <p className="mt-1 break-keep text-sm text-ink/55">
-                        {essay.latest_summary}
-                      </p>
-                    )}
-                    {essay.priority_category && (
-                      <p className="mt-2 inline-block border border-warn px-2 py-0.5 text-[11px] font-bold text-warn">
-                        보완 · {essay.priority_category}
-                      </p>
-                    )}
-                  </li>
-                ))}
+                {recentEssays.map((essay) => {
+                  const expanded = expandedNoteId === essay.id;
+                  const segments = essay.latest_summary
+                    ? splitByTone(essay.latest_summary)
+                    : [];
+                  const isLong = Boolean(
+                    essay.latest_summary && essay.latest_summary.length > 90
+                  );
+                  return (
+                    <li key={essay.id} className="border-b border-ink/15 py-3">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span className="shrink-0 font-mono text-xs text-ink/40">
+                          {formatDateShort(essay.created_at)}
+                        </span>
+                        <span className="break-keep text-base font-bold tracking-tight text-ink">
+                          {essay.topic_title ?? essay.writing_type}
+                        </span>
+                        {essay.priority_category && (
+                          <span className="shrink-0 border border-warn px-1.5 py-0.5 text-[10px] font-bold text-warn">
+                            보완 · {essay.priority_category}
+                          </span>
+                        )}
+                      </div>
+                      {segments.length > 0 && (
+                        <>
+                          {/* 보완이 필요한 어투의 문장만 진하게 */}
+                          <p
+                            className={`mt-1 break-keep text-sm leading-6 text-ink/55 ${
+                              expanded ? "" : "line-clamp-4"
+                            }`}
+                          >
+                            {segments.map((seg, i) =>
+                              seg.improvement ? (
+                                <strong key={i} className="font-bold text-ink">
+                                  {seg.text}{" "}
+                                </strong>
+                              ) : (
+                                <span key={i}>{seg.text} </span>
+                              )
+                            )}
+                          </p>
+                          {isLong && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedNoteId(expanded ? null : essay.id)
+                              }
+                              className="mt-1 text-[10px] uppercase tracking-[0.2em] text-ink/45 underline underline-offset-4"
+                            >
+                              {expanded ? "접기" : "전체 보기"}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </aside>
           )}

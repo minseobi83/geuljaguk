@@ -14,6 +14,13 @@ const TICKER_ITEMS = [
   { tag: "업데이트", text: "보호자 대시보드 안전 알림", date: "2026.09.16" },
 ];
 
+// 가장 최근 날짜의 항목만 보여준다 (날짜가 여러 개 섞여도 최신 릴리즈만 노출).
+const LATEST_RELEASE_DATE = TICKER_ITEMS.reduce(
+  (latest, item) => (item.date > latest ? item.date : latest),
+  TICKER_ITEMS[0].date
+);
+const LATEST_TICKER_ITEMS = TICKER_ITEMS.filter((item) => item.date === LATEST_RELEASE_DATE);
+
 const FEATURES = [
   {
     icon: "✏️",
@@ -157,14 +164,15 @@ export default function LoginPage() {
 
       <div className="overflow-hidden border-b border-ink/10 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-xs lg:px-8">
-          <span className="shrink-0 font-medium text-accent">릴리즈노트</span>
-          {TICKER_ITEMS.map((item) => (
+          <span className="shrink-0 font-medium text-accent">
+            릴리즈노트({LATEST_RELEASE_DATE})
+          </span>
+          {LATEST_TICKER_ITEMS.map((item) => (
             <span key={item.text} className="flex shrink-0 items-center gap-1.5 break-keep text-ink/50">
               <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
                 {item.tag}
               </span>
               {item.text}
-              <span className="text-ink/35">({item.date})</span>
             </span>
           ))}
         </div>

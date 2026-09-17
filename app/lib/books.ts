@@ -20,6 +20,11 @@ export interface RecommendedBook {
   // 틀린 사실을 단정하는 위험을 피하기 위해 제목·장르에서 유추한 일반적인 소개로 적었다
   // (지침의 "사실을 지어내지 않는다" 원칙과 동일하게 적용).
   summary: string;
+  // "주장하는 글" 글감으로 이 책을 고를 때, 모든 책에 똑같이 "인물의 선택에 찬성/반대"만
+  // 묻지 말고 그 책만의 핵심 쟁점 2가지를 짚어달라는 요청으로 추가한 필드.
+  // summary에 이미 나온 내용(사실로 확인된 것)만 근거로 뽑아서, 새로운 사실을 지어내지 않는다.
+  // 없으면(요약이 너무 일반적이라 구체적 쟁점을 뽑기 애매한 책) 기존 범용 템플릿으로 대신한다.
+  argumentPoints?: [string, string];
 }
 
 export const RECOMMENDED_BOOKS: RecommendedBook[] = [
@@ -51,6 +56,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/8497/71/cover500/8937837943_1.jpg",
     suitableTypes: ["주장하는 글", "경험을 담은 글"],
     summary: "친구들 사이에 퍼진 욕설 문제를 주인공이 나서서 해결해 가는 학교 생활동화.",
+    argumentPoints: [
+      "주인공이 욕설 문제를 직접 나서서 해결하려 한 행동이 옳았다고 생각하는지",
+      "친구의 나쁜 말버릇을 고쳐주고 싶을 때, 스스로 나서는 것과 선생님께 알리는 것 중 어느 쪽이 더 좋은 방법인지",
+    ],
   },
   {
     id: "suspicious-transfer",
@@ -69,6 +78,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/24038/50/cover500/8969022619_1.jpg",
     suitableTypes: ["설명하는 글", "주장하는 글"],
     summary: "질문과 답 형식으로 '정의'라는 어려운 개념을 아이 눈높이에서 풀어내는 인문 교양서.",
+    argumentPoints: [
+      "책에 나온 '정의'에 관한 질문 중, 내가 가장 공감하거나 반대하는 주장은 무엇인지",
+      "우리 반이나 우리 사회에서 정의롭지 않다고 느꼈던 일이 있다면, 어떻게 바뀌면 좋을지",
+    ],
   },
   {
     id: "liar-and-spy",
@@ -87,6 +100,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/27353/36/cover500/e162538611_1.jpg",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "단체 채팅방에서 시작된 이상한 소문을 둘러싸고 벌어지는 이야기로, 온라인 소통의 그림자를 다룬다.",
+    argumentPoints: [
+      "단체 채팅방에서 퍼진 소문을 보면 그냥 넘겨야 할지, 사실인지 확인해야 할지",
+      "온라인에서 친구와 이야기할 때 꼭 지켜야 할 것과 조심해야 할 것은 무엇인지",
+    ],
   },
   {
     id: "blanket-sea-fish",
@@ -114,6 +131,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/9855/48/cover500/k222535352_1.jpg",
     suitableTypes: ["설명하는 글", "주장하는 글"],
     summary: "우리 주변의 다양한 사회 현상과 규칙을 아이 눈높이에서 설명하는 교양서.",
+    argumentPoints: [
+      "책 속 규칙 중, 우리 사회에 꼭 필요하다고 생각하는 것과 그 이유",
+      "더 나은 세상을 위해 바뀌어야 한다고 생각하는 규칙과 그 이유",
+    ],
   },
   {
     id: "bad-child-ticket",
@@ -123,6 +144,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/96/34/cover500/8901068591_2.jpg",
     suitableTypes: ["주장하는 글", "경험을 담은 글"],
     summary: "선생님이 나눠주는 '나쁜 어린이표'를 받은 아이의 억울한 마음을 솔직하게 그린 생활동화.",
+    argumentPoints: [
+      "'나쁜 어린이표'처럼 벌점을 주는 방식이 아이의 행동을 바꾸는 데 정말 도움이 되는지",
+      "억울하게 혼났던 경험이 있다면, 그때 내가 진짜로 원했던 건 무엇이었는지",
+    ],
   },
   {
     id: "chojeongri-letter",
@@ -150,6 +175,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/787/83/cover500/8954612881_2.jpg",
     suitableTypes: ["주장하는 글", "비교·대조 글"],
     summary: "프랑스의 작은 도시 뚜르를 배경으로, 낯선 곳에서 만난 인연과 비밀을 그린 이야기.",
+    argumentPoints: [
+      "낯선 곳에서 혼자 지내야 했던 주인공의 마음이 어땠을지",
+      "친구의 비밀을 알게 되었을 때, 지켜줘야 할지 다른 사람에게 알려야 할지",
+    ],
   },
   {
     id: "toad-tuesday",
@@ -197,6 +226,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/24081/64/cover500/k172639130_1.jpg",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "장난감 총 같은 무기를 팔지 말아 달라고 나서는 아이의 이야기를 통해 평화와 폭력의 문제를 생각해보게 하는 책.",
+    argumentPoints: [
+      "장난감이라도 무기 모양 장난감을 파는 것을 막아야 한다고 생각하는지",
+      "한 사람의 작은 행동(캠페인)이 정말 사회를 바꿀 수 있다고 생각하는지",
+    ],
   },
   {
     id: "gandhi",
@@ -206,6 +239,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/25/99/cover500/8936441906_1.jpg",
     suitableTypes: ["설명하는 글", "주장하는 글"],
     summary: "비폭력·불복종 운동으로 인도의 독립을 이끈 간디의 삶을 다룬 위인전.",
+    argumentPoints: [
+      "간디가 폭력을 쓰지 않고 저항한 방법이 정말 효과적이었다고 생각하는지, 그 이유",
+      "간디처럼 옳다고 믿는 것을 위해 자신을 희생하는 태도에 찬성하는지",
+    ],
   },
   {
     id: "universe-topsy-turvy",
@@ -233,6 +270,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/33/6/cover500/8984881201_2.gif",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "보물을 지키던 거위가 도둑 누명을 쓰고 쫓겨나면서, 진짜 범인을 찾아가는 이야기.",
+    argumentPoints: [
+      "제대로 확인하지도 않고 거위에게 누명을 씌운 주변 인물들의 행동이 옳았는지",
+      "억울한 누명을 벗기 위해 포기하지 않고 진실을 밝히려 한 거위의 태도를 어떻게 생각하는지",
+    ],
   },
   {
     id: "happy-prince",
@@ -242,6 +283,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/16/83/cover500/8936440470_1.jpg",
     suitableTypes: ["독후감", "주장하는 글"],
     summary: "가난한 이웃을 위해 자신의 보석과 금박을 나눠주는 동상과 제비의 헌신을 그린 고전 동화.",
+    argumentPoints: [
+      "왕자가 가진 보석과 금박을 다 내어준 선택에 찬성하는지, 그 이유",
+      "제비가 따뜻한 나라로 가는 여행을 포기하고 왕자를 도운 선택을 어떻게 생각하는지",
+    ],
   },
   {
     id: "my-sister",
@@ -287,6 +332,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/36/71/cover500/8995302100_2.jpg",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "황무지에 홀로 나무를 심어 숲을 되살린 한 양치기의 이야기를 담은 우화.",
+    argumentPoints: [
+      "한 사람의 꾸준한 노력만으로 황무지를 숲으로 바꾸는 것 같은 큰 변화가 가능하다고 생각하는지",
+      "아무도 알아주지 않아도 묵묵히 좋은 일을 계속하는 태도에 대해 어떻게 생각하는지",
+    ],
   },
   {
     id: "anne-frank-diary",
@@ -316,6 +365,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/59/27/cover500/8937420201_1.jpg",
     suitableTypes: ["주장하는 글", "비교·대조 글"],
     summary: "한 학급을 지배하는 반장의 권력과 그에 맞서는 전학생의 이야기를 통해 권력의 속성을 그린 소설.",
+    argumentPoints: [
+      "반 친구들이 반장의 부당한 힘에 맞서지 않고 따랐던 행동을 어떻게 생각하는지",
+      "옳지 않다고 느끼는 힘에 맞설지, 일단 따르고 지켜볼지 나라면 어떻게 할지",
+    ],
   },
   {
     id: "momo",
@@ -343,6 +396,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/9/41/cover500/8936441418_2.jpg",
     suitableTypes: ["설명하는 글", "주장하는 글"],
     summary: "생활 속 다양한 상황을 통해 법이 왜 필요한지 쉽게 설명하는 법 교양서.",
+    argumentPoints: [
+      "법이 없다면 우리 생활이 어떻게 달라질지",
+      "책에서 다룬 법 중, 더 강해지거나 바뀌어야 한다고 생각하는 것과 그 이유",
+    ],
   },
   {
     id: "rich-poor-nations",
@@ -379,6 +436,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/34/58/cover500/8936441981_1.jpg",
     suitableTypes: ["주장하는 글", "경험을 담은 글"],
     summary: "가족과 이웃 사이의 정을 담담하게 그린 생활동화.",
+    argumentPoints: [
+      "가족이나 이웃에게 정을 나눴던 나만의 경험은 무엇인지",
+      "요즘도 이 책처럼 이웃과 정을 나누는 문화가 필요하다고 생각하는지, 그 이유",
+    ],
   },
   {
     id: "little-prince",
@@ -424,6 +485,10 @@ export const RECOMMENDED_BOOKS: RecommendedBook[] = [
     coverUrl: "https://image.aladin.co.kr/product/24/98/cover500/8980408269_2.jpg",
     suitableTypes: ["주장하는 글", "문제 해결 글"],
     summary: "위기 속에서 용기와 지혜를 발휘하는 주인공의 모습을 그린 모험 소설.",
+    argumentPoints: [
+      "위기 상황에서 주인공이 보여준 용기와 지혜 중, 내가 따라 하고 싶은 태도는 무엇인지",
+      "위험한 상황에서는 무조건 조심하는 게 좋을지, 용기를 내야 할 때도 있다고 생각하는지",
+    ],
   },
   {
     id: "tom-sawyer",
@@ -449,6 +514,19 @@ export const BOOK_PROMPT_TEMPLATES: Record<WritingType, (title: string) => strin
   "서사적 글쓰기": (t) => `『${t}』 이야기가 끝난 뒤 이어질 이야기 상상해서 쓰기`,
   "설명하는 글": (t) => `『${t}』을 안 읽은 친구에게 이 책이 어떤 책인지 소개하기`,
 };
+
+// "주장하는 글"에서 책을 고르면, 모든 책에 똑같은 "인물의 선택에 찬성/반대" 한 문장 대신
+// 그 책의 핵심 쟁점 2가지를 보여준다. argumentPoints가 없는 책(구체적 쟁점을 뽑기엔
+// 요약이 너무 일반적인 책)은 기존 범용 템플릿 문장 하나로 대신한다.
+export function argumentGuideFor(book: RecommendedBook): { intro: string; points: string[] } {
+  if (book.argumentPoints) {
+    return {
+      intro: `『${book.title}』을 읽고, 다음 중 하나를 골라 내 생각을 근거 들어 쓰기`,
+      points: book.argumentPoints,
+    };
+  }
+  return { intro: BOOK_PROMPT_TEMPLATES["주장하는 글"](book.title), points: [] };
+}
 
 // 학년 + 글의 종류에 맞는 책만 골라 돌려준다. 혹시 그 조합에 맞는 책이 하나도 없으면
 // 학년 전체 목록으로 대신 보여준다.

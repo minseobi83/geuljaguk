@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
 import { WRITING_TOPICS } from "@/lib/topics";
-import { BOOK_PROMPT_TEMPLATES, booksFor } from "@/lib/books";
+import { BOOK_PROMPT_TEMPLATES, argumentGuideFor, booksFor } from "@/lib/books";
 import BookInfoPopover from "@/components/BookInfoPopover";
 
 const WRITING_TYPES: WritingType[] = [
@@ -239,7 +239,22 @@ export default function EssayForm({
                 </div>
               ))}
             </div>
-            {selectedBook && (
+            {selectedBook && writingType === "주장하는 글" && (() => {
+              const guide = argumentGuideFor(selectedBook);
+              return (
+                <div className="mt-2 rounded-md bg-growth/5 p-3 text-sm text-growth">
+                  <p>{guide.intro}</p>
+                  {guide.points.length > 0 && (
+                    <ol className="mt-1.5 list-decimal space-y-1 pl-4">
+                      {guide.points.map((point) => (
+                        <li key={point}>{point}</li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              );
+            })()}
+            {selectedBook && writingType !== "주장하는 글" && (
               <p className="mt-2 rounded-md bg-growth/5 p-3 text-sm text-growth">
                 {BOOK_PROMPT_TEMPLATES[writingType](selectedBook.title)}
               </p>

@@ -306,7 +306,7 @@ export default function EssayForm({
           {selectedBook && (
             <div className="mt-5 border-l-4 border-ink pl-4">
               <p className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
-                오늘의 과제
+                Example · 글자국 남기기 예시
               </p>
               {bookGuide ? (
                 <ul className="mt-2 flex flex-col gap-1.5">

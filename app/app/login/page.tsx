@@ -8,10 +8,10 @@ import BrandMark from "@/components/BrandMark";
 type Mode = "signin" | "signup";
 
 const TICKER_ITEMS = [
-  { tag: "새 기능", text: "문단별 첨삭 강조 + 스스로 답하기" },
-  { tag: "새 기능", text: "수정 전/후 비교 화면" },
-  { tag: "업데이트", text: "학년별 추천도서 45권" },
-  { tag: "업데이트", text: "보호자 대시보드 안전 알림" },
+  { tag: "새 기능", text: "문단별 첨삭 강조 + 스스로 답하기", date: "2026.09.16" },
+  { tag: "새 기능", text: "수정 전/후 비교 화면", date: "2026.09.16" },
+  { tag: "업데이트", text: "학년별 추천도서 45권", date: "2026.09.16" },
+  { tag: "업데이트", text: "보호자 대시보드 안전 알림", date: "2026.09.16" },
 ];
 
 const FEATURES = [
@@ -153,13 +153,14 @@ export default function LoginPage() {
 
       <div className="overflow-hidden border-b border-ink/10 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-xs lg:px-8">
-          <span className="shrink-0 font-medium text-accent">최근 업데이트</span>
+          <span className="shrink-0 font-medium text-accent">릴리즈노트</span>
           {TICKER_ITEMS.map((item) => (
             <span key={item.text} className="flex shrink-0 items-center gap-1.5 break-keep text-ink/50">
               <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
                 {item.tag}
               </span>
               {item.text}
+              <span className="text-ink/35">({item.date})</span>
             </span>
           ))}
         </div>

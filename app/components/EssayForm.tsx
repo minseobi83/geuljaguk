@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
 import { WRITING_TOPICS } from "@/lib/topics";
-import { BOOK_PROMPT_TEMPLATES, bookGuideFor, booksFor } from "@/lib/books";
+import { BOOK_PROMPT_TEMPLATES, booksFor } from "@/lib/books";
 import BookInfoPopover from "@/components/BookInfoPopover";
 
 const WRITING_TYPES: WritingType[] = [
@@ -71,6 +71,8 @@ export default function EssayForm({
   const books = booksFor(gradeBand, writingType);
   const isCustom = selectedTopicId === CUSTOM_TOPIC_ID;
   const selectedBook = books.find((b) => b.id === selectedBookId);
+  // 그 책만의 핵심 포인트가 있으면 범용 템플릿 대신 그걸 보여준다.
+  const bookGuide = selectedBook?.guidePoints?.[writingType];
 
   const topicTitle =
     sourceKind === "book" && selectedBook
@@ -101,18 +103,21 @@ export default function EssayForm({
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex flex-col"
       onSubmit={(e) => {
         e.preventDefault();
         if (submitting) return;
         onSubmit({ studentText: text, writingType, gradeBand, topicTitle });
       }}
     >
-      <div className="flex gap-3">
-        <label className="flex flex-col text-sm text-ink/70">
-          학년
+      {/* 설정 줄 */}
+      <div className="flex flex-wrap gap-x-10 gap-y-4 border-b border-ink/20 pb-5">
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
+            Grade · 학년
+          </span>
           <select
-            className="mt-1 rounded-md border border-ink/20 bg-white px-3 py-2"
+            className="border-b-2 border-ink bg-transparent pb-1 text-lg font-extrabold tracking-tight outline-none"
             value={gradeBand}
             onChange={(e) => handleGradeBandChange(e.target.value as GradeBand)}
           >
@@ -121,10 +126,12 @@ export default function EssayForm({
             <option value="6">6학년</option>
           </select>
         </label>
-        <label className="flex flex-col text-sm text-ink/70">
-          글의 종류
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
+            Genre · 글의 종류
+          </span>
           <select
-            className="mt-1 rounded-md border border-ink/20 bg-white px-3 py-2"
+            className="border-b-2 border-ink bg-transparent pb-1 text-lg font-extrabold tracking-tight outline-none"
             value={writingType}
             onChange={(e) => handleWritingTypeChange(e.target.value as WritingType)}
           >
@@ -137,140 +144,227 @@ export default function EssayForm({
         </label>
       </div>
 
-      <div>
-        <div className="mb-2 flex gap-1 rounded-full border border-ink/15 bg-white p-1 text-sm">
-          <button
-            type="button"
-            onClick={() => setSourceKind("topic")}
-            className={`flex-1 rounded-full py-1.5 ${
-              sourceKind === "topic" ? "bg-accent text-white" : "text-ink/60"
-            }`}
-          >
-            글감으로 쓰기
-          </button>
-          <button
-            type="button"
-            onClick={() => setSourceKind("book")}
-            className={`flex-1 rounded-full py-1.5 ${
-              sourceKind === "book" ? "bg-growth text-white" : "text-ink/60"
-            }`}
-          >
-            추천도서로 쓰기
-          </button>
-        </div>
+      {/* 글감 / 추천도서 탭 */}
+      <div className="mt-8 flex gap-8 border-b-2 border-ink text-sm">
+        <button
+          type="button"
+          onClick={() => setSourceKind("topic")}
+          className={`-mb-0.5 pb-3 transition ${
+            sourceKind === "topic"
+              ? "border-b-4 border-ink font-black text-ink"
+              : "text-ink/40"
+          }`}
+        >
+          글감으로 쓰기
+        </button>
+        <button
+          type="button"
+          onClick={() => setSourceKind("book")}
+          className={`-mb-0.5 pb-3 transition ${
+            sourceKind === "book"
+              ? "border-b-4 border-ink font-black text-ink"
+              : "text-ink/40"
+          }`}
+        >
+          추천도서로 쓰기
+        </button>
+      </div>
 
-        {sourceKind === "topic" ? (
-          <>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {topics.map((topic) => (
-                <button
-                  key={topic.id}
-                  type="button"
-                  onClick={() => setSelectedTopicId(topic.id)}
-                  className={`rounded-lg border p-3 text-left transition ${
-                    selectedTopicId === topic.id
-                      ? "border-accent bg-accent/5"
-                      : "border-ink/15 bg-white"
-                  }`}
-                >
-                  <p className="font-medium">{topic.title}</p>
-                  <p className="mt-1 text-xs text-ink/50">{topic.hint}</p>
-                </button>
-              ))}
+      {sourceKind === "topic" ? (
+        <>
+          <ul>
+            {topics.map((topic, i) => {
+              const selected = selectedTopicId === topic.id;
+              return (
+                <li key={topic.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTopicId(topic.id)}
+                    className={`flex w-full items-start gap-5 border-b border-ink/15 py-5 text-left transition ${
+                      selected ? "bg-ink/[0.04]" : "hover:bg-ink/[0.02]"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 px-2 py-1 text-[11px] font-bold tracking-widest ${
+                        selected ? "bg-ink text-white" : "bg-ink/10 text-ink/50"
+                      }`}
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block break-keep text-lg leading-snug tracking-tight ${
+                          selected ? "font-black text-ink" : "font-bold text-ink/80"
+                        }`}
+                      >
+                        {topic.title}
+                      </span>
+                      <span className="mt-1 block break-keep text-sm text-ink/50">
+                        {topic.hint}
+                      </span>
+                    </span>
+                    {selected && (
+                      <span className="mt-1 shrink-0 text-[10px] uppercase tracking-[0.2em] text-ink">
+                        선택됨
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+            <li>
               <button
                 type="button"
                 onClick={() => setSelectedTopicId(CUSTOM_TOPIC_ID)}
-                className={`rounded-lg border p-3 text-left transition ${
-                  isCustom ? "border-accent bg-accent/5" : "border-ink/15 bg-white"
+                className={`flex w-full items-start gap-5 border-b border-ink/15 py-5 text-left transition ${
+                  isCustom ? "bg-ink/[0.04]" : "hover:bg-ink/[0.02]"
                 }`}
               >
-                <p className="font-medium">다른 주제로 직접 써보기</p>
-                <p className="mt-1 text-xs text-ink/50">
-                  위 글감이 마음에 안 들면 내가 직접 주제를 정해요.
-                </p>
-              </button>
-            </div>
-            {isCustom && (
-              <input
-                className="mt-2 w-full rounded-md border border-ink/20 bg-white px-3 py-2"
-                placeholder="어떤 주제로 쓸지 짧게 적어주세요 (비워두면 자유롭게 써도 돼요)"
-                value={customTopic}
-                onChange={(e) => setCustomTopic(e.target.value)}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            <p className="mb-2 text-xs text-ink/50">
-              {gradeBand}학년 · {writingType}에 어울리는 추천도서예요.
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {books.map((book) => (
-                <div
-                  key={book.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedBookId(book.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelectedBookId(book.id);
-                    }
-                  }}
-                  className={`flex cursor-pointer gap-3 rounded-lg border p-3 text-left transition ${
-                    selectedBookId === book.id
-                      ? "border-growth bg-growth/5"
-                      : "border-ink/15 bg-white"
+                <span
+                  className={`mt-0.5 px-2 py-1 text-[11px] font-bold tracking-widest ${
+                    isCustom ? "bg-ink text-white" : "bg-ink/10 text-ink/50"
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={book.coverUrl}
-                    alt={`${book.title} 표지`}
-                    className="h-20 w-14 shrink-0 rounded object-cover shadow-sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-1">
-                      <p className="font-medium">『{book.title}』</p>
-                      <BookInfoPopover book={book} />
-                    </div>
-                    <p className="mt-1 text-xs text-ink/50">{book.author}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {selectedBook && (() => {
-              const guide = bookGuideFor(selectedBook, writingType);
+                  ＋
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={`block break-keep text-lg tracking-tight ${
+                      isCustom ? "font-black text-ink" : "font-bold text-ink/80"
+                    }`}
+                  >
+                    다른 주제로 직접 써보기
+                  </span>
+                  <span className="mt-1 block break-keep text-sm text-ink/50">
+                    위 글감이 마음에 안 들면 내가 직접 주제를 정해요.
+                  </span>
+                </span>
+              </button>
+            </li>
+          </ul>
+          {isCustom && (
+            <input
+              className="mt-4 w-full border-b-2 border-ink bg-transparent pb-2 text-base outline-none placeholder:text-ink/35"
+              placeholder="어떤 주제로 쓸지 짧게 적어주세요 (비워두면 자유롭게 써도 돼요)"
+              value={customTopic}
+              onChange={(e) => setCustomTopic(e.target.value)}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <p className="mt-4 text-[10px] uppercase tracking-[0.25em] text-ink/45">
+            {gradeBand}학년 · {writingType}
+          </p>
+          <ul className="mt-2">
+            {books.map((book, i) => {
+              const selected = selectedBookId === book.id;
               return (
-                <div className="mt-2 rounded-md bg-growth/5 p-3 text-sm text-growth">
-                  <p>{guide.intro}</p>
-                  {guide.points.length > 0 && (
-                    <ol className="mt-1.5 list-decimal space-y-1 pl-4">
-                      {guide.points.map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ol>
-                  )}
-                </div>
+                <li key={book.id}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedBookId(book.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedBookId(book.id);
+                      }
+                    }}
+                    className={`flex cursor-pointer items-center gap-5 border-b border-ink/15 py-4 text-left transition ${
+                      selected ? "bg-ink/[0.04]" : "hover:bg-ink/[0.02]"
+                    }`}
+                  >
+                    <span
+                      className={`px-2 py-1 text-[11px] font-bold tracking-widest ${
+                        selected ? "bg-ink text-white" : "bg-ink/10 text-ink/50"
+                      }`}
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={book.coverUrl}
+                      alt={`${book.title} 표지`}
+                      className={`h-20 w-14 shrink-0 border border-ink/10 object-cover transition ${
+                        selected ? "" : "grayscale"
+                      }`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="break-keep text-lg font-bold tracking-tight text-ink">
+                          『{book.title}』
+                        </p>
+                        <BookInfoPopover book={book} />
+                      </div>
+                      <p className="mt-1 text-sm text-ink/50">{book.author}</p>
+                    </div>
+                  </div>
+                </li>
               );
-            })()}
-          </>
-        )}
+            })}
+          </ul>
+
+          {selectedBook && (
+            <div className="mt-5 border-l-4 border-ink pl-4">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
+                오늘의 과제
+              </p>
+              {bookGuide ? (
+                <ul className="mt-2 flex flex-col gap-1.5">
+                  {bookGuide.map((point) => (
+                    <li
+                      key={point}
+                      className="flex gap-2 break-keep text-sm leading-6 text-ink/75"
+                    >
+                      <span className="text-ink/40">—</span>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 break-keep text-sm leading-6 text-ink/75">
+                  {BOOK_PROMPT_TEMPLATES[writingType](selectedBook.title)}
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 원고 */}
+      <div className="mt-12">
+        <div className="flex items-baseline justify-between bg-ink px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-white">
+            Manuscript · 원고
+          </p>
+          <p className="font-mono text-xs text-white/60">
+            {text.length.toLocaleString()}자
+          </p>
+        </div>
+        {/* 원고지 느낌의 괘선 배경 — 줄 간격(38px)과 line-height를 같게 맞춰 글이 줄 위에 앉는다 */}
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="여기에 글을 써주세요."
+          style={{
+            lineHeight: "38px",
+            backgroundImage:
+              "repeating-linear-gradient(to bottom, transparent 0px, transparent 37px, rgba(31,41,51,0.12) 37px, rgba(31,41,51,0.12) 38px)",
+            backgroundAttachment: "local",
+          }}
+          className="min-h-[380px] w-full resize-y border-x border-b border-ink/15 bg-transparent px-3 py-1 font-heading text-lg text-ink outline-none placeholder:font-body placeholder:text-base placeholder:text-ink/30"
+        />
       </div>
 
-      <textarea
-        className="min-h-[320px] w-full rounded-lg border border-ink/20 bg-white p-4 font-body leading-7 focus:outline-none focus:ring-2 focus:ring-accent/40"
-        placeholder="여기에 글을 써주세요."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
-
-      <div className="flex items-center justify-between text-sm text-ink/50">
-        <span>{text.length}자</span>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+        <p className="break-keep text-xs text-ink/45">
+          다 썼으면 선생님께 보여주고, 피드백을 본 뒤 스스로 고쳐 쓸 수 있어요.
+        </p>
         <button
           type="submit"
           disabled={submitting || text.trim().length < 20}
-          className="rounded-full bg-accent px-6 py-2 font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+          className="bg-ink px-8 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitting ? "선생님이 읽고 있어요..." : submitLabel}
         </button>

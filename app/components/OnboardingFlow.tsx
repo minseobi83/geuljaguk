@@ -62,11 +62,16 @@ export default function OnboardingFlow({
 
   if (!consentGiven) {
     return (
-      <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-16">
-        <header className="text-center">
-          <h1 className="font-heading text-xl text-accent">시작하기 전에</h1>
+      <main className="mx-auto flex max-w-xl flex-col gap-6 px-5 py-16">
+        <header className="border-b-2 border-ink pb-6">
+          <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
+            Step 01 · 시작하기 전에
+          </span>
+          <h1 className="mt-5 break-keep text-3xl font-black tracking-[-0.03em] text-ink">
+            보호자 동의
+          </h1>
         </header>
-        <div className="rounded-xl border border-ink/10 bg-white p-5 text-sm leading-6 text-ink/80">
+        <div className="border-l-4 border-ink pl-5 text-sm leading-7 text-ink/80">
           <p>글자국은 자녀의 글을 AI로 분석해서 글쓰기 코칭 피드백을 제공하는 서비스예요.</p>
           <ul className="mt-3 list-disc space-y-1 pl-5">
             <li>자녀의 실명·학교·주소 등은 수집하지 않아요 (별명만 입력합니다).</li>
@@ -90,7 +95,7 @@ export default function OnboardingFlow({
         <button
           onClick={handleConsent}
           disabled={!checked || submitting}
-          className="rounded-full bg-accent px-6 py-2 font-medium text-white disabled:opacity-40"
+          className="bg-ink px-6 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent disabled:opacity-40"
         >
           동의하고 계속하기
         </button>
@@ -100,27 +105,36 @@ export default function OnboardingFlow({
 
   if (!initialHasChild) {
     return (
-      <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-16">
-        <header className="text-center">
-          <h1 className="font-heading text-xl text-accent">자녀 프로필 만들기</h1>
-          <p className="mt-1 text-sm text-ink/60">
-            실명 대신 별명으로 등록해주세요.
+      <main className="mx-auto flex max-w-xl flex-col gap-6 px-5 py-16">
+        <header className="border-b-2 border-ink pb-6">
+          <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
+            Step 02 · 자녀 프로필
+          </span>
+          <h1 className="mt-5 break-keep text-3xl font-black tracking-[-0.03em] text-ink">
+            별명으로 등록해요
+          </h1>
+          <p className="mt-3 break-keep text-sm text-ink/55">
+            실명 대신 별명만 받아요.
           </p>
         </header>
-        <form className="flex flex-col gap-3" onSubmit={handleCreateChild}>
-          <label className="flex flex-col text-sm text-ink/70">
-            별명
+        <form className="flex flex-col gap-5" onSubmit={handleCreateChild}>
+          <label className="flex flex-col gap-2">
+            <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
+              Nickname · 별명
+            </span>
             <input
-              className="mt-1 rounded-md border border-ink/20 bg-white px-3 py-2"
+              className="border-b-2 border-ink bg-transparent pb-2 text-lg font-bold outline-none placeholder:font-normal placeholder:text-ink/30"
               placeholder="예: 주원"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
             />
           </label>
-          <label className="flex flex-col text-sm text-ink/70">
-            학년
+          <label className="flex flex-col gap-2">
+            <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
+              Grade · 학년
+            </span>
             <select
-              className="mt-1 rounded-md border border-ink/20 bg-white px-3 py-2"
+              className="border-b-2 border-ink bg-transparent pb-2 text-lg font-bold outline-none"
               value={gradeBand}
               onChange={(e) => setGradeBand(e.target.value as GradeBand)}
             >
@@ -133,7 +147,7 @@ export default function OnboardingFlow({
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 rounded-full bg-accent px-6 py-2 font-medium text-white disabled:opacity-40"
+            className="mt-2 bg-ink px-6 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent disabled:opacity-40"
           >
             만들기
           </button>

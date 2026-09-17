@@ -12,40 +12,50 @@ export default function VersionCompare({ before, after, onClose }: Props) {
   const ops = diffWords(before.text, after.text);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-heading text-lg text-accent">
-          {before.versionNo}번째 시도 → {after.versionNo}번째 시도, 무엇이 바뀌었을까요?
+    <div className="flex flex-col gap-6">
+      <div className="border-b-2 border-ink pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
+            Revision · 고친 자국
+          </span>
+          <button
+            onClick={onClose}
+            className="text-[10px] uppercase tracking-[0.2em] text-ink/50 underline underline-offset-4"
+          >
+            닫기
+          </button>
+        </div>
+        <h2 className="mt-4 break-keep text-2xl font-black tracking-tight text-ink">
+          {before.versionNo}번째 시도 → {after.versionNo}번째 시도,
+          <br />
+          무엇이 바뀌었을까요?
         </h2>
-        <button onClick={onClose} className="text-sm text-ink/50 underline">
-          닫기
-        </button>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-ink/50">
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-growth/20 ring-1 ring-growth/40" />
+      <div className="flex items-center gap-6 text-[10px] uppercase tracking-[0.2em] text-ink/45">
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 bg-growth/25 ring-1 ring-growth/50" />
           새로 쓴 부분
         </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-warn/10 ring-1 ring-warn/30" />
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 bg-warn/15 ring-1 ring-warn/40" />
           지운 부분
         </span>
       </div>
 
-      <div className="rounded-xl border border-ink/10 bg-white p-5 leading-8 whitespace-pre-wrap">
+      <div className="whitespace-pre-wrap border-y border-ink/15 py-6 font-heading text-lg leading-9 text-ink/85">
         {ops.map((op, i) => {
           if (op.type === "equal") return <span key={i}>{op.text}</span>;
           if (op.type === "add")
             return (
-              <mark key={i} className="rounded bg-growth/20 px-0.5 text-ink">
+              <mark key={i} className="bg-growth/20 px-0.5 text-ink">
                 {op.text}
               </mark>
             );
           return (
             <span
               key={i}
-              className="rounded bg-warn/10 px-0.5 text-ink/40 line-through decoration-warn"
+              className="bg-warn/10 px-0.5 text-ink/40 line-through decoration-warn"
             >
               {op.text}
             </span>
@@ -53,7 +63,7 @@ export default function VersionCompare({ before, after, onClose }: Props) {
         })}
       </div>
 
-      <p className="text-center text-sm text-ink/50">
+      <p className="break-keep border-l-4 border-ink pl-4 text-sm text-ink/60">
         스스로 고친 부분이 눈에 보이나요? 그게 바로 네가 성장한 흔적이에요.
       </p>
     </div>

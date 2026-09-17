@@ -53,10 +53,10 @@ export default function BookInfoPopover({ book }: { book: RecommendedBook }) {
         }}
         aria-label={`${book.title} 소개 보기`}
         aria-expanded={open}
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border shadow-sm text-[11px] font-medium transition ${
+        className={`flex h-5 w-5 shrink-0 items-center justify-center border text-[11px] font-bold transition ${
           open
-            ? "border-accent bg-accent text-white"
-            : "border-ink/20 bg-white text-ink/50 hover:border-accent hover:text-accent"
+            ? "border-ink bg-ink text-white"
+            : "border-ink/30 bg-white text-ink/50 hover:border-ink hover:text-ink"
         }`}
       >
         i
@@ -70,11 +70,13 @@ export default function BookInfoPopover({ book }: { book: RecommendedBook }) {
           style={{ transform: `translateX(${shiftX}px)` }}
           className="absolute right-0 top-full z-20 pt-2 w-60 max-w-[calc(100vw-1.5rem)]"
         >
-          <div className="relative rounded-lg border border-ink/10 bg-white p-3 text-left shadow-lg">
-            <div className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 border-l border-t border-ink/10 bg-white" />
-            <p className="text-sm font-medium text-ink">『{book.title}』</p>
+          <div className="relative border-2 border-ink bg-white p-3 text-left shadow-lg">
+            <div className="absolute -top-[7px] right-3 h-3 w-3 rotate-45 border-l-2 border-t-2 border-ink bg-white" />
+            <p className="break-keep text-sm font-bold tracking-tight text-ink">
+              『{book.title}』
+            </p>
             <p className="mt-0.5 text-xs text-ink/50">{book.author}</p>
-            <p className="mt-2 text-xs leading-5 text-ink/70">{book.summary}</p>
+            <p className="mt-2 break-keep text-xs leading-5 text-ink/70">{book.summary}</p>
           </div>
         </div>
       )}

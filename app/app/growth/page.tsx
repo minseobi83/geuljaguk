@@ -48,14 +48,23 @@ export default async function GrowthPage({
   const latestScores = scoredAsc[scoredAsc.length - 1]?.scores ?? null;
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10 lg:max-w-4xl xl:max-w-5xl">
+    <>
       <TopNav />
-      <header className="mb-8">
-        <h1 className="font-heading text-2xl text-accent">
-          {activeChild.nickname}의 성장 기록
+      <main className="mx-auto max-w-6xl px-5 py-10 lg:px-10">
+      <header className="mb-8 border-b-2 border-ink pb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
+            Archive · 성장 기록
+          </span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink/45">
+            Vol. 01
+          </span>
+        </div>
+        <h1 className="mt-6 break-keep text-4xl font-black leading-[0.95] tracking-[-0.03em] text-ink sm:text-5xl">
+          {activeChild.nickname}의<br />글자국
         </h1>
-        <p className="mt-1 text-sm text-ink/60">
-          점수보다 흐름이 중요해요 - 예전의 나와 지금의 나를 비교해봐요.
+        <p className="mt-4 break-keep text-sm text-ink/55">
+          점수보다 흐름이 중요해요 — 예전의 나와 지금의 나를 비교해봐요.
         </p>
       </header>
 
@@ -65,10 +74,10 @@ export default async function GrowthPage({
             <a
               key={c.id}
               href={`/growth?child=${c.id}`}
-              className={`rounded-full border px-4 py-1.5 text-sm ${
+              className={`border px-4 py-1.5 text-xs font-bold tracking-tight transition ${
                 c.id === activeChild.id
-                  ? "border-accent bg-accent/10 text-accent"
-                  : "border-ink/15 text-ink/60"
+                  ? "border-ink bg-ink text-white"
+                  : "border-ink/25 text-ink/55 hover:border-ink"
               }`}
             >
               {c.nickname}
@@ -83,6 +92,7 @@ export default async function GrowthPage({
         scoredAsc={scoredAsc}
         historyDesc={historyDesc}
       />
-    </main>
+      </main>
+    </>
   );
 }

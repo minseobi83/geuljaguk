@@ -17,6 +17,15 @@ interface Props {
   onCompare: () => void;
 }
 
+// 섹션 머리표 — 잡지 지면의 소제목처럼 검은 띠 + 영문 키커로 통일한다.
+function SectionTag({ en, ko }: { en: string; ko: string }) {
+  return (
+    <p className="bg-ink px-3 py-2 text-[10px] uppercase tracking-[0.3em] text-white">
+      {en} · {ko}
+    </p>
+  );
+}
+
 export default function ResultView({
   result,
   studentText,
@@ -32,32 +41,36 @@ export default function ResultView({
   const paragraphs = splitParagraphs(studentText);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-10">
       {result.safety.concern && (
-        <section className="rounded-xl border border-warn/40 bg-warn/10 p-5">
-          <h3 className="font-heading text-base text-warn">잠깐, 이것도 알아두세요</h3>
-          <p className="mt-2 leading-7">
+        <section className="border-l-4 border-warn bg-warn/5 px-4 py-4">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-warn">
+            Notice · 잠깐, 이것도 알아두세요
+          </p>
+          <p className="mt-3 break-keep leading-7 text-ink/80">
             혹시 지금 힘들거나 무서운 일이 있다면, 언제든 부모님이나 선생님한테 이야기해도
             괜찮아요. 말하기 어려우면 청소년상담1388(전화·문자 1388)에 물어봐도 돼요.
           </p>
         </section>
       )}
 
-      <section className="rounded-xl border border-ink/10 bg-white p-5">
-        <h2 className="font-heading text-lg text-accent">총평</h2>
-        <p className="mt-2 leading-7">{result.summary}</p>
+      {/* 총평 */}
+      <section>
+        <SectionTag en="Summary" ko="총평" />
+        <p className="mt-4 break-keep text-lg leading-9 text-ink/85">{result.summary}</p>
         {isUncertain && (
-          <p className="mt-2 text-sm text-warn">
+          <p className="mt-3 break-keep border-l-2 border-warn pl-3 text-sm text-warn">
             이번 글만으로는 정확히 판단하기 어려운 부분이 있어요. 다음 글도 함께 보면 더 잘 알 수 있어요.
           </p>
         )}
         {result.understanding.intent_unclear && (
-          <p className="mt-2 text-sm text-ink/60">
+          <p className="mt-3 break-keep border-l-2 border-ink/20 pl-3 text-sm text-ink/55">
             하고 싶은 말이 조금 더 분명해지면 좋을 것 같아요.
           </p>
         )}
       </section>
 
+      {/* 지표 */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <TierBadge label="사고력" tier={result.scores.사고력} />
         <TierBadge label="논리력" tier={result.scores.논리력} />
@@ -65,59 +78,80 @@ export default function ResultView({
         <TierBadge label="구성력" tier={result.scores.구성력} />
       </section>
 
-      <section className="rounded-xl border border-growth/20 bg-growth/5 p-5">
-        <h3 className="font-heading text-base text-growth">잘한 점</h3>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
+      {/* 잘한 점 */}
+      <section>
+        <SectionTag en="Strengths" ko="잘한 점" />
+        <ul className="mt-2">
           {result.strengths.map((s, i) => (
-            <li key={i}>{s}</li>
+            <li key={i} className="flex gap-4 border-b border-ink/15 py-4">
+              <span className="shrink-0 bg-growth/15 px-2 py-1 text-[11px] font-bold tracking-widest text-growth">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="break-keep leading-7 text-ink/80">{s}</span>
+            </li>
           ))}
         </ul>
       </section>
 
-      <section className="rounded-xl border border-warn/20 bg-warn/5 p-5">
-        <h3 className="font-heading text-base text-warn">
-          다음에 이것만 고쳐볼까요? · {result.priority_issue.category}
-        </h3>
-        <p className="mt-2 leading-7">{result.priority_issue.note}</p>
+      {/* 우선 개선점 */}
+      <section>
+        <SectionTag en="One Fix" ko={`다음에 이것만 · ${result.priority_issue.category}`} />
+        <p className="mt-4 break-keep border-l-4 border-ink pl-4 leading-8 text-ink/80">
+          {result.priority_issue.note}
+        </p>
       </section>
 
+      {/* 문단별 */}
       {result.paragraph_feedback.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <h3 className="font-heading text-base">문단별로 살펴보기</h3>
-          <p className="text-xs text-ink/50">
+        <section>
+          <SectionTag en="Line Edits" ko="문단별로 살펴보기" />
+          <p className="mt-3 break-keep text-xs text-ink/45">
             강조된 표현은 고쳐볼 만한 부분이에요. 질문에 대한 내 생각도 적어보세요.
           </p>
-          {result.paragraph_feedback.map((p) => (
-            <ParagraphFeedbackCard
-              key={p.paragraph_no}
-              feedback={p}
-              paragraphText={paragraphs[p.paragraph_no - 1]}
-              mechanicsTable={result.mechanics_table}
-              answer={paragraphAnswers[p.paragraph_no] ?? ""}
-              onAnswerChange={(value) => onParagraphAnswerChange(p.paragraph_no, value)}
-            />
-          ))}
+          <div className="mt-2">
+            {result.paragraph_feedback.map((p) => (
+              <ParagraphFeedbackCard
+                key={p.paragraph_no}
+                feedback={p}
+                paragraphText={paragraphs[p.paragraph_no - 1]}
+                mechanicsTable={result.mechanics_table}
+                answer={paragraphAnswers[p.paragraph_no] ?? ""}
+                onAnswerChange={(value) => onParagraphAnswerChange(p.paragraph_no, value)}
+              />
+            ))}
+          </div>
         </section>
       )}
 
+      {/* 표현·맞춤법 */}
       {result.mechanics_table.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h3 className="font-heading text-base">표현·맞춤법 살펴보기</h3>
-          <div className="overflow-x-auto rounded-lg border border-ink/10 bg-white">
-            <table className="w-full text-sm">
-              <thead className="bg-ink/5 text-left">
-                <tr>
-                  <th className="p-2">원문</th>
-                  <th className="p-2">고친 표현</th>
-                  <th className="p-2">이유</th>
+        <section>
+          <SectionTag en="Proofreading" ko="표현·맞춤법" />
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-y-2 border-ink text-left">
+                  <th className="py-2 pr-3 text-[10px] uppercase tracking-[0.2em] text-ink/50">
+                    원문
+                  </th>
+                  <th className="py-2 pr-3 text-[10px] uppercase tracking-[0.2em] text-ink/50">
+                    고친 표현
+                  </th>
+                  <th className="py-2 text-[10px] uppercase tracking-[0.2em] text-ink/50">
+                    이유
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {result.mechanics_table.map((row, i) => (
-                  <tr key={i} className="border-t border-ink/10">
-                    <td className="p-2 font-mono">{row.original}</td>
-                    <td className="p-2 font-mono">{row.revised}</td>
-                    <td className="p-2">{row.reason}</td>
+                  <tr key={i} className="border-b border-ink/15 align-top">
+                    <td className="py-3 pr-3 font-mono text-ink/60 line-through">
+                      {row.original}
+                    </td>
+                    <td className="py-3 pr-3 font-mono font-bold text-ink">
+                      {row.revised}
+                    </td>
+                    <td className="break-keep py-3 leading-6 text-ink/70">{row.reason}</td>
                   </tr>
                 ))}
               </tbody>
@@ -126,27 +160,37 @@ export default function ResultView({
         </section>
       )}
 
-      <section className="rounded-xl border border-ink/10 bg-white p-5">
-        <h3 className="font-heading text-base">스스로 고쳐 쓸 때 생각해볼 질문</h3>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
+      {/* 스스로 고쳐쓰기 질문 */}
+      <section>
+        <SectionTag en="Questions" ko="스스로 고쳐 쓸 때 생각해볼 질문" />
+        <ul className="mt-2">
           {result.self_revision_questions.map((q, i) => (
-            <li key={i}>{q}</li>
+            <li key={i} className="flex gap-4 border-b border-ink/15 py-4">
+              <span className="shrink-0 font-mono text-sm text-ink/35">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="break-keep leading-7 text-ink/80">{q}</span>
+            </li>
           ))}
         </ul>
       </section>
 
-      <section className="rounded-xl border border-accent/20 bg-accent/5 p-5">
-        <h3 className="font-heading text-base text-accent">
-          다음 학습 과제 · {result.next_task.skill}
-        </h3>
-        <p className="mt-2 leading-7">{result.next_task.prompt}</p>
+      {/* 다음 학습 과제 */}
+      <section className="bg-ink p-6 text-white">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">
+          Next Assignment · 다음 학습 과제
+        </p>
+        <p className="mt-4 break-keep text-lg font-extrabold tracking-tight">
+          {result.next_task.skill}
+        </p>
+        <p className="mt-2 break-keep leading-7 text-white/70">{result.next_task.prompt}</p>
       </section>
 
-      <div className="flex flex-wrap justify-end gap-3">
+      <div className="flex flex-wrap justify-end gap-3 border-t-2 border-ink pt-6">
         {canCompare && (
           <button
             onClick={onCompare}
-            className="rounded-full border border-ink/20 px-6 py-2 font-medium text-ink/70"
+            className="border-2 border-ink px-6 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-ink hover:text-white"
           >
             이전 글과 비교하기
           </button>
@@ -154,14 +198,14 @@ export default function ResultView({
         {canRewrite && (
           <button
             onClick={onRewrite}
-            className="rounded-full border border-accent px-6 py-2 font-medium text-accent"
+            className="border-2 border-ink px-6 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-ink hover:text-white"
           >
             다시 써보기
           </button>
         )}
         <button
           onClick={onDone}
-          className="rounded-full bg-growth px-6 py-2 font-medium text-white"
+          className="bg-ink px-6 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent"
         >
           여기까지 완료로 저장
         </button>

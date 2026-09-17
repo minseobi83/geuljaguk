@@ -209,69 +209,105 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
     router.refresh();
   }
 
-  const header = (
-    <>
-      <TopNav />
-      <div className="mb-8 flex items-start justify-between">
-        <p className="text-sm text-ink/60">
-          네 생각이 자라는 흔적을 함께 살펴봐요.
-        </p>
-        <div className="flex flex-col items-end gap-2 text-sm">
-          {allChildren.length > 1 ? (
-            <select
-              className="rounded-md border border-ink/20 bg-white px-2 py-1"
-              value={child.id}
-              onChange={(e) => router.push(`/?child=${e.target.value}`)}
-            >
-              {allChildren.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nickname} ({c.grade_band}학년)
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="text-ink/70">
-              {child.nickname} ({child.grade_band}학년)
-            </span>
-          )}
-          <button onClick={handleLogout} className="text-ink/40 underline">
-            로그아웃
-          </button>
-        </div>
+  // 잡지 지면의 "발행인 정보" 줄처럼 쓰는 메타 행 (모든 상태에서 공통).
+  const metaRow = (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/15 py-4 text-[10px] uppercase tracking-[0.25em] text-ink/45">
+      <span className="break-keep">네 생각이 자라는 흔적을 함께 살펴봐요</span>
+      <div className="flex items-center gap-4">
+        {allChildren.length > 1 ? (
+          <select
+            className="border-b border-ink/30 bg-transparent pb-0.5 text-[10px] uppercase tracking-[0.2em] text-ink outline-none"
+            value={child.id}
+            onChange={(e) => router.push(`/?child=${e.target.value}`)}
+          >
+            {allChildren.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nickname} ({c.grade_band}학년)
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-ink/70">
+            {child.nickname} · {child.grade_band}학년
+          </span>
+        )}
+        <button onClick={handleLogout} className="underline underline-offset-4">
+          로그아웃
+        </button>
       </div>
-    </>
+    </div>
+  );
+
+  const pageFooter = (
+    <footer className="mt-16 bg-ink py-6 text-white">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 text-[10px] uppercase tracking-[0.3em] text-white/50 lg:px-10">
+        <span>글자국 · 오늘의 원고</span>
+        <span>Vol. 01 — 2026</span>
+      </div>
+    </footer>
   );
 
   if (view === "done") {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-16 text-center lg:max-w-3xl">
-        {header}
-        <h2 className="font-heading text-2xl text-growth">오늘 글쓰기 완료!</h2>
-        <p className="mt-3 text-ink/70">
-          이번 글은 성장 기록에 저장했어요. 다음에 또 써보러 올까요?
-        </p>
-        <button
-          className="mt-6 rounded-full bg-accent px-6 py-2 font-medium text-white"
-          onClick={startNewEssay}
-        >
-          새 글 쓰러 가기
-        </button>
-      </main>
+      <>
+        <TopNav />
+        <main className="mx-auto max-w-6xl px-5 lg:px-10">
+          {metaRow}
+          <div className="py-20 text-center">
+            <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
+              Printed · 발행 완료
+            </span>
+            <h2 className="mt-6 break-keep text-4xl font-black tracking-[-0.03em] text-ink sm:text-5xl">
+              오늘 글쓰기 완료!
+            </h2>
+            <p className="mt-4 break-keep text-sm text-ink/60">
+              이번 글은 성장 기록에 저장했어요. 다음에 또 써보러 올까요?
+            </p>
+            <button
+              className="mt-8 bg-ink px-8 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent"
+              onClick={startNewEssay}
+            >
+              새 글 쓰러 가기
+            </button>
+          </div>
+        </main>
+        {pageFooter}
+      </>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10 lg:max-w-4xl xl:max-w-5xl">
-      {header}
+    <>
+      <TopNav />
+      <main className="mx-auto max-w-6xl px-5 lg:px-10">
+        {metaRow}
 
       {view === "writing" && (
-        <div className="lg:flex lg:items-start lg:gap-8">
-          <div className="lg:max-w-2xl lg:flex-1">
-            {current && (
-              <p className="mb-4 text-center text-sm text-ink/50">
-                {nextVersionNo}번째 시도 · 앞의 피드백을 보고 고쳐 써보세요.
-              </p>
-            )}
+        <>
+          <header className="border-b-2 border-ink py-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
+                Today’s Manuscript · 오늘의 원고
+              </span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink/45">
+                No. {String(nextVersionNo).padStart(2, "0")} — {nextVersionNo}번째 시도
+              </span>
+            </div>
+            <h1 className="mt-6 break-keep text-4xl font-black leading-[0.95] tracking-[-0.03em] text-ink sm:text-5xl">
+              {current ? (
+                <>
+                  피드백을 보고<br />고쳐 써볼까요?
+                </>
+              ) : (
+                <>
+                  오늘은 무엇을<br />써볼까요?
+                </>
+              )}
+            </h1>
+          </header>
+
+        <div className="grid gap-10 py-10 lg:grid-cols-12 lg:gap-12">
+          <div className="lg:col-span-8">
             <EssayForm
               initialText={current?.text ?? ""}
               initialWritingType={current?.writingType}
@@ -282,52 +318,67 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
               onSubmit={submitEssay}
             />
             {submitting && (
-              <p className="mt-3 text-center text-xs text-ink/40">
+              <p className="mt-3 font-mono text-xs text-ink/45">
                 {progressChars > 0
                   ? `선생님이 벌써 ${progressChars}자 정도 써주고 있어요...`
                   : "글을 읽고 있어요..."}
               </p>
             )}
             {error && (
-              <p className="mt-4 rounded-md bg-warn/10 p-3 text-sm text-warn">{error}</p>
+              <p className="mt-4 break-keep border-l-4 border-warn bg-warn/5 px-4 py-3 text-sm text-warn">
+                {error}
+              </p>
             )}
           </div>
 
-          {!current && recentEssays.length > 0 && (
-            <section className="mt-10 lg:mt-0 lg:w-72 lg:shrink-0">
-              <h2 className="mb-3 text-sm font-medium text-ink/60">
-                {withYiGa(child.nickname)} 최근에 쓴 글
-              </h2>
-              <ul className="flex flex-col gap-2">
+          {recentEssays.length > 0 && (
+            <aside className="lg:col-span-4">
+              <p className="bg-ink px-3 py-2 text-[10px] uppercase tracking-[0.3em] text-white">
+                Editor’s Note · {withYiGa(child.nickname)} 최근에 쓴 글
+              </p>
+              <ul>
                 {recentEssays.map((essay) => (
-                  <li
-                    key={essay.id}
-                    className="rounded-lg border border-ink/10 bg-white p-3 text-sm"
-                  >
-                    <p className="font-medium">
-                      {essay.topic_title ?? essay.writing_type}
-                      <span className="ml-2 text-xs text-ink/40">
+                  <li key={essay.id} className="border-b border-ink/15 py-3">
+                    <div className="flex items-baseline gap-3">
+                      <span className="shrink-0 font-mono text-xs text-ink/40">
                         {formatDateShort(essay.created_at)}
                       </span>
-                    </p>
+                      <span className="break-keep text-base font-bold tracking-tight text-ink">
+                        {essay.topic_title ?? essay.writing_type}
+                      </span>
+                    </div>
                     {essay.latest_summary && (
-                      <p className="mt-1 text-ink/60">{essay.latest_summary}</p>
+                      <p className="mt-1 break-keep text-sm text-ink/55">
+                        {essay.latest_summary}
+                      </p>
                     )}
                   </li>
                 ))}
               </ul>
-            </section>
+            </aside>
           )}
         </div>
+        </>
       )}
 
       {view === "result" && current && (
-        <div className="flex flex-col gap-6 lg:mx-auto lg:max-w-2xl">
-          <p className="text-center text-sm text-ink/50">
-            {current.versionNo}번째 시도
-            {current.topicTitle ? ` · ${current.topicTitle}` : ""}
-            {topicAttempt ? ` (이 글감 ${topicAttempt.used}/${topicAttempt.max}회)` : ""}
-          </p>
+        <div className="flex flex-col gap-6 py-10 lg:mx-auto lg:max-w-3xl">
+          <div className="border-b-2 border-ink pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
+                Editor’s Note · 첨삭
+              </span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink/45">
+                No. {String(current.versionNo).padStart(2, "0")}
+                {topicAttempt ? ` · ${topicAttempt.used}/${topicAttempt.max}회` : ""}
+              </span>
+            </div>
+            {current.topicTitle && (
+              <p className="mt-4 break-keep text-2xl font-black tracking-tight text-ink">
+                {current.topicTitle}
+              </p>
+            )}
+          </div>
           <ResultView
             result={current.result}
             studentText={current.text}
@@ -340,7 +391,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
             onCompare={() => setView("compare")}
           />
           {reachedLimit && (
-            <p className="text-center text-sm text-ink/50">
+            <p className="break-keep border-l-4 border-ink pl-4 text-sm text-ink/60">
               이 글감은 오늘 {topicAttempt?.max}번 다 써봤어요. 다른 글감으로 새 글을
               써볼까요?
             </p>
@@ -349,7 +400,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
       )}
 
       {view === "compare" && current && previous && (
-        <div className="lg:mx-auto lg:max-w-2xl">
+        <div className="py-10 lg:mx-auto lg:max-w-3xl">
           <VersionCompare
             before={{ text: previous.text, versionNo: previous.versionNo }}
             after={{ text: current.text, versionNo: current.versionNo }}
@@ -357,6 +408,8 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
           />
         </div>
       )}
-    </main>
+      </main>
+      {pageFooter}
+    </>
   );
 }

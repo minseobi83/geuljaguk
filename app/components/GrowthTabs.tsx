@@ -34,14 +34,14 @@ export default function GrowthTabs({
 
   return (
     <div>
-      <div className="mb-6 flex gap-1 rounded-full border border-ink/15 bg-white p-1 text-sm">
+      <div className="mb-8 flex flex-wrap gap-8 border-b-2 border-ink text-sm">
         {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
-            className={`flex-1 rounded-full py-1.5 ${
-              tab === t.id ? "bg-accent text-white" : "text-ink/60"
+            className={`-mb-0.5 pb-3 transition ${
+              tab === t.id ? "border-b-4 border-ink font-black text-ink" : "text-ink/40"
             }`}
           >
             {t.label}
@@ -51,12 +51,15 @@ export default function GrowthTabs({
 
       {tab === "recent" && (
         <div>
-          <section className="rounded-xl border border-ink/10 bg-white p-5">
-            <p className="leading-7 text-ink/80">{summary}</p>
+          <section>
+            <p className="bg-ink px-3 py-2 text-[10px] uppercase tracking-[0.3em] text-white">
+              Overview · 최근 변화
+            </p>
+            <p className="mt-4 break-keep leading-8 text-ink/80">{summary}</p>
           </section>
 
           {latestScores && (
-            <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:max-w-xl">
+            <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:max-w-2xl">
               <TierBadge label="사고력" tier={latestScores.사고력} />
               <TierBadge label="논리력" tier={latestScores.논리력} />
               <TierBadge label="표현력" tier={latestScores.표현력} />
@@ -68,8 +71,8 @@ export default function GrowthTabs({
 
       {tab === "trend" && (
         <section>
-          <p className="mb-4 text-xs text-ink/40">
-            같은 글의 종류끼리만 비교해요 (왼쪽이 예전 글, 오른쪽이 가장 최근 글).
+          <p className="mb-6 text-[10px] uppercase tracking-[0.25em] text-ink/45">
+            같은 글의 종류끼리만 비교해요 (왼쪽이 예전 글, 오른쪽이 가장 최근 글)
           </p>
           {scoredAsc.length > 0 ? (
             <IndicatorTrends items={scoredAsc} />
@@ -83,29 +86,30 @@ export default function GrowthTabs({
 
       {tab === "essays" && (
         <section>
-          <p className="mb-3 text-sm text-ink/50">{historyDesc.length}편</p>
+          <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.2em] text-ink/45">
+            {historyDesc.length}편
+          </p>
           {historyDesc.length === 0 ? (
             <p className="text-sm text-ink/50">아직 쓴 글이 없어요.</p>
           ) : (
-            <ul className="grid gap-2 lg:grid-cols-2">
+            <ul className="grid gap-x-10 lg:grid-cols-2">
               {historyDesc.map((essay) => (
-                <li
-                  key={essay.id}
-                  className="rounded-lg border border-ink/10 bg-white p-3 text-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium">
+                <li key={essay.id} className="border-b border-ink/15 py-4">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="break-keep text-base font-bold tracking-tight text-ink">
                       {essay.topicTitle ?? essay.writingType}
                     </p>
-                    <span className="text-xs text-ink/40">
+                    <span className="shrink-0 font-mono text-xs text-ink/40">
                       {formatDateShort(essay.createdAt)}
                     </span>
                   </div>
                   {essay.summary && (
-                    <p className="mt-1 text-ink/60">{essay.summary}</p>
+                    <p className="mt-1 break-keep text-sm leading-6 text-ink/55">
+                      {essay.summary}
+                    </p>
                   )}
                   {essay.scores && (
-                    <div className="mt-2 flex flex-wrap gap-1">
+                    <div className="mt-3 flex flex-wrap gap-1.5">
                       <TierBadge label="사고력" tier={essay.scores.사고력} size="sm" />
                       <TierBadge label="논리력" tier={essay.scores.논리력} size="sm" />
                       <TierBadge label="표현력" tier={essay.scores.표현력} size="sm" />

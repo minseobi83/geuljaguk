@@ -272,25 +272,30 @@ export default function LoginPage() {
           </div>
         </section>
 
-        {/* ───────── 편집실 노트 (릴리즈노트) ───────── */}
-        <section className="mt-14 border-y-2 border-ink py-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-10">
-            <p className="shrink-0 text-[10px] uppercase tracking-[0.3em] text-ink/45">
-              편집실 노트 ({LATEST_RELEASE_DATE})
-            </p>
-            <ul className="flex flex-1 flex-col gap-2">
-              {LATEST_TICKER_ITEMS.map((n) => (
-                <li
-                  key={n.text}
-                  className="flex flex-wrap items-baseline gap-x-3 break-keep text-sm text-ink/70"
-                >
-                  <span className="bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-white">
-                    {n.tag}
-                  </span>
-                  <span className="font-medium text-ink">{n.text}</span>
-                </li>
+        {/* ───────── 편집실 노트 (전광판처럼 한 줄로 흐른다) ───────── */}
+        <section className="mt-14 flex items-center gap-4 border-y-2 border-ink py-3">
+          <p className="shrink-0 text-[10px] uppercase tracking-[0.3em] text-ink/45">
+            편집실 노트 ({LATEST_RELEASE_DATE})
+          </p>
+          {/* 같은 목록을 두 벌 이어 붙이고 절반만큼 밀어서 끊김 없이 반복 (마우스를 올리면 멈춤) */}
+          <div className="marquee-mask min-w-0 flex-1 overflow-hidden">
+            <div className="flex w-max animate-marquee">
+              {[0, 1].map((copy) => (
+                <div key={copy} className="flex shrink-0" aria-hidden={copy === 1}>
+                  {LATEST_TICKER_ITEMS.map((n) => (
+                    <span
+                      key={`${copy}-${n.text}`}
+                      className="flex items-center gap-2 whitespace-nowrap pr-10 text-sm text-ink/70"
+                    >
+                      <span className="bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-white">
+                        {n.tag}
+                      </span>
+                      <span className="font-medium text-ink">{n.text}</span>
+                    </span>
+                  ))}
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </section>
 

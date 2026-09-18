@@ -22,3 +22,46 @@ body {
   background-color: var(--paper);
   color: var(--ink);
 }
+
+/* 편집실 노트 전광판: 같은 목록을 두 벌 이어 붙이고 딱 절반만큼 밀어서 끊김 없이 반복시킨다. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* 양쪽 끝에서 글자가 딱 잘리지 않고 흐릿하게 사라지도록. */
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+}
+
+/* 움직임을 불편해하는 사용자에게는 흐르지 않고 그대로 보여준다. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}

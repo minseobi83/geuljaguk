@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
-import { WRITING_TOPICS } from "@/lib/topics";
+import { topicsFor } from "@/lib/topics";
 import { BOOK_PROMPT_TEMPLATES, booksFor } from "@/lib/books";
 import BookInfoPopover from "@/components/BookInfoPopover";
 
@@ -19,9 +19,14 @@ const WRITING_TYPES: WritingType[] = [
 
 const CUSTOM_TOPIC_ID = "__custom__";
 
-function findInitialTopicId(writingType: WritingType, topicTitle?: string): string {
-  if (!topicTitle) return WRITING_TOPICS[writingType][0].id;
-  const matched = WRITING_TOPICS[writingType].find((t) => t.title === topicTitle);
+function findInitialTopicId(
+  gradeBand: GradeBand,
+  writingType: WritingType,
+  topicTitle?: string
+): string {
+  const list = topicsFor(gradeBand, writingType);
+  if (!topicTitle) return list[0].id;
+  const matched = list.find((t) => t.title === topicTitle);
   return matched ? matched.id : CUSTOM_TOPIC_ID;
 }
 
@@ -56,10 +61,11 @@ export default function EssayForm({
   const [gradeBand, setGradeBand] = useState<GradeBand>(initialGradeBand);
   const [sourceKind, setSourceKind] = useState<SourceKind>("topic");
   const [selectedTopicId, setSelectedTopicId] = useState<string>(() =>
-    findInitialTopicId(initialWritingType, initialTopicTitle)
+    findInitialTopicId(initialGradeBand, initialWritingType, initialTopicTitle)
   );
   const [customTopic, setCustomTopic] = useState(
-    findInitialTopicId(initialWritingType, initialTopicTitle) === CUSTOM_TOPIC_ID
+    findInitialTopicId(initialGradeBand, initialWritingType, initialTopicTitle) ===
+      CUSTOM_TOPIC_ID
       ? initialTopicTitle ?? ""
       : ""
   );
@@ -67,7 +73,8 @@ export default function EssayForm({
     booksFor(initialGradeBand, initialWritingType)[0]?.id ?? null
   );
 
-  const topics = WRITING_TOPICS[writingType];
+  // 글감은 학년 + 글의 종류 조합으로 달라진다.
+  const topics = topicsFor(gradeBand, writingType);
   const books = booksFor(gradeBand, writingType);
   const isCustom = selectedTopicId === CUSTOM_TOPIC_ID;
   const selectedBook = books.find((b) => b.id === selectedBookId);
@@ -84,7 +91,7 @@ export default function EssayForm({
   function handleWritingTypeChange(newType: WritingType) {
     setWritingType(newType);
     // 글의 종류가 바뀌면 그 종류에 맞는 글감 목록으로 다시 골라야 하니 첫 번째 글감으로 초기화.
-    setSelectedTopicId(WRITING_TOPICS[newType][0].id);
+    setSelectedTopicId(topicsFor(gradeBand, newType)[0].id);
     setCustomTopic("");
     // 추천도서도 유형마다 어울리는 책이 다르므로, 새 유형에 맞는 책 목록의 첫 번째로 바꾼다.
     const newBooks = booksFor(gradeBand, newType);
@@ -95,6 +102,14 @@ export default function EssayForm({
 
   function handleGradeBandChange(newGrade: GradeBand) {
     setGradeBand(newGrade);
+    // 학년이 바뀌면 그 나이에 맞는 글감으로 목록이 바뀐다. 고르던 글감이 새 목록에 없으면
+    // 첫 번째 글감으로 옮겨준다 ('직접 정하기'를 골라둔 상태는 그대로 유지).
+    if (selectedTopicId !== CUSTOM_TOPIC_ID) {
+      const newTopics = topicsFor(newGrade, writingType);
+      if (!newTopics.find((t) => t.id === selectedTopicId)) {
+        setSelectedTopicId(newTopics[0].id);
+      }
+    }
     const newBooks = booksFor(newGrade, writingType);
     if (!newBooks.find((b) => b.id === selectedBookId)) {
       setSelectedBookId(newBooks[0]?.id ?? null);

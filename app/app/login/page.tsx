@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import BrandMark from "@/components/BrandMark";
+import FeatureDemo from "@/components/FeatureDemos";
 
 type Mode = "signin" | "signup";
 
@@ -61,31 +62,43 @@ const FEATURES = [
     no: "01",
     title: "문단마다 질문해요",
     text: "문단마다 무엇을 더 써볼지 질문을 던지고, 첨삭된 표현만 콕 집어 보여줘요.",
+    detail:
+      "글을 문단별로 나눠서 각 문단이 하는 역할과 잘된 점을 먼저 짚어요. 맞춤법·띄어쓰기처럼 분명한 오류는 그 문단 안에서 형광펜으로 표시하고, 마지막에 생각을 여는 질문을 하나 남깁니다. 아이는 그 질문에 자기 생각을 적어두고 다시 쓸 때 참고할 수 있어요.",
   },
   {
     no: "02",
     title: "정답 대신 질문",
     text: "완성된 문장을 대신 써주지 않고, 스스로 다시 쓰도록 이끌어요.",
+    detail:
+      "문장을 대신 완성해주면 아이는 베끼게 됩니다. 그래서 맞춤법·띄어쓰기 외에는 완성된 문장을 제시하지 않고, 방향을 묻는 질문과 낱말 후보만 건네요. 고쳐 쓰는 일은 아이 몫으로 남겨둡니다.",
   },
   {
     no: "03",
     title: "성장의 흐름",
     text: "점수보다 예전 글과 비교한 변화의 흐름을 보여줘요.",
+    detail:
+      "한 편의 점수로 아이를 평가하지 않아요. 사고력·논리력·표현력·구성력 네 지표를 글의 종류별로 모아, 예전 글과 비교해 어디가 달라졌는지 보여줍니다. 한 번의 기복에 흔들리지 않도록 그동안의 흐름을 함께 봅니다.",
   },
   {
     no: "04",
     title: "수정 전후 비교",
     text: "이번에 무엇이 달라졌는지 한눈에 비교해볼 수 있어요.",
+    detail:
+      "다시 쓴 글은 이전 글과 나란히 비교됩니다. 새로 쓴 부분과 지운 부분이 색으로 표시돼서, 아이가 '내가 이만큼 고쳤구나'를 눈으로 확인할 수 있어요.",
   },
   {
     no: "05",
     title: "안전 장치",
     text: "걱정되는 신호가 보이면 보호자에게 바로 알려드려요.",
+    detail:
+      "글에서 자해·폭력·학대처럼 어른이 알아야 할 신호가 보이면 보호자 대시보드에 따로 표시합니다. 아이 화면에는 놀라지 않도록 부드러운 안내만 보여주고, 도움받을 수 있는 곳을 함께 알려줘요.",
   },
   {
     no: "06",
     title: "추천도서 연계",
     text: "학년·글쓰기 유형에 맞는 책 45권과 함께 글감을 골라요.",
+    detail:
+      "학년과 글의 종류에 맞는 책 45권을 골라뒀어요. 책을 고르면 그 책으로 써볼 만한 방향 두 가지를 함께 보여주고, 표지를 누르면 저자와 줄거리 소개를 볼 수 있습니다.",
   },
 ];
 
@@ -97,6 +110,8 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // 눌러서 펼친 기능 카드 (한 번에 하나만)
+  const [openFeature, setOpenFeature] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -257,18 +272,57 @@ export default function LoginPage() {
               Features
             </span>
           </div>
-          <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <article key={f.no} className="border-t border-ink pt-4">
-                <span className="inline-block bg-ink px-2 py-1 text-[11px] font-bold tracking-widest text-white">
-                  {f.no}
-                </span>
-                <h4 className="mt-3 break-keep text-lg font-extrabold tracking-tight text-ink">
-                  {f.title}
-                </h4>
-                <p className="mt-2 break-keep text-sm leading-7 text-ink/65">{f.text}</p>
-              </article>
-            ))}
+          <p className="mt-3 text-xs text-ink/40">카드를 누르면 자세히 볼 수 있어요.</p>
+          <div className="mt-6 grid gap-x-10 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => {
+              const open = openFeature === f.no;
+              return (
+                <article key={f.no} className="border-t border-ink pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setOpenFeature(open ? null : f.no)}
+                    aria-expanded={open}
+                    className="w-full text-left"
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="inline-block bg-ink px-2 py-1 text-[11px] font-bold tracking-widest text-white">
+                        {f.no}
+                      </span>
+                      <span
+                        className={`text-lg leading-none text-ink/40 transition-transform duration-300 ${
+                          open ? "rotate-45" : ""
+                        }`}
+                        aria-hidden="true"
+                      >
+                        ＋
+                      </span>
+                    </span>
+                    <span className="mt-3 block break-keep text-lg font-extrabold tracking-tight text-ink">
+                      {f.title}
+                    </span>
+                    <span className="mt-2 block break-keep text-sm leading-7 text-ink/65">
+                      {f.text}
+                    </span>
+                  </button>
+
+                  {/* 0fr → 1fr 로 행 높이를 바꿔 부드럽게 펼친다 */}
+                  <div
+                    className={`grid transition-all duration-500 ease-out ${
+                      open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div className={open ? "demo-run pb-6 pt-4" : "pb-6 pt-4"}>
+                        <p className="break-keep text-sm leading-7 text-ink/70">
+                          {f.detail}
+                        </p>
+                        <FeatureDemo no={f.no} />
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
 

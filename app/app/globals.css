@@ -59,9 +59,126 @@ body {
   );
 }
 
+/* ── "글자국이 하는 일" 미니 데모 ──
+   패널이 접혀 있을 때는 멈춰 있다가, 펼쳐진 패널(.demo-run) 안에서만 반복 재생된다. */
+.demo-anim {
+  animation-play-state: paused;
+}
+
+.demo-run .demo-anim {
+  animation-play-state: running;
+}
+
+/* 형광펜이 스윽 그어지는 모습 */
+@keyframes demo-sweep {
+  0%,
+  6% {
+    background-size: 0% 100%;
+  }
+  40%,
+  88% {
+    background-size: 100% 100%;
+  }
+  100% {
+    background-size: 0% 100%;
+  }
+}
+.anim-sweep {
+  background-image: linear-gradient(transparent 58%, rgba(156, 106, 38, 0.35) 58%);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  animation: demo-sweep 6s ease-in-out infinite;
+}
+
+/* 아래에서 스윽 올라오며 나타나기 */
+@keyframes demo-fade-up {
+  0%,
+  12% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  30%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.anim-fade-up {
+  opacity: 0;
+  animation: demo-fade-up 6s ease-in-out infinite;
+}
+
+/* 대신 써준 문장이 흐려지기 */
+@keyframes demo-dim {
+  0%,
+  18% {
+    opacity: 1;
+  }
+  45%,
+  100% {
+    opacity: 0.3;
+  }
+}
+.anim-dim {
+  animation: demo-dim 6s ease-in-out infinite;
+}
+
+/* 지표 막대가 차오르기 */
+@keyframes demo-bar {
+  0%,
+  10% {
+    transform: scaleY(0.12);
+  }
+  40%,
+  88% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0.12);
+  }
+}
+.anim-bar {
+  transform-origin: bottom;
+  transform: scaleY(0.12);
+  animation: demo-bar 6s ease-in-out infinite;
+}
+
+/* 흑백에서 컬러로 */
+@keyframes demo-color {
+  0%,
+  20% {
+    filter: grayscale(1);
+  }
+  55%,
+  88% {
+    filter: grayscale(0);
+  }
+  100% {
+    filter: grayscale(1);
+  }
+}
+.anim-color {
+  filter: grayscale(1);
+  animation: demo-color 6s ease-in-out infinite;
+}
+
 /* 움직임을 불편해하는 사용자에게는 흐르지 않고 그대로 보여준다. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
+  .animate-marquee,
+  .demo-run .demo-anim {
     animation: none;
+  }
+  .anim-fade-up {
+    opacity: 1;
+  }
+  .anim-bar {
+    transform: none;
+  }
+  .anim-color {
+    filter: none;
   }
 }

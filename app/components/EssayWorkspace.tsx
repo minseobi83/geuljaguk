@@ -295,16 +295,8 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
                 No. {String(nextVersionNo).padStart(2, "0")} — {nextVersionNo}번째 시도
               </span>
             </div>
-            <h1 className="mt-6 break-keep text-4xl font-black leading-[0.95] tracking-[-0.03em] text-ink sm:text-5xl">
-              {current ? (
-                <>
-                  피드백을 보고<br />고쳐 써볼까요?
-                </>
-              ) : (
-                <>
-                  오늘은 무엇을<br />써볼까요?
-                </>
-              )}
+            <h1 className="mt-6 break-keep text-3xl font-black leading-tight tracking-[-0.03em] text-ink sm:text-5xl">
+              {current ? "피드백을 보고 고쳐 써볼까요?" : "오늘은 무엇을 써볼까요?"}
             </h1>
           </header>
 

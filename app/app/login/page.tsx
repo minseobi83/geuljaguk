@@ -4,8 +4,9 @@
 // 표지(블랙 풀블리드) → 목차 → 리드 기사 → 기능 → 편집실 노트 → 구독(로그인) 순서.
 // 로그인/회원가입 로직은 그대로 두고 껍데기만 잡지 지면처럼 바꾼 것이다.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import BrandMark from "@/components/BrandMark";
 import FeatureDemo from "@/components/FeatureDemos";
@@ -112,6 +113,20 @@ export default function LoginPage() {
   const [notice, setNotice] = useState<string | null>(null);
   // 눌러서 펼친 기능 카드 (한 번에 하나만)
   const [openFeature, setOpenFeature] = useState<string | null>(null);
+  // 이미 로그인한 사람이 이 화면(소개 페이지)에 들어온 경우엔 로그인 폼 대신 바로 글쓰기로 보낸다.
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (alive) setSignedIn(Boolean(data.user));
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -155,9 +170,15 @@ export default function LoginPage() {
         <div className="mx-auto max-w-6xl px-5 lg:px-10">
           <div className="flex items-center justify-between gap-4 border-b border-white/20 py-3 text-[10px] uppercase tracking-[0.3em] text-white/55">
             <span>AI Writing Coach</span>
-            <a href="#auth" className="text-white underline underline-offset-4">
-              로그인
-            </a>
+            {signedIn ? (
+              <Link href="/" className="text-white underline underline-offset-4">
+                글쓰기 하러 가기
+              </Link>
+            ) : (
+              <a href="#auth" className="text-white underline underline-offset-4">
+                로그인
+              </a>
+            )}
           </div>
 
           <div className="grid gap-12 py-14 lg:grid-cols-12 lg:gap-10 lg:py-20">
@@ -183,20 +204,31 @@ export default function LoginPage() {
                 </p>
 
                 <div className="mt-8 flex flex-wrap items-center gap-5">
-                  <a
-                    href="#auth"
-                    onClick={() => setMode("signup")}
-                    className="bg-white px-8 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-white/85"
-                  >
-                    무료로 시작하기
-                  </a>
-                  <a
-                    href="#auth"
-                    onClick={() => setMode("signin")}
-                    className="text-sm text-white/60 underline underline-offset-4"
-                  >
-                    이미 계정이 있어요
-                  </a>
+                  {signedIn ? (
+                    <Link
+                      href="/"
+                      className="bg-white px-8 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-white/85"
+                    >
+                      글쓰기 하러 가기
+                    </Link>
+                  ) : (
+                    <>
+                      <a
+                        href="#auth"
+                        onClick={() => setMode("signup")}
+                        className="bg-white px-8 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-white/85"
+                      >
+                        무료로 시작하기
+                      </a>
+                      <a
+                        href="#auth"
+                        onClick={() => setMode("signin")}
+                        className="text-sm text-white/60 underline underline-offset-4"
+                      >
+                        이미 계정이 있어요
+                      </a>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -358,13 +390,29 @@ export default function LoginPage() {
           <div className="lg:col-span-5">
             <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Subscribe</p>
             <h3 className="mt-4 break-keep text-3xl font-black leading-tight tracking-tight text-ink">
-              보호자 계정으로<br />시작해요
+              {signedIn ? (
+                <>이미 로그인되어<br />있어요</>
+              ) : (
+                <>보호자 계정으로<br />시작해요</>
+              )}
             </h3>
             <p className="mt-4 break-keep text-sm leading-7 text-ink/60">
-              아이의 글은 보호자 계정 아래에서만 저장되고, 별명 외의 개인정보는 받지 않아요.
+              {signedIn
+                ? "이 화면은 글자국 소개 페이지예요. 바로 글쓰기로 돌아갈 수 있어요."
+                : "아이의 글은 보호자 계정 아래에서만 저장되고, 별명 외의 개인정보는 받지 않아요."}
             </p>
           </div>
 
+          {signedIn ? (
+            <div className="flex items-center border-2 border-ink p-6 lg:col-span-7">
+              <Link
+                href="/"
+                className="bg-ink px-8 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent"
+              >
+                글쓰기 하러 가기
+              </Link>
+            </div>
+          ) : (
           <div className="border-2 border-ink p-6 lg:col-span-7">
             <div className="flex gap-6 border-b-2 border-ink pb-3 text-sm">
               <button
@@ -424,6 +472,7 @@ export default function LoginPage() {
               </button>
             </form>
           </div>
+          )}
         </section>
 
         {/* ───────── 자주 묻는 질문 ───────── */}

@@ -102,9 +102,12 @@ export default function TopNav() {
           </div>
         ))}
 
-        <span className="ml-auto hidden text-[10px] uppercase tracking-[0.25em] text-white/45 sm:block">
-          Vol. 01
-        </span>
+        <Link
+          href="/login"
+          className="ml-auto text-[10px] uppercase tracking-[0.25em] text-white/55 underline underline-offset-4 transition hover:text-white"
+        >
+          글자국 소개
+        </Link>
       </nav>
     </div>
   );

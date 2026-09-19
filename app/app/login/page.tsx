@@ -14,6 +14,36 @@ type Mode = "signin" | "signup";
 
 const SAVED_EMAIL_KEY = "geuljaguk:savedEmail";
 
+// Supabase Auth는 영문 에러만 돌려준다. code(있으면 우선)와 message 문구로 매칭해서
+// 한글 메시지로 바꾼다. 못 알아본 에러는 원문 대신 안전한 일반 문구로 대체한다.
+function translateAuthError(error: { code?: string; message: string }): string {
+  const code = error.code ?? "";
+  const msg = error.message.toLowerCase();
+
+  if (code === "invalid_credentials" || msg.includes("invalid login credentials")) {
+    return "이메일 또는 비밀번호가 올바르지 않아요.";
+  }
+  if (code === "email_not_confirmed" || msg.includes("email not confirmed")) {
+    return "이메일 인증이 아직 완료되지 않았어요. 메일함에서 인증 링크를 확인해주세요.";
+  }
+  if (code === "user_already_exists" || msg.includes("already registered")) {
+    return "이미 가입된 이메일이에요. 로그인해주세요.";
+  }
+  if (code === "weak_password" || msg.includes("password should be at least")) {
+    return "비밀번호는 6자 이상이어야 해요.";
+  }
+  if (code === "validation_failed" || msg.includes("invalid format") || msg.includes("unable to validate email")) {
+    return "올바른 이메일 형식이 아니에요.";
+  }
+  if (code === "over_email_send_rate_limit" || code === "over_request_rate_limit" || msg.includes("rate limit")) {
+    return "너무 여러 번 시도했어요. 잠시 후 다시 시도해주세요.";
+  }
+  if (msg.includes("network") || msg.includes("fetch")) {
+    return "서버와 통신하는 중 문제가 생겼어요. 인터넷 연결을 확인해주세요.";
+  }
+  return "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
+}
+
 // 편집실 노트: 배포할 때마다 그 배포에서 학생·보호자가 실제로 체감할 만한 변화 위주로
 // 새 항목을 맨 위(또는 최신 날짜)에 추가한다. 아래 화면(LATEST_TICKER_ITEMS)은 가장 최근
 // 날짜의 항목만 자동으로 골라 보여주므로, 날짜만 오늘 날짜로 맞추면 예전 항목은 자연히 빠진다.
@@ -157,7 +187,7 @@ export default function LoginPage() {
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setError(error.message);
+        setError(translateAuthError(error));
         setSubmitting(false);
         return;
       }
@@ -175,7 +205,7 @@ export default function LoginPage() {
         options: { emailRedirectTo: `${window.location.origin}/onboarding` },
       });
       if (error) {
-        setError(error.message);
+        setError(translateAuthError(error));
         setSubmitting(false);
         return;
       }

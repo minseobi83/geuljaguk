@@ -134,13 +134,15 @@ export default function DashboardTabs({
             {repeatedIssues.length > 0 && (
               <section className="mt-8">
                 <SectionTag en="Patterns" ko="자주 반복되는 부분" />
-                <ul className="mt-4 flex flex-wrap gap-2">
+                <ul className="mt-4 flex flex-col gap-3">
                   {repeatedIssues.map((issue) => (
-                    <li
-                      key={issue.category}
-                      className="border border-warn px-3 py-1 text-xs font-bold text-warn"
-                    >
-                      {issue.category} · {issue.count}번
+                    <li key={issue.category} className="border-l-2 border-warn pl-3">
+                      <span className="border border-warn px-3 py-1 text-xs font-bold text-warn">
+                        {issue.category} · {issue.count}번
+                      </span>
+                      <p className="mt-1.5 break-keep text-xs leading-5 text-ink/60">
+                        {issue.guide}
+                      </p>
                     </li>
                   ))}
                 </ul>

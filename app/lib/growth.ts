@@ -87,7 +87,24 @@ export function buildGrowthSummary(
 export interface RepeatedIssue {
   category: string;
   count: number;
+  guide: string;
 }
+
+// normalizeCategory가 묶어주는 다섯 갈래별로, 부모가 집에서 바로 시도해볼 수 있는
+// 1~2줄짜리 개선 방법. 특정 글의 내용을 언급하지 않는 일반적인 조언이라 어떤 글에도 안전하게 쓸 수 있다.
+const REPEATED_ISSUE_GUIDES: Record<string, string> = {
+  "주제·중심 생각":
+    "쓰기 전에 '이 글에서 하고 싶은 말 한 문장'을 먼저 정하게 해주세요. 그 문장에서 벗어나는 내용은 빼는 연습이 도움이 돼요.",
+  "글의 구조":
+    "처음(상황)-가운데(자세히)-끝(내 생각) 세 부분으로 먼저 나눠보고 쓰기 시작하면 흐름이 잡혀요.",
+  "근거·구체성":
+    "'왜냐하면' 뒤에 이유나 예시를 한 가지 더 붙여 쓰도록 연습해보세요.",
+  "표현력":
+    "같은 낱말을 반복하지 말고, 비슷한 뜻의 다른 표현으로 바꿔 써보게 해주세요.",
+  "맞춤법·띄어쓰기":
+    "다 쓴 뒤 소리 내어 읽으면서 띄어 쓴 부분과 받침을 한 번 더 확인하는 습관을 들여보세요.",
+};
+const DEFAULT_ISSUE_GUIDE = "다음 글을 쓸 때 이 부분을 조금 더 신경 써보면 좋아요.";
 
 // AI가 priority_issue.category를 매번 자유 텍스트로 쓰기 때문에("구조" vs "글의 구조" 등)
 // 그대로 집계하면 같은 문제인데도 다른 항목으로 흩어질 수 있다. 그래서 지침(writing_feedback.md
@@ -113,7 +130,11 @@ export function computeRepeatedIssues(
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   return [...counts.entries()]
-    .map(([category, count]) => ({ category, count }))
+    .map(([category, count]) => ({
+      category,
+      count,
+      guide: REPEATED_ISSUE_GUIDES[category] ?? DEFAULT_ISSUE_GUIDE,
+    }))
     .filter((c) => c.count >= 2)
     .sort((a, b) => b.count - a.count);
 }

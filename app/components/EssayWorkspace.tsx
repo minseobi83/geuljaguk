@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import EssayForm from "@/components/EssayForm";
 import ResultView from "@/components/ResultView";
 import VersionCompare from "@/components/VersionCompare";
-import { createClient } from "@/lib/supabase/client";
 import { formatDateShort } from "@/lib/format";
 import { splitByTone } from "@/lib/tone";
 import { Topic } from "@/lib/topics";
@@ -212,14 +211,9 @@ export default function EssayWorkspace({
     router.refresh(); // 최근에 쓴 글 목록에 방금 저장한 글이 반영되도록
   }
 
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
   // 잡지 지면의 "발행인 정보" 줄처럼 쓰는 메타 행 (모든 상태에서 공통).
+  // 로그아웃은 상단 내비게이션(TopNav)으로 옮겼다 - 대시보드·성장기록 같은 다른 화면에서는
+  // 로그아웃할 방법이 아예 없었기 때문.
   const metaRow = (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/15 py-4 text-[10px] uppercase tracking-[0.25em] text-ink/45">
       <span className="break-keep">네 생각이 자라는 흔적을 함께 살펴봐요</span>
@@ -241,9 +235,6 @@ export default function EssayWorkspace({
             {child.nickname} · {child.grade_band}학년
           </span>
         )}
-        <button onClick={handleLogout} className="underline underline-offset-4">
-          로그아웃
-        </button>
       </div>
     </div>
   );

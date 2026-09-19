@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import BrandMark from "./BrandMark";
 
 interface MenuItem {
@@ -29,9 +31,17 @@ const MENUS: Menu[] = [
 
 // 잡지 러닝헤드(running head) 역할. 화면 전체 폭을 쓰는 검은 띠라서
 // 페이지의 max-width 컨테이너 "바깥"에 두고 쓴다.
+// 이 띠가 붙는 화면은 모두 로그인이 필요한 화면이라, 로그아웃을 여기 둬도 안전하다.
 export default function TopNav() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const navRef = useRef<HTMLElement>(null);
+  const router = useRouter();
+
+  async function handleLogout() {
+    await createClient().auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
@@ -102,12 +112,22 @@ export default function TopNav() {
           </div>
         ))}
 
+        {/* 소개(초기) 화면. 학생·학부모 메뉴를 찾다가 놓치지 않도록 두 메뉴 바로 옆에 둔다.
+            (예전에는 오른쪽 끝에 작게 떨어져 있어서 눈에 띄지 않았다) */}
         <Link
           href="/login"
-          className="ml-auto text-[10px] uppercase tracking-[0.25em] text-white/55 underline underline-offset-4 transition hover:text-white"
+          className="text-[10px] uppercase tracking-[0.25em] text-white/55 transition hover:text-white"
         >
           글자국 소개
         </Link>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="ml-auto text-[10px] uppercase tracking-[0.25em] text-white/55 underline underline-offset-4 transition hover:text-white"
+        >
+          로그아웃
+        </button>
       </nav>
     </div>
   );

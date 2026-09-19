@@ -57,36 +57,34 @@ export default function TopNav() {
     <div className="bg-ink text-white">
       <nav
         ref={navRef}
-        className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 lg:px-10"
+        className="mx-auto flex max-w-6xl items-center gap-5 px-4 py-4 sm:gap-8 sm:px-5 sm:py-5 lg:gap-10 lg:px-10"
       >
         {/* 로고(마크 + 이름)를 누르면 소개 화면으로 간다. 잡지로 치면 표지로 돌아가는 셈.
             글쓰기 화면으로 가는 길은 학생 > 글쓰기 메뉴에 그대로 있다. */}
         <Link
           href="/login"
           aria-label="글자국 소개 화면으로"
-          className="mr-2 flex shrink-0 items-center gap-2 transition hover:opacity-70"
+          className="flex shrink-0 items-center gap-2 transition hover:opacity-70 sm:gap-3"
         >
-          <span className="flex h-6 w-6 items-center justify-center bg-white">
-            <BrandMark size={16} />
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-white sm:h-10 sm:w-10">
+            <BrandMark size={20} />
           </span>
-          <span className="text-sm font-black tracking-tight">글자국</span>
+          <span className="text-lg font-black tracking-tight sm:text-xl">글자국</span>
         </Link>
 
         {MENUS.map((menu, i) => (
-          <div key={menu.label} className="relative">
+          <div key={menu.label} className="relative shrink-0">
             <button
               type="button"
               onClick={() => setOpenIndex(openIndex === i ? null : i)}
-              className={`flex items-center gap-1 pb-0.5 text-[10px] uppercase tracking-[0.25em] transition ${
-                openIndex === i
-                  ? "border-b border-white font-bold text-white"
-                  : "text-white/55 hover:text-white"
+              className={`flex items-center gap-1.5 text-sm font-bold transition sm:gap-2 sm:text-base ${
+                openIndex === i ? "text-white" : "text-white/70 hover:text-white"
               }`}
             >
               {menu.label}
               <svg
-                width="8"
-                height="8"
+                width="11"
+                height="11"
                 viewBox="0 0 10 10"
                 className={`transition-transform ${openIndex === i ? "rotate-180" : ""}`}
               >
@@ -102,12 +100,12 @@ export default function TopNav() {
             </button>
 
             {openIndex === i && (
-              <div className="absolute left-0 top-full z-20 mt-2 min-w-[140px] border-2 border-ink bg-white p-1 shadow-lg">
+              <div className="absolute left-0 top-full z-20 mt-3 min-w-[160px] border-2 border-ink bg-white p-1.5 shadow-lg">
                 {menu.items.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="block px-3 py-2 text-sm font-bold tracking-tight text-ink transition hover:bg-ink hover:text-white"
+                    className="block px-4 py-3 text-[15px] font-bold tracking-tight text-ink transition hover:bg-ink hover:text-white"
                     onClick={() => setOpenIndex(null)}
                   >
                     {item.label}
@@ -121,7 +119,7 @@ export default function TopNav() {
         <button
           type="button"
           onClick={handleLogout}
-          className="ml-auto text-[10px] uppercase tracking-[0.25em] text-white/55 underline underline-offset-4 transition hover:text-white"
+          className="ml-auto shrink-0 text-sm font-medium text-white/70 underline underline-offset-4 transition hover:text-white sm:text-[15px]"
         >
           로그아웃
         </button>

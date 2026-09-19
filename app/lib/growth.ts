@@ -27,6 +27,17 @@ function modeTier(tiers: Tier[]): Tier {
 // 맨 처음 글 vs 맨 최근 글만 비교하면 한쪽 끝에 우연히 낀 글 하나 때문에 흐름이 왜곡될 수 있어서,
 // "최근 글"은 마지막 글 그대로, "그동안"은 마지막 글을 뺀 나머지 중 가장 많이 나온 등급(최빈값)과
 // 비교한다. 그래야 "요즘 실제로 달라졌는지"가 한 번의 기복에 덜 흔들린다.
+//
+// 차트의 지표별 화살표도 이 함수를 쓴다 - 화면에 나란히 놓인 요약 문장과 화살표가 서로 다른
+// 말을 하면 안 되기 때문.
+export function trendDirection(tiersInChronoOrder: Tier[]): IndicatorTrend["direction"] {
+  if (tiersInChronoOrder.length < 2) return "flat";
+  const latest = tiersInChronoOrder[tiersInChronoOrder.length - 1];
+  const earlier = modeTier(tiersInChronoOrder.slice(0, -1));
+  const diff = TIER_RANK[latest] - TIER_RANK[earlier];
+  return diff > 0 ? "up" : diff < 0 ? "down" : "flat";
+}
+
 export function computeIndicatorTrends(
   scoresInChronoOrder: RubricScores[]
 ): IndicatorTrend[] | null {
@@ -35,14 +46,12 @@ export function computeIndicatorTrends(
   const earlierScores = scoresInChronoOrder.slice(0, -1);
 
   return INDICATORS.map((indicator) => {
-    const earliest = modeTier(earlierScores.map((s) => s[indicator]));
-    const latest = latestScores[indicator];
-    const diff = TIER_RANK[latest] - TIER_RANK[earliest];
+    const tiers = scoresInChronoOrder.map((s) => s[indicator]);
     return {
       indicator,
-      earliest,
-      latest,
-      direction: diff > 0 ? "up" : diff < 0 ? "down" : "flat",
+      earliest: modeTier(earlierScores.map((s) => s[indicator])),
+      latest: latestScores[indicator],
+      direction: trendDirection(tiers),
     };
   });
 }

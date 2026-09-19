@@ -289,7 +289,7 @@ export default function LoginPage() {
                 Signature
               </p>
               <p className="mt-6 break-keep text-2xl font-extrabold leading-snug sm:text-3xl">
-                “아이가 자란 자국이 남아요.”
+                “모든 문장에는, 아이가 자란 자국이 남아요.”
               </p>
               <p className="mt-8 border-t border-white/20 pt-4 text-[10px] uppercase tracking-[0.3em] text-white/65">
                 — 글자국

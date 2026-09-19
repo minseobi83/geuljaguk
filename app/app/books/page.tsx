@@ -93,7 +93,6 @@ export default async function BooksPage() {
       <footer className="mt-16 bg-ink py-6 text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 text-[10px] uppercase tracking-[0.3em] text-white/50 lg:px-10">
           <span>글자국 · 추천도서</span>
-          <span>Vol. 01 — 2026</span>
         </div>
       </footer>
     </>

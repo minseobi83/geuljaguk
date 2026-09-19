@@ -52,14 +52,9 @@ export default async function GrowthPage({
       <TopNav />
       <main className="mx-auto max-w-6xl px-5 py-10 lg:px-10">
       <header className="mb-8 border-b-2 border-ink pb-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
-            Archive · 성장 기록
-          </span>
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink/45">
-            Vol. 01
-          </span>
-        </div>
+        <span className="bg-ink px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white">
+          Archive · 성장 기록
+        </span>
         <h1 className="mt-6 break-keep text-4xl font-black leading-[0.95] tracking-[-0.03em] text-ink sm:text-5xl">
           {activeChild.nickname}의<br />글자국
         </h1>

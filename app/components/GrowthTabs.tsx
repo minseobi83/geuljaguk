@@ -3,6 +3,7 @@
 import { useState } from "react";
 import TierBadge from "./TierBadge";
 import IndicatorTrends from "./IndicatorTrends";
+import HighlightedEssayText from "./HighlightedEssayText";
 import { formatDateShort } from "@/lib/format";
 import { EssayHistoryItem } from "@/lib/supabase/queries";
 import { RubricScores } from "@/lib/types";
@@ -110,16 +111,16 @@ export default function GrowthTabs({
                       </span>
                     </div>
 
-                    {/* 내가 실제로 쓴 글 */}
+                    {/* 내가 실제로 쓴 글 - 고쳐볼 표현은 글쓰기 화면과 같은 방식으로 강조 표시 */}
                     {text ? (
                       <>
-                        <p
+                        <HighlightedEssayText
+                          text={text}
+                          mechanicsTable={essay.mechanicsTable}
                           className={`mt-3 whitespace-pre-wrap break-keep border-l-2 border-ink/20 pl-3 font-heading text-[15px] leading-8 text-ink/85 ${
                             expanded ? "" : "line-clamp-4"
                           }`}
-                        >
-                          {text}
-                        </p>
+                        />
                         {isLong && (
                           <button
                             type="button"

@@ -8,16 +8,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import BrandMark from "@/components/BrandMark";
 import FeatureDemo from "@/components/FeatureDemos";
 
 type Mode = "signin" | "signup";
 
+// 편집실 노트: 배포할 때마다 그 배포에서 학생·보호자가 실제로 체감할 만한 변화 위주로
+// 새 항목을 맨 위(또는 최신 날짜)에 추가한다. 아래 화면(LATEST_TICKER_ITEMS)은 가장 최근
+// 날짜의 항목만 자동으로 골라 보여주므로, 날짜만 오늘 날짜로 맞추면 예전 항목은 자연히 빠진다.
 const TICKER_ITEMS = [
-  { tag: "NEW", text: "문단별 첨삭 강조 + 스스로 답하기", date: "2026.09.16" },
-  { tag: "NEW", text: "수정 전 / 후 비교 화면", date: "2026.09.16" },
-  { tag: "UPDATE", text: "학년별 추천도서 45권", date: "2026.09.16" },
-  { tag: "UPDATE", text: "보호자 대시보드 안전 알림", date: "2026.09.16" },
+  { tag: "NEW", text: "관리자 콘솔 - 글감·학생별·평가기준 관리", date: "2026.09.19" },
+  { tag: "NEW", text: "성장 기록을 지표별 변화 차트로", date: "2026.09.19" },
+  { tag: "UPDATE", text: "학년별 눈높이에 맞춘 채점 기준", date: "2026.09.19" },
+  { tag: "UPDATE", text: "새 글자국 마크와 초기화면 다듬기", date: "2026.09.19" },
 ];
 
 // 가장 최근 날짜의 항목만 보여준다 (날짜가 여러 개 섞여도 최신 릴리즈만 노출).
@@ -177,7 +179,7 @@ export default function LoginPage() {
             <span>AI Writing Coach</span>
             {signedIn ? (
               <Link href="/" className="text-white underline underline-offset-4">
-                글쓰기 하러 가기
+                글자국 남기기
               </Link>
             ) : (
               <a href="#auth" className="text-white underline underline-offset-4">
@@ -214,7 +216,7 @@ export default function LoginPage() {
                       href="/"
                       className="bg-white px-8 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-white/85"
                     >
-                      글쓰기 하러 가기
+                      글자국 남기기
                     </Link>
                   ) : (
                     <>
@@ -247,9 +249,14 @@ export default function LoginPage() {
                 <span className="mt-1 text-[10px] text-white/65">보호자 계정</span>
               </div>
 
-              <div className="flex aspect-square w-40 items-center justify-center bg-white sm:w-48 lg:mt-10 lg:w-56">
-                <BrandMark size={190} />
-              </div>
+              {/* 대표 시그니처 그림 - 사각 박스 없이 배경에 바로 놓는다.
+                  원본 파일 자체가 배경이 투명하게 오려져 있어서 테두리가 보이지 않는다. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/hero-illustration.png"
+                alt="연필을 든 아이가 책 위에 엎드려 웃고 있고, 옆에는 새싹이 자라는 모습"
+                className="w-56 sm:w-72 lg:mt-6 lg:w-[26rem]"
+              />
             </div>
           </div>
         </div>
@@ -411,7 +418,7 @@ export default function LoginPage() {
                 href="/"
                 className="bg-ink px-8 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent"
               >
-                글쓰기 하러 가기
+                글자국 남기기
               </Link>
             </div>
           ) : (

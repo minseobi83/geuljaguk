@@ -192,7 +192,7 @@ export default function LoginPage() {
                 초등 4~6학년 · 글쓰기 저널
               </p>
 
-              <h1 className="mt-6 text-[4.5rem] font-black leading-[0.85] tracking-[-0.05em] sm:text-8xl lg:text-[9rem]">
+              <h1 className="mt-6 text-[3.6rem] font-black leading-[0.85] tracking-[-0.05em] sm:text-[4.8rem] lg:text-[7.2rem]">
                 글자국
               </h1>
               <p className="mt-5 text-[10px] uppercase tracking-[0.55em] text-white/55">

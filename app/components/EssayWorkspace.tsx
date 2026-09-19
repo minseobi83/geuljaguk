@@ -8,6 +8,7 @@ import VersionCompare from "@/components/VersionCompare";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateShort } from "@/lib/format";
 import { splitByTone } from "@/lib/tone";
+import { Topic } from "@/lib/topics";
 import TopNav from "@/components/TopNav";
 import {
   ChildProfile,
@@ -42,9 +43,16 @@ interface Props {
   child: ChildProfile;
   allChildren: ChildProfile[];
   recentEssays: RecentEssay[];
+  // 관리자가 관리하는 글감 목록. 서버에서 DB를 읽어 내려주고, 읽지 못했으면 코드의 기본 목록이 온다.
+  topics: Topic[];
 }
 
-export default function EssayWorkspace({ child, allChildren, recentEssays }: Props) {
+export default function EssayWorkspace({
+  child,
+  allChildren,
+  recentEssays,
+  topics,
+}: Props) {
   const router = useRouter();
   const [history, setHistory] = useState<VersionRecord[]>([]);
   const [essayId, setEssayId] = useState<string | null>(null);
@@ -303,6 +311,7 @@ export default function EssayWorkspace({ child, allChildren, recentEssays }: Pro
         <div className="grid gap-10 py-10 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-8">
             <EssayForm
+              topics={topics}
               initialText={current?.text ?? ""}
               initialWritingType={current?.writingType}
               initialGradeBand={current?.gradeBand ?? child.grade_band}

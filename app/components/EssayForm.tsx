@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
-import { topicsFor } from "@/lib/topics";
+import { pickTopics, Topic } from "@/lib/topics";
 import { bookGuideFor, booksFor } from "@/lib/books";
 import BookInfoPopover from "@/components/BookInfoPopover";
 
@@ -19,18 +19,25 @@ const WRITING_TYPES: WritingType[] = [
 
 const CUSTOM_TOPIC_ID = "__custom__";
 
+// 관리자가 글감을 모두 숨기면 목록이 빌 수 있다. 그때는 '직접 정하기'로 시작한다.
+function firstTopicId(list: Topic[]): string {
+  return list[0]?.id ?? CUSTOM_TOPIC_ID;
+}
+
 function findInitialTopicId(
+  all: Topic[],
   gradeBand: GradeBand,
   writingType: WritingType,
   topicTitle?: string
 ): string {
-  const list = topicsFor(gradeBand, writingType);
-  if (!topicTitle) return list[0].id;
+  const list = pickTopics(all, gradeBand, writingType);
+  if (!topicTitle) return firstTopicId(list);
   const matched = list.find((t) => t.title === topicTitle);
   return matched ? matched.id : CUSTOM_TOPIC_ID;
 }
 
 interface Props {
+  topics: Topic[];
   initialText?: string;
   initialWritingType?: WritingType;
   initialGradeBand?: GradeBand;
@@ -48,6 +55,7 @@ interface Props {
 type SourceKind = "topic" | "book";
 
 export default function EssayForm({
+  topics: allTopics,
   initialText = "",
   initialWritingType = "주장하는 글",
   initialGradeBand = "5",
@@ -61,11 +69,15 @@ export default function EssayForm({
   const [gradeBand, setGradeBand] = useState<GradeBand>(initialGradeBand);
   const [sourceKind, setSourceKind] = useState<SourceKind>("topic");
   const [selectedTopicId, setSelectedTopicId] = useState<string>(() =>
-    findInitialTopicId(initialGradeBand, initialWritingType, initialTopicTitle)
+    findInitialTopicId(allTopics, initialGradeBand, initialWritingType, initialTopicTitle)
   );
   const [customTopic, setCustomTopic] = useState(
-    findInitialTopicId(initialGradeBand, initialWritingType, initialTopicTitle) ===
-      CUSTOM_TOPIC_ID
+    findInitialTopicId(
+      allTopics,
+      initialGradeBand,
+      initialWritingType,
+      initialTopicTitle
+    ) === CUSTOM_TOPIC_ID
       ? initialTopicTitle ?? ""
       : ""
   );
@@ -74,7 +86,7 @@ export default function EssayForm({
   );
 
   // 글감은 학년 + 글의 종류 조합으로 달라진다.
-  const topics = topicsFor(gradeBand, writingType);
+  const topics = pickTopics(allTopics, gradeBand, writingType);
   const books = booksFor(gradeBand, writingType);
   // 감상문처럼 추천도서와 연결하지 않는 유형에서는 책 탭 자체를 숨긴다.
   const hasBooks = books.length > 0;
@@ -94,7 +106,7 @@ export default function EssayForm({
   function handleWritingTypeChange(newType: WritingType) {
     setWritingType(newType);
     // 글의 종류가 바뀌면 그 종류에 맞는 글감 목록으로 다시 골라야 하니 첫 번째 글감으로 초기화.
-    setSelectedTopicId(topicsFor(gradeBand, newType)[0].id);
+    setSelectedTopicId(firstTopicId(pickTopics(allTopics, gradeBand, newType)));
     setCustomTopic("");
     // 추천도서도 유형마다 어울리는 책이 다르므로, 새 유형에 맞는 책 목록의 첫 번째로 바꾼다.
     const newBooks = booksFor(gradeBand, newType);
@@ -108,9 +120,9 @@ export default function EssayForm({
     // 학년이 바뀌면 그 나이에 맞는 글감으로 목록이 바뀐다. 고르던 글감이 새 목록에 없으면
     // 첫 번째 글감으로 옮겨준다 ('직접 정하기'를 골라둔 상태는 그대로 유지).
     if (selectedTopicId !== CUSTOM_TOPIC_ID) {
-      const newTopics = topicsFor(newGrade, writingType);
+      const newTopics = pickTopics(allTopics, newGrade, writingType);
       if (!newTopics.find((t) => t.id === selectedTopicId)) {
-        setSelectedTopicId(newTopics[0].id);
+        setSelectedTopicId(firstTopicId(newTopics));
       }
     }
     const newBooks = booksFor(newGrade, writingType);

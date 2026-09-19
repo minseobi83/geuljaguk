@@ -39,13 +39,17 @@ const SCREEN_MODEL = process.env.ANTHROPIC_SCREEN_MODEL || "claude-haiku-4-5-202
 // ttl을 1시간으로 잡는 이유: 이 프롬프트는 "이 학생의" 프롬프트가 아니라 서비스 전체에서
 // 완전히 동일한 문자열이라, 서비스 트래픽이 5분에 한 번보다만 있어도 1시간 캐시 쪽이 적중률이
 // 훨씬 높다 (쓰기 비용은 5분 캐시보다 조금 더 비싸지만, 적중 시 읽기 비용은 동일하게 싸다).
-const CACHED_SYSTEM_PROMPT: TextBlockParam[] = [
-  {
-    type: "text",
-    text: SYSTEM_PROMPT,
-    cache_control: { type: "ephemeral", ttl: "1h" },
-  },
-];
+// 관리자가 프롬프트 버전을 바꾸면 이 문자열이 달라지므로, 상수 대신 매 호출마다 감싸준다.
+// 캐시 키는 내용 자체라서, 같은 버전을 쓰는 동안에는 여전히 같은 캐시를 맞힌다.
+function cachedSystemPrompt(prompt: string): TextBlockParam[] {
+  return [
+    {
+      type: "text",
+      text: prompt,
+      cache_control: { type: "ephemeral", ttl: "1h" },
+    },
+  ];
+}
 
 function extractJson(text: string): unknown {
   const start = text.indexOf("{");
@@ -102,6 +106,7 @@ interface CallResult {
 
 async function callModel(
   submission: EssaySubmission,
+  systemPrompt: string,
   retryNote?: string,
   onProgress?: (charsSoFar: number) => void
 ): Promise<CallResult> {
@@ -114,7 +119,7 @@ async function callModel(
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: 8192,
-    system: CACHED_SYSTEM_PROMPT,
+    system: cachedSystemPrompt(systemPrompt),
     messages,
   });
 
@@ -202,18 +207,21 @@ export async function quickScreen(
 }
 
 // 본분석 호출 + 가드레일 검사 + 필요 시 1회 재시도까지 담당하는 최상위 함수.
+// systemPrompt: 관리자가 활성화해둔 프롬프트 버전. 넘기지 않으면 코드의 기본 프롬프트를 쓴다.
 export async function evaluateEssay(
   submission: EssaySubmission,
-  onProgress?: (charsSoFar: number) => void
+  onProgress?: (charsSoFar: number) => void,
+  systemPrompt: string = SYSTEM_PROMPT
 ): Promise<CallResult> {
   let call: CallResult;
   try {
-    call = await callModel(submission, undefined, onProgress);
+    call = await callModel(submission, systemPrompt, undefined, onProgress);
   } catch (e) {
     if (e instanceof TruncatedResponseError) {
       // 한 번 더 시도. 생각 과정과 설명을 줄여서 JSON을 끝까지 완성하도록 유도한다.
       call = await callModel(
         submission,
+        systemPrompt,
         "직전 응답이 너무 길어서 중간에 잘렸습니다. 각 항목을 더 간결하게 써서 " +
           "JSON 전체를 반드시 끝까지 완성해서 응답하세요.",
         onProgress
@@ -227,6 +235,7 @@ export async function evaluateEssay(
   if (rewrote) {
     call = await callModel(
       submission,
+      systemPrompt,
       "이전 답변에서 mechanics_table 밖의 문장이 학생이 쓴 문장과 거의 동일했습니다. " +
         "학생 문장을 그대로 옮기지 말고, 질문이나 방향 제시로만 다시 작성하세요.",
       onProgress

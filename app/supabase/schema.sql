@@ -194,3 +194,113 @@ create policy "admins_read_all_essay_versions" on public.essay_versions
 drop policy if exists "admins_read_all_evaluations" on public.evaluations;
 create policy "admins_read_all_evaluations" on public.evaluations
   for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- 관리자 기능 2차분 (2026-09-19 추가: 글감 관리 + 평가기준/프롬프트 버전 관리)
+-- ---------------------------------------------------------------------------
+
+-- 글감. 지금까지 lib/topics.ts에 하드코딩돼 있던 목록을 옮겨온 것.
+-- id는 그 파일에서 쓰던 슬러그를 그대로 쓴다 (essays.topic_title로 저장된 기존 글과
+-- 맞춰보기 쉽도록, 그리고 시드를 여러 번 실행해도 중복이 생기지 않도록).
+--
+-- 주의: 앱은 이 테이블을 읽지 못해도(테이블이 아직 없거나 조회 실패) 코드에 남겨둔
+-- 기본 목록으로 폴백한다. 코드를 먼저 배포하고 이 SQL을 나중에 실행해도 글쓰기 화면은
+-- 멀쩡히 동작한다.
+create table if not exists public.topics (
+  id text primary key,
+  writing_type text not null,
+  title text not null,
+  hint text not null,
+  grades text[] not null, -- 예: '{4,5}' — 이 글감이 어울리는 학년
+  sort_order int not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.topics enable row level security;
+
+-- 학생·보호자는 살아있는 글감만 읽을 수 있고, 관리자는 숨긴 것까지 다 본다.
+drop policy if exists "topics_read" on public.topics;
+create policy "topics_read" on public.topics
+  for select using (
+    is_active or exists (select 1 from public.admins where admins.id = auth.uid())
+  );
+
+-- 쓰기는 관리자만. (insert/update/delete를 한 정책으로 묶되 for all은 select까지 덮으므로
+-- 명령별로 나눠서, 위의 읽기 정책이 그대로 살아있게 한다.)
+drop policy if exists "topics_admin_insert" on public.topics;
+create policy "topics_admin_insert" on public.topics
+  for insert with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "topics_admin_update" on public.topics;
+create policy "topics_admin_update" on public.topics
+  for update using (exists (select 1 from public.admins where admins.id = auth.uid()))
+  with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "topics_admin_delete" on public.topics;
+create policy "topics_admin_delete" on public.topics
+  for delete using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+grant select, insert, update, delete on public.topics to authenticated;
+
+-- 평가기준(채점 척도)이 들어있는 시스템 프롬프트의 버전 관리.
+-- 활성 버전이 하나도 없으면 앱은 코드에 있는 기본 프롬프트(lib/prompt.ts)를 쓴다.
+create table if not exists public.prompt_versions (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,          -- 예: 'v2 — 근거 배점 상향'
+  system_prompt text not null,
+  note text,                    -- 무엇을 왜 바꿨는지 메모
+  is_active boolean not null default false,
+  created_by uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- 활성 버전은 언제나 최대 하나. (부분 유니크 인덱스라 is_active=false인 행은 몇 개든 괜찮다)
+create unique index if not exists prompt_versions_single_active
+  on public.prompt_versions (is_active) where is_active;
+
+alter table public.prompt_versions enable row level security;
+
+-- 채점 API가 로그인한 사용자 권한으로 돌기 때문에, 활성 버전은 로그인한 사람이면 읽을 수
+-- 있어야 한다. 지난 버전과 비활성 버전은 관리자만 본다.
+drop policy if exists "prompt_versions_read" on public.prompt_versions;
+create policy "prompt_versions_read" on public.prompt_versions
+  for select using (
+    is_active or exists (select 1 from public.admins where admins.id = auth.uid())
+  );
+
+drop policy if exists "prompt_versions_admin_insert" on public.prompt_versions;
+create policy "prompt_versions_admin_insert" on public.prompt_versions
+  for insert with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "prompt_versions_admin_update" on public.prompt_versions;
+create policy "prompt_versions_admin_update" on public.prompt_versions
+  for update using (exists (select 1 from public.admins where admins.id = auth.uid()))
+  with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "prompt_versions_admin_delete" on public.prompt_versions;
+create policy "prompt_versions_admin_delete" on public.prompt_versions
+  for delete using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+grant select, insert, update, delete on public.prompt_versions to authenticated;
+
+-- 활성 버전을 바꾸는 건 "기존 활성 해제 + 새 버전 활성" 두 단계라, 중간에 유니크 인덱스에
+-- 걸리지 않도록 한 트랜잭션으로 처리하는 함수를 둔다. security definer로 만들되 호출자가
+-- 관리자인지 함수 안에서 직접 확인한다.
+create or replace function public.activate_prompt_version(target_id uuid)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not exists (select 1 from public.admins where admins.id = auth.uid()) then
+    raise exception '관리자만 프롬프트 버전을 바꿀 수 있습니다.';
+  end if;
+
+  update public.prompt_versions set is_active = false where is_active;
+  update public.prompt_versions set is_active = true where id = target_id;
+end;
+$$;
+
+grant execute on function public.activate_prompt_version(uuid) to authenticated;

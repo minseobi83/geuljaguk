@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getChildEssayHistory } from "@/lib/supabase/queries";
+import { getActiveTopics } from "@/lib/supabase/topicQueries";
 import EssayWorkspace from "@/components/EssayWorkspace";
 import { ChildProfile, RecentEssay } from "@/lib/types";
 
@@ -35,7 +36,10 @@ export default async function Home({
   const activeChild =
     typedChildren.find((c) => c.id === requestedChildId) ?? typedChildren[0];
 
-  const history = await getChildEssayHistory(supabase, activeChild.id, 5);
+  const [history, topics] = await Promise.all([
+    getChildEssayHistory(supabase, activeChild.id, 5),
+    getActiveTopics(supabase),
+  ]);
   const recentEssays: RecentEssay[] = history.map((h) => ({
     id: h.id,
     writing_type: h.writingType,
@@ -50,6 +54,7 @@ export default async function Home({
       child={activeChild}
       allChildren={typedChildren}
       recentEssays={recentEssays}
+      topics={topics}
     />
   );
 }

@@ -1,9 +1,11 @@
 import { GradeBand, WritingType } from "./types";
 
-// 관리자 콘솔이 생기기 전까지 쓰는 큐레이션된 글감 목록.
-// 나중에 관리자가 글감을 직접 관리하게 되면 이 목록을 DB(topics 테이블)로 옮기면 된다.
-// 정답이 뻔한 주제는 피하고, 아이마다 생각이 달라질 수 있는 주제로 골랐다.
+// 글감은 이제 DB(topics 테이블)에서 읽는다. 아래 목록은 그 시드이자 폴백이다:
+// 테이블이 아직 없거나 조회에 실패하면 이 목록을 그대로 쓴다. 덕분에 코드를 먼저 배포하고
+// SQL을 나중에 실행해도 글쓰기 화면이 멈추지 않는다.
+// (supabase/seed_topics.sql이 이 목록에서 자동 생성된 시드다.)
 //
+// 정답이 뻔한 주제는 피하고, 아이마다 생각이 달라질 수 있는 주제로 골랐다.
 // grades: 이 글감이 어울리는 학년. 같은 유형이라도 학년에 따라 다른 글감이 뜬다.
 //  - 4학년: 눈앞의 생활 경험, 구체적인 대상
 //  - 5학년: 학교·또래 공동체의 문제, 근거를 두 개쯤 요구하는 주제
@@ -11,12 +13,16 @@ import { GradeBand, WritingType } from "./types";
 
 export interface Topic {
   id: string;
+  writingType: WritingType;
   title: string;
   hint: string; // 무엇을 써야 할지 방향을 잡아주는 짧은 안내
   grades: GradeBand[];
 }
 
-export const WRITING_TOPICS: Record<WritingType, Topic[]> = {
+// 아래 목록 리터럴 안에서는 유형이 키로 이미 드러나므로 writingType을 생략하고 적는다.
+type TopicSeed = Omit<Topic, "writingType">;
+
+export const WRITING_TOPICS: Record<WritingType, TopicSeed[]> = {
   "주장하는 글": [
     {
       id: "kind-words-rule",
@@ -311,10 +317,22 @@ export const WRITING_TOPICS: Record<WritingType, Topic[]> = {
   ],
 };
 
-// 학년 + 글의 종류에 맞는 글감만 골라 돌려준다.
-// 혹시 그 조합에 해당하는 글감이 하나도 없으면 그 유형 전체를 보여준다(빈 목록 방지).
-export function topicsFor(gradeBand: GradeBand, writingType: WritingType): Topic[] {
-  const all = WRITING_TOPICS[writingType];
-  const byGrade = all.filter((t) => t.grades.includes(gradeBand));
-  return byGrade.length > 0 ? byGrade : all;
+// 위 목록을 유형별 묶음에서 한 줄짜리 목록으로 펴놓은 것. DB에서 읽어온 글감과 같은 모양이라
+// 화면에서는 둘을 구분하지 않고 똑같이 쓴다.
+export const FALLBACK_TOPICS: Topic[] = (
+  Object.entries(WRITING_TOPICS) as [WritingType, TopicSeed[]][]
+).flatMap(([writingType, list]) => list.map((t) => ({ ...t, writingType })));
+
+// 주어진 글감 목록에서 학년 + 글의 종류에 맞는 것만 골라 돌려준다.
+// 그 조합에 맞는 글감이 하나도 없으면 학년 조건을 풀어 그 유형 전체를 보여준다(빈 목록 방지).
+// 관리자가 한 유형의 글감을 모두 숨기면 그래도 빈 목록이 될 수 있으니, 쓰는 쪽에서 빈 경우를
+// 반드시 처리해야 한다.
+export function pickTopics(
+  all: Topic[],
+  gradeBand: GradeBand,
+  writingType: WritingType
+): Topic[] {
+  const byType = all.filter((t) => t.writingType === writingType);
+  const byGrade = byType.filter((t) => t.grades.includes(gradeBand));
+  return byGrade.length > 0 ? byGrade : byType;
 }

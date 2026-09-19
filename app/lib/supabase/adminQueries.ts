@@ -2,7 +2,8 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { EvaluationResult } from "@/lib/types";
 
 // 관리자 기능 1차분: 인증 + 이용 현황 확인 + AI 응답 품질/부적절 콘텐츠 검토.
-// 글감·평가기준·프롬프트 관리, 학생별 상세 관리 화면은 아직 없음 (다음 작업으로 남겨둠).
+// 2차분(2026-09-19): 글감 관리(topicQueries.ts), 평가기준·프롬프트 버전 관리
+// (promptQueries.ts), 학생별 상세 관리(이 파일의 getChildOverview).
 
 export async function isAdmin(supabase: SupabaseClient, userId: string): Promise<boolean> {
   const { data } = await supabase.from("admins").select("id").eq("id", userId).maybeSingle();
@@ -110,4 +111,92 @@ export async function getFlaggedEssays(
     if (flagged.length >= resultLimit) break;
   }
   return flagged;
+}
+
+// ---------------------------------------------------------------------------
+// 학생별 상세 관리 (관리자 2차분)
+// ---------------------------------------------------------------------------
+
+export interface AdminChildEssay {
+  id: string;
+  writingType: string;
+  topicTitle: string | null;
+  createdAt: string;
+  versionCount: number;
+}
+
+export interface AdminChildRow {
+  id: string;
+  nickname: string;
+  gradeBand: string;
+  joinedAt: string;
+  essayCount: number;
+  versionCount: number;
+  lastActivityAt: string | null;
+  essays: AdminChildEssay[];
+}
+
+interface RawChildRow {
+  id: string;
+  nickname: string;
+  grade_band: string;
+  created_at: string;
+  essays: {
+    id: string;
+    writing_type: string;
+    topic_title: string | null;
+    created_at: string;
+    essay_versions: { id: string; created_at: string }[];
+  }[];
+}
+
+// 모든 자녀와 각자의 글 목록. admins_read_all_* 정책 덕분에 관리자 세션이면 전체가 읽힌다.
+// 이름(실명)은 애초에 저장하지 않으므로 여기서도 별명만 다룬다.
+//
+// 자녀 한 명당 글 목록을 통째로 가져오는 단순한 구현이다. 이용자가 많아지면 목록과 상세를
+// 나눠서 불러오도록 바꿔야 한다.
+export async function getChildOverview(
+  supabase: SupabaseClient,
+  essaysPerChild = 20
+): Promise<{ children: AdminChildRow[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from("children")
+    .select(
+      "id, nickname, grade_band, created_at, essays(id, writing_type, topic_title, created_at, essay_versions(id, created_at))"
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) return { children: [], error: error.message };
+
+  const children: AdminChildRow[] = (data as unknown as RawChildRow[]).map((c) => {
+    const essays: AdminChildEssay[] = (c.essays ?? [])
+      .map((e) => ({
+        id: e.id,
+        writingType: e.writing_type,
+        topicTitle: e.topic_title,
+        createdAt: e.created_at,
+        versionCount: e.essay_versions?.length ?? 0,
+      }))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    const versionCount = essays.reduce((sum, e) => sum + e.versionCount, 0);
+    // 마지막 활동은 "글을 만든 시각"이 아니라 "가장 최근에 제출한 시도"의 시각으로 본다.
+    const allVersionTimes = (c.essays ?? []).flatMap((e) =>
+      (e.essay_versions ?? []).map((v) => v.created_at)
+    );
+    allVersionTimes.sort();
+
+    return {
+      id: c.id,
+      nickname: c.nickname,
+      gradeBand: c.grade_band,
+      joinedAt: c.created_at,
+      essayCount: essays.length,
+      versionCount,
+      lastActivityAt: allVersionTimes[allVersionTimes.length - 1] ?? null,
+      essays: essays.slice(0, essaysPerChild),
+    };
+  });
+
+  return { children, error: null };
 }

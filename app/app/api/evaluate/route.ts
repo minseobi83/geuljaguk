@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { evaluateEssay, quickScreen, GuardrailViolationError } from "@/lib/anthropic";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveSystemPrompt } from "@/lib/supabase/promptQueries";
 import { EssaySubmission, WritingType, GradeBand } from "@/lib/types";
 
 // 최악의 경우 이 요청 안에서 모델을 최대 3번(본분석 + truncation 재시도 + 가드레일 재시도)
@@ -116,6 +117,9 @@ export async function POST(req: NextRequest) {
   // 이 지점 이전의 모든 실패는 위에서처럼 평소대로 상태 코드가 있는 JSON으로 응답하고,
   // 이 지점을 넘어서부터는 항상 200으로 스트림을 열고, 그 안에서 성공/실패를 알려준다
   // (스트림을 시작한 뒤에는 HTTP 상태 코드를 바꿀 수 없기 때문).
+  // 관리자가 활성화해둔 평가기준(시스템 프롬프트) 버전을 쓴다. 없으면 코드 기본값.
+  const activePrompt = await getActiveSystemPrompt(supabase);
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -124,9 +128,11 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        const { result, rawResponseText } = await evaluateEssay(submission, (chars) => {
-          send({ type: "progress", chars });
-        });
+        const { result, rawResponseText } = await evaluateEssay(
+          submission,
+          (chars) => send({ type: "progress", chars }),
+          activePrompt.prompt
+        );
 
         // 저장은 최선을 다해 시도하되(best-effort), 실패해도 학생에게는 피드백을 보여준다.
         // RLS가 자녀 소유권을 검증하므로, childId가 이 보호자의 자녀가 아니면 essays insert가

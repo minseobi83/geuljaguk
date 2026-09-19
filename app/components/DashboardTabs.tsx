@@ -229,7 +229,7 @@ export default function DashboardTabs({
                     {essay.summary && (
                       <p className="mt-3 break-keep text-xs leading-6 text-ink/45">
                         <span className="mr-1 font-bold uppercase tracking-[0.15em] text-ink/35">
-                          AI 총평
+                          글자국 총평
                         </span>
                         {essay.summary}
                       </p>

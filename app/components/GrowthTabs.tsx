@@ -4,6 +4,7 @@ import { useState } from "react";
 import TierBadge from "./TierBadge";
 import IndicatorTrends from "./IndicatorTrends";
 import HighlightedEssayText from "./HighlightedEssayText";
+import EssayCalendar from "./EssayCalendar";
 import { formatDateShort } from "@/lib/format";
 import { EssayHistoryItem } from "@/lib/supabase/queries";
 import { RubricScores } from "@/lib/types";
@@ -17,7 +18,7 @@ interface Props {
   historyDesc: EssayHistoryItem[];
 }
 
-type TabId = "recent" | "trend" | "essays";
+type TabId = "recent" | "trend" | "essays" | "calendar";
 
 export default function GrowthTabs({
   summary,
@@ -33,6 +34,7 @@ export default function GrowthTabs({
     { id: "recent", label: "최근 변화" },
     { id: "trend", label: "지표별 변화 흐름" },
     { id: "essays", label: "그동안 쓴 글" },
+    { id: "calendar", label: "첨삭 캘린더" },
   ];
 
   return (
@@ -159,6 +161,10 @@ export default function GrowthTabs({
             </ul>
           )}
         </section>
+      )}
+
+      {tab === "calendar" && (
+        <EssayCalendar historyDesc={historyDesc} summaryLabel="선생님 총평" />
       )}
     </div>
   );

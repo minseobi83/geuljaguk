@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import TierBadge from "./TierBadge";
 import IndicatorTrends from "./IndicatorTrends";
 import HighlightedEssayText from "./HighlightedEssayText";
+import EssayCalendar from "./EssayCalendar";
 import { formatDateShort } from "@/lib/format";
 import { withYiGa } from "@/lib/korean";
 import {
@@ -26,7 +27,7 @@ interface Props {
   historyDesc: EssayHistoryItem[];
 }
 
-type TabId = "recent" | "trend" | "essays";
+type TabId = "recent" | "trend" | "essays" | "calendar";
 
 function SectionTag({ en, ko }: { en: string; ko: string }) {
   return (
@@ -64,6 +65,7 @@ export default function DashboardTabs({
     { id: "recent", label: "최근 변화" },
     { id: "trend", label: "지표별 변화 흐름" },
     { id: "essays", label: `${withYiGa(nickname)} 쓴 글` },
+    { id: "calendar", label: "첨삭 캘린더" },
   ];
 
   return (
@@ -257,6 +259,10 @@ export default function DashboardTabs({
             </ul>
           )}
         </section>
+      )}
+
+      {tab === "calendar" && (
+        <EssayCalendar historyDesc={historyDesc} summaryLabel="글자국 총평" />
       )}
     </div>
   );

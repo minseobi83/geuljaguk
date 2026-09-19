@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
 import { topicsFor } from "@/lib/topics";
-import { BOOK_PROMPT_TEMPLATES, booksFor } from "@/lib/books";
+import { bookGuideFor, booksFor } from "@/lib/books";
 import BookInfoPopover from "@/components/BookInfoPopover";
 
 const WRITING_TYPES: WritingType[] = [
@@ -76,14 +76,17 @@ export default function EssayForm({
   // 글감은 학년 + 글의 종류 조합으로 달라진다.
   const topics = topicsFor(gradeBand, writingType);
   const books = booksFor(gradeBand, writingType);
+  // 감상문처럼 추천도서와 연결하지 않는 유형에서는 책 탭 자체를 숨긴다.
+  const hasBooks = books.length > 0;
+  const source: SourceKind = hasBooks ? sourceKind : "topic";
   const isCustom = selectedTopicId === CUSTOM_TOPIC_ID;
   const selectedBook = books.find((b) => b.id === selectedBookId);
   // 그 책만의 핵심 포인트가 있으면 범용 템플릿 대신 그걸 보여준다.
-  const bookGuide = selectedBook?.guidePoints?.[writingType];
+  const bookGuide = selectedBook ? bookGuideFor(selectedBook, writingType) : null;
 
   const topicTitle =
-    sourceKind === "book" && selectedBook
-      ? BOOK_PROMPT_TEMPLATES[writingType](selectedBook.title)
+    source === "book" && selectedBook
+      ? bookGuideFor(selectedBook, writingType).intro
       : isCustom
       ? customTopic.trim() || undefined
       : topics.find((t) => t.id === selectedTopicId)?.title;
@@ -165,27 +168,36 @@ export default function EssayForm({
           type="button"
           onClick={() => setSourceKind("topic")}
           className={`-mb-0.5 pb-3 transition ${
-            sourceKind === "topic"
+            source === "topic"
               ? "border-b-4 border-ink font-black text-ink"
               : "text-ink/40"
           }`}
         >
           글감으로 쓰기
         </button>
-        <button
-          type="button"
-          onClick={() => setSourceKind("book")}
-          className={`-mb-0.5 pb-3 transition ${
-            sourceKind === "book"
-              ? "border-b-4 border-ink font-black text-ink"
-              : "text-ink/40"
-          }`}
-        >
-          추천도서로 쓰기
-        </button>
+        {hasBooks && (
+          <button
+            type="button"
+            onClick={() => setSourceKind("book")}
+            className={`-mb-0.5 pb-3 transition ${
+              source === "book"
+                ? "border-b-4 border-ink font-black text-ink"
+                : "text-ink/40"
+            }`}
+          >
+            추천도서로 쓰기
+          </button>
+        )}
       </div>
 
-      {sourceKind === "topic" ? (
+      {!hasBooks && writingType === "감상문" && (
+        <p className="mt-4 break-keep text-xs leading-6 text-ink/45">
+          감상문은 책이 아니라 영화·공연·전시처럼 직접 보고 겪은 것을 다루는 글이에요.
+          책을 읽고 쓰려면 글의 종류를 &lsquo;독후감&rsquo;으로 바꿔보세요.
+        </p>
+      )}
+
+      {source === "topic" ? (
         <>
           <ul>
             {topics.map((topic, i) => {
@@ -323,21 +335,26 @@ export default function EssayForm({
               <p className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
                 Example · 글자국 남기기 예시
               </p>
-              {bookGuide ? (
-                <ul className="mt-2 flex flex-col gap-1.5">
-                  {bookGuide.map((point) => (
-                    <li
-                      key={point}
-                      className="flex gap-2 break-keep text-sm leading-6 text-ink/75"
-                    >
-                      <span className="text-ink/40">—</span>
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
+              {bookGuide && bookGuide.points.length > 0 ? (
+                <>
+                  <p className="mt-2 break-keep text-sm font-bold leading-6 text-ink">
+                    {bookGuide.intro}
+                  </p>
+                  <ul className="mt-2 flex flex-col gap-1.5">
+                    {bookGuide.points.map((point) => (
+                      <li
+                        key={point}
+                        className="flex gap-2 break-keep text-sm leading-6 text-ink/75"
+                      >
+                        <span className="text-ink/40">—</span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               ) : (
                 <p className="mt-2 break-keep text-sm leading-6 text-ink/75">
-                  {BOOK_PROMPT_TEMPLATES[writingType](selectedBook.title)}
+                  {bookGuide?.intro}
                 </p>
               )}
             </div>

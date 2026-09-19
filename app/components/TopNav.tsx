@@ -59,7 +59,13 @@ export default function TopNav() {
         ref={navRef}
         className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 lg:px-10"
       >
-        <Link href="/" className="mr-2 flex shrink-0 items-center gap-2">
+        {/* 로고(마크 + 이름)를 누르면 소개 화면으로 간다. 잡지로 치면 표지로 돌아가는 셈.
+            글쓰기 화면으로 가는 길은 학생 > 글쓰기 메뉴에 그대로 있다. */}
+        <Link
+          href="/login"
+          aria-label="글자국 소개 화면으로"
+          className="mr-2 flex shrink-0 items-center gap-2 transition hover:opacity-70"
+        >
           <span className="flex h-6 w-6 items-center justify-center bg-white">
             <BrandMark size={16} />
           </span>
@@ -111,15 +117,6 @@ export default function TopNav() {
             )}
           </div>
         ))}
-
-        {/* 소개(초기) 화면. 학생·학부모 메뉴를 찾다가 놓치지 않도록 두 메뉴 바로 옆에 둔다.
-            (예전에는 오른쪽 끝에 작게 떨어져 있어서 눈에 띄지 않았다) */}
-        <Link
-          href="/login"
-          className="text-[10px] uppercase tracking-[0.25em] text-white/55 transition hover:text-white"
-        >
-          글자국 소개
-        </Link>
 
         <button
           type="button"

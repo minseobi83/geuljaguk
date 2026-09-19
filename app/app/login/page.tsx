@@ -12,6 +12,8 @@ import FeatureDemo from "@/components/FeatureDemos";
 
 type Mode = "signin" | "signup";
 
+const SAVED_EMAIL_KEY = "geuljaguk:savedEmail";
+
 // 편집실 노트: 배포할 때마다 그 배포에서 학생·보호자가 실제로 체감할 만한 변화 위주로
 // 새 항목을 맨 위(또는 최신 날짜)에 추가한다. 아래 화면(LATEST_TICKER_ITEMS)은 가장 최근
 // 날짜의 항목만 자동으로 골라 보여주므로, 날짜만 오늘 날짜로 맞추면 예전 항목은 자연히 빠진다.
@@ -115,6 +117,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberId, setRememberId] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -135,6 +138,15 @@ export default function LoginPage() {
     };
   }, []);
 
+  // "ID 저장하기": 비밀번호는 저장하지 않고 이메일만 이 브라우저에 남겨둔다.
+  useEffect(() => {
+    const saved = localStorage.getItem(SAVED_EMAIL_KEY);
+    if (saved) {
+      setEmail(saved);
+      setRememberId(true);
+    }
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -148,6 +160,11 @@ export default function LoginPage() {
         setError(error.message);
         setSubmitting(false);
         return;
+      }
+      if (rememberId) {
+        localStorage.setItem(SAVED_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(SAVED_EMAIL_KEY);
       }
       router.push("/onboarding");
       router.refresh();
@@ -369,8 +386,9 @@ export default function LoginPage() {
 
         {/* ───────── 편집실 노트 (전광판처럼 한 줄로 흐른다) ───────── */}
         <section className="mt-14 flex items-center gap-4 border-y-2 border-ink py-3">
-          <p className="shrink-0 text-[10px] uppercase tracking-[0.3em] text-ink/60">
-            편집실 노트 ({LATEST_RELEASE_DATE})
+          <p className="flex shrink-0 flex-col text-[10px] uppercase tracking-[0.3em] text-ink/60">
+            <span>편집실 노트</span>
+            <span className="text-ink/40">({LATEST_RELEASE_DATE})</span>
           </p>
           {/* 같은 목록을 두 벌 이어 붙이고 절반만큼 밀어서 끊김 없이 반복 (마우스를 올리면 멈춤) */}
           <div className="marquee-mask min-w-0 flex-1 overflow-hidden">
@@ -468,6 +486,18 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </label>
+
+              {mode === "signin" && (
+                <label className="flex items-center gap-2 text-sm text-ink/70">
+                  <input
+                    type="checkbox"
+                    checked={rememberId}
+                    onChange={(e) => setRememberId(e.target.checked)}
+                    className="h-4 w-4 accent-ink"
+                  />
+                  ID 저장하기
+                </label>
+              )}
 
               {error && <p className="break-keep text-sm text-warn">{error}</p>}
               {notice && <p className="break-keep text-sm text-growth">{notice}</p>}

@@ -173,7 +173,7 @@ export default function LoginPage() {
       {/* ───────── 표지 (풀블리드 블랙) ───────── */}
       <section className="bg-ink text-white">
         <div className="mx-auto max-w-6xl px-5 lg:px-10">
-          <div className="flex items-center justify-between gap-4 border-b border-white/20 py-3 text-[10px] uppercase tracking-[0.3em] text-white/55">
+          <div className="flex items-center justify-between gap-4 border-b border-white/20 py-3 text-[10px] uppercase tracking-[0.3em] text-white/70">
             <span>AI Writing Coach</span>
             {signedIn ? (
               <Link href="/" className="text-white underline underline-offset-4">
@@ -188,14 +188,14 @@ export default function LoginPage() {
 
           <div className="grid gap-12 py-14 lg:grid-cols-12 lg:gap-10 lg:py-20">
             <div className="lg:col-span-8">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-white/65">
                 초등 4~6학년 · 글쓰기 저널
               </p>
 
               <h1 className="mt-6 text-[4.5rem] font-black leading-[0.85] tracking-[-0.05em] sm:text-8xl lg:text-[9rem]">
                 글자국
               </h1>
-              <p className="mt-5 text-[10px] uppercase tracking-[0.55em] text-white/40">
+              <p className="mt-5 text-[10px] uppercase tracking-[0.55em] text-white/55">
                 Geuljaguk
               </p>
 
@@ -203,7 +203,7 @@ export default function LoginPage() {
                 <p className="max-w-xl break-keep text-2xl font-extrabold leading-snug sm:text-3xl">
                   아이가 스스로 다시 쓰게 만드는 글쓰기 코치
                 </p>
-                <p className="mt-4 max-w-lg break-keep text-sm leading-7 text-white/60">
+                <p className="mt-4 max-w-lg break-keep text-sm leading-7 text-white/75">
                   정답을 대신 써주지 않아요. 잘한 점을 먼저 찾고, 오늘은 딱 하나만
                   짚어주고, 질문으로 아이가 스스로 고쳐 쓰게 도와줘요.
                 </p>
@@ -228,7 +228,7 @@ export default function LoginPage() {
                       <a
                         href="#auth"
                         onClick={() => setMode("signin")}
-                        className="text-sm text-white/60 underline underline-offset-4"
+                        className="text-sm text-white/75 underline underline-offset-4"
                       >
                         이미 계정이 있어요
                       </a>
@@ -240,11 +240,11 @@ export default function LoginPage() {
 
             <div className="flex items-start justify-between gap-6 lg:col-span-4 lg:flex-col lg:items-end lg:justify-start">
               <div className="flex h-28 w-28 shrink-0 -rotate-6 flex-col items-center justify-center rounded-full border border-white/40 text-center sm:h-32 sm:w-32">
-                <span className="text-[9px] uppercase tracking-[0.25em] text-white/50">
+                <span className="text-[9px] uppercase tracking-[0.25em] text-white/65">
                   Free
                 </span>
                 <span className="mt-1 text-sm font-bold">무료 체험</span>
-                <span className="mt-1 text-[10px] text-white/50">보호자 계정</span>
+                <span className="mt-1 text-[10px] text-white/65">보호자 계정</span>
               </div>
 
               <div className="flex aspect-square w-40 items-center justify-center bg-white sm:w-48 lg:mt-10 lg:w-56">
@@ -265,7 +265,7 @@ export default function LoginPage() {
             <h3 className="mt-4 break-keep text-4xl font-black leading-[1.1] tracking-tight text-ink sm:text-5xl">
               점수 대신 질문을<br />돌려줍니다
             </h3>
-            <div className="mt-8 columns-1 gap-8 text-[15px] leading-8 text-ink/75 sm:columns-2">
+            <div className="mt-8 columns-1 gap-8 text-[15px] leading-8 text-ink/85 sm:columns-2">
               <p className="break-keep first-letter:float-left first-letter:mr-1.5 first-letter:mt-1 first-letter:text-[3.25rem] first-letter:font-black first-letter:leading-[0.8] first-letter:text-ink">
                 아이의 글에 빨간 줄을 긋는 대신, 글자국은 먼저 잘한 점을 찾습니다. 그다음
                 오늘 고쳐볼 것을 딱 하나만 고르고, 나머지는 질문으로 되돌려줍니다.
@@ -276,6 +276,8 @@ export default function LoginPage() {
               </p>
               <p className="mt-6 break-keep">
                 다시 쓴 글은 이전 글과 나란히 비교되고, 그 변화가 성장 기록으로 쌓입니다.
+              </p>
+              <p className="mt-4 whitespace-nowrap font-bold text-ink">
                 보호자는 점수가 아니라 흐름을 봅니다.
               </p>
             </div>
@@ -283,17 +285,17 @@ export default function LoginPage() {
 
           <aside className="lg:col-span-5">
             <div className="bg-ink p-8 text-white">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-white/65">
                 Signature
               </p>
               <p className="mt-6 break-keep text-2xl font-extrabold leading-snug sm:text-3xl">
-                “모든 문장에는,<br />아이가 자란<br />자국이 남아요.”
+                “아이가 자란 자국이 남아요.”
               </p>
-              <p className="mt-8 border-t border-white/20 pt-4 text-[10px] uppercase tracking-[0.3em] text-white/50">
+              <p className="mt-8 border-t border-white/20 pt-4 text-[10px] uppercase tracking-[0.3em] text-white/65">
                 — 글자국
               </p>
             </div>
-            <p className="mt-3 break-keep border-t border-ink/15 pt-2 text-xs italic text-ink/50">
+            <p className="mt-3 break-keep border-t border-ink/15 pt-2 text-xs italic text-ink/65">
               글(文)과 자국(痕). 이름 그대로, 아이가 남긴 흔적을 따라갑니다.
             </p>
           </aside>
@@ -301,15 +303,10 @@ export default function LoginPage() {
 
         {/* ───────── 기능 ───────── */}
         <section className="border-t-2 border-ink pt-8">
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-2xl font-black tracking-tight text-ink">
-              글자국이 하는 일
-            </h3>
-            <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
-              Features
-            </span>
-          </div>
-          <p className="mt-3 text-xs text-ink/40">카드를 누르면 자세히 볼 수 있어요.</p>
+          <h3 className="text-2xl font-black tracking-tight text-ink">
+            글자국이 하는 일
+          </h3>
+          <p className="mt-3 text-xs text-ink/55">카드를 누르면 자세히 볼 수 있어요.</p>
           <div className="mt-6 grid gap-x-10 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => {
               const open = openFeature === f.no;
@@ -326,7 +323,7 @@ export default function LoginPage() {
                         {f.no}
                       </span>
                       <span
-                        className={`text-lg leading-none text-ink/40 transition-transform duration-300 ${
+                        className={`text-lg leading-none text-ink/55 transition-transform duration-300 ${
                           open ? "rotate-45" : ""
                         }`}
                         aria-hidden="true"
@@ -337,7 +334,7 @@ export default function LoginPage() {
                     <span className="mt-3 block break-keep text-lg font-extrabold tracking-tight text-ink">
                       {f.title}
                     </span>
-                    <span className="mt-2 block break-keep text-sm leading-7 text-ink/65">
+                    <span className="mt-2 block break-keep text-sm leading-7 text-ink/80">
                       {f.text}
                     </span>
                   </button>
@@ -350,7 +347,7 @@ export default function LoginPage() {
                   >
                     <div className="overflow-hidden">
                       <div className={open ? "demo-run pb-6 pt-4" : "pb-6 pt-4"}>
-                        <p className="break-keep text-sm leading-7 text-ink/70">
+                        <p className="break-keep text-sm leading-7 text-ink/85">
                           {f.detail}
                         </p>
                         <FeatureDemo no={f.no} />
@@ -365,7 +362,7 @@ export default function LoginPage() {
 
         {/* ───────── 편집실 노트 (전광판처럼 한 줄로 흐른다) ───────── */}
         <section className="mt-14 flex items-center gap-4 border-y-2 border-ink py-3">
-          <p className="shrink-0 text-[10px] uppercase tracking-[0.3em] text-ink/45">
+          <p className="shrink-0 text-[10px] uppercase tracking-[0.3em] text-ink/60">
             편집실 노트 ({LATEST_RELEASE_DATE})
           </p>
           {/* 같은 목록을 두 벌 이어 붙이고 절반만큼 밀어서 끊김 없이 반복 (마우스를 올리면 멈춤) */}
@@ -376,7 +373,7 @@ export default function LoginPage() {
                   {LATEST_TICKER_ITEMS.map((n) => (
                     <span
                       key={`${copy}-${n.text}`}
-                      className="flex items-center gap-2 whitespace-nowrap pr-10 text-sm text-ink/70"
+                      className="flex items-center gap-2 whitespace-nowrap pr-10 text-sm text-ink/85"
                     >
                       <span className="bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-white">
                         {n.tag}
@@ -396,12 +393,12 @@ export default function LoginPage() {
             <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Subscribe</p>
             <h3 className="mt-4 break-keep text-3xl font-black leading-tight tracking-tight text-ink">
               {signedIn ? (
-                <>이미 로그인되어<br />있어요</>
+                <>이미 로그인되어 있어요</>
               ) : (
                 <>보호자 계정으로<br />시작해요</>
               )}
             </h3>
-            <p className="mt-4 break-keep text-sm leading-7 text-ink/60">
+            <p className="mt-4 break-keep text-sm leading-7 text-ink/75">
               {signedIn
                 ? "이 화면은 글자국 소개 페이지예요. 바로 글쓰기로 돌아갈 수 있어요."
                 : "아이의 글은 보호자 계정 아래에서만 저장되고, 별명 외의 개인정보는 받지 않아요."}
@@ -423,14 +420,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setMode("signin")}
-                className={mode === "signin" ? "font-black text-ink" : "text-ink/40"}
+                className={mode === "signin" ? "font-black text-ink" : "text-ink/55"}
               >
                 로그인
               </button>
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className={mode === "signup" ? "font-black text-ink" : "text-ink/40"}
+                className={mode === "signup" ? "font-black text-ink" : "text-ink/55"}
               >
                 회원가입
               </button>
@@ -438,7 +435,7 @@ export default function LoginPage() {
 
             <form className="mt-6 flex flex-col gap-5" onSubmit={handleSubmit}>
               <label className="flex flex-col gap-2">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
+                <span className="text-[10px] uppercase tracking-[0.3em] text-ink/60">
                   Email
                 </span>
                 <input
@@ -451,7 +448,7 @@ export default function LoginPage() {
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
+                <span className="text-[10px] uppercase tracking-[0.3em] text-ink/60">
                   Password
                 </span>
                 <input
@@ -482,14 +479,9 @@ export default function LoginPage() {
 
         {/* ───────── 자주 묻는 질문 ───────── */}
         <section className="border-t-2 border-ink pb-16 pt-8">
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-2xl font-black tracking-tight text-ink">
-              자주 묻는 질문
-            </h3>
-            <span className="text-[10px] uppercase tracking-[0.3em] text-ink/45">
-              FAQ
-            </span>
-          </div>
+          <h3 className="text-2xl font-black tracking-tight text-ink">
+            자주 묻는 질문 (FAQ)
+          </h3>
           <dl className="mt-8 grid gap-x-12 lg:grid-cols-2">
             {FAQ.map((item) => (
               <div key={item.no} className="border-b border-ink/15 py-5">
@@ -501,7 +493,7 @@ export default function LoginPage() {
                     {item.q}
                   </span>
                 </dt>
-                <dd className="mt-3 break-keep pl-[3.25rem] text-sm leading-7 text-ink/65">
+                <dd className="mt-3 break-keep pl-[3.25rem] text-sm leading-7 text-ink/80">
                   {item.a}
                 </dd>
               </div>
@@ -511,7 +503,7 @@ export default function LoginPage() {
       </div>
 
       <footer className="bg-ink py-6 text-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 text-[10px] uppercase tracking-[0.3em] text-white/50 lg:px-10">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 text-[10px] uppercase tracking-[0.3em] text-white/65 lg:px-10">
           <span>글자국 · 초등 글쓰기 저널</span>
           <span>Vol. 01 — 2026</span>
         </div>

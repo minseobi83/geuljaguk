@@ -21,6 +21,9 @@ body {
 body {
   background-color: var(--paper);
   color: var(--ink);
+  /* 두꺼운 헤드라인 글씨가 윈도우/크롬에서 흐릿하게 렌더링되지 않도록 안티에일리어싱을 강제한다. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* 편집실 노트 전광판: 같은 목록을 두 벌 이어 붙이고 딱 절반만큼 밀어서 끊김 없이 반복시킨다. */

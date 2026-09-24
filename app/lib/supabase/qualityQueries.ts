@@ -75,6 +75,54 @@ interface RawReviewRow {
   }[];
 }
 
+// DB에 저장된 첨삭은 저장 당시의 모양 그대로라, 나중에 추가된 항목(예: 9/16에 생긴 safety)이
+// 빠져 있거나 AI가 일부 항목을 비워둔 경우가 있다. ResultView는 지금 모양을 전제로 그리므로
+// 화면에 넘기기 전에 빠진 항목을 기본값으로 채운다 (안 그러면 화면 전체가 죽는다).
+function normalizeResult(raw: Partial<EvaluationResult>): EvaluationResult {
+  const arr = <T,>(v: T[] | undefined | null): T[] => (Array.isArray(v) ? v : []);
+  const scores: Partial<EvaluationResult["scores"]> = raw.scores ?? {};
+  return {
+    version_id: raw.version_id ?? "",
+    writing_type: raw.writing_type ?? ("" as EvaluationResult["writing_type"]),
+    grade_band: raw.grade_band ?? ("" as EvaluationResult["grade_band"]),
+    understanding: {
+      topic: raw.understanding?.topic ?? "",
+      main_idea: raw.understanding?.main_idea ?? "",
+      intent_unclear: Boolean(raw.understanding?.intent_unclear),
+    },
+    strengths: arr(raw.strengths),
+    priority_issue: {
+      category: raw.priority_issue?.category ?? "",
+      note: raw.priority_issue?.note ?? "",
+    },
+    paragraph_feedback: arr(raw.paragraph_feedback)
+      .filter((p) => p && typeof p.paragraph_no === "number")
+      .map((p) => ({
+        paragraph_no: p.paragraph_no,
+        role: p.role ?? "",
+        good: p.good ?? "",
+        question: p.question ?? "",
+      })),
+    mechanics_table: arr(raw.mechanics_table)
+      .filter((m) => m && typeof m.original === "string")
+      .map((m) => ({ original: m.original, revised: m.revised ?? "", reason: m.reason ?? "" })),
+    self_revision_questions: arr(raw.self_revision_questions),
+    next_task: { skill: raw.next_task?.skill ?? "", prompt: raw.next_task?.prompt ?? "" },
+    scores: {
+      사고력: scores.사고력 ?? "보통",
+      논리력: scores.논리력 ?? "보통",
+      표현력: scores.표현력 ?? "보통",
+      구성력: scores.구성력 ?? "보통",
+      confidence: scores.confidence ?? "충분",
+    },
+    summary: raw.summary ?? "",
+    guardrail_check: {
+      rewrote_student_text: Boolean(raw.guardrail_check?.rewrote_student_text),
+    },
+    safety: { concern: Boolean(raw.safety?.concern), note: raw.safety?.note ?? "" },
+  };
+}
+
 function flagsOf(row: RawReviewRow): string[] {
   const flags: string[] = [];
   if (row.result?.safety?.concern) flags.push("안전 신호");
@@ -113,7 +161,7 @@ export async function getReviewQueue(
       topicTitle: version.essays?.topic_title ?? null,
       versionNo: version.version_no,
       studentText: version.student_text,
-      result: row.result,
+      result: normalizeResult(row.result),
       flags: flagsOf(row),
       reviews: (row.evaluation_reviews ?? []).map((r) => ({
         reviewerId: r.reviewer_id,

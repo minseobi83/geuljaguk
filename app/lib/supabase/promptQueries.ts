@@ -41,21 +41,21 @@ function toPromptVersion(row: PromptVersionRow): PromptVersion {
 // 필요할 때만 하는 게 좋다.
 export async function getActiveSystemPrompt(
   supabase: SupabaseClient
-): Promise<{ prompt: string; source: "db" | "code"; label: string | null }> {
+): Promise<{ prompt: string; source: "db" | "code"; label: string | null; id: string | null }> {
   try {
     const { data, error } = await supabase
       .from("prompt_versions")
-      .select("label, system_prompt")
+      .select("id, label, system_prompt")
       .eq("is_active", true)
       .maybeSingle();
 
     if (error || !data?.system_prompt) {
-      return { prompt: SYSTEM_PROMPT, source: "code", label: null };
+      return { prompt: SYSTEM_PROMPT, source: "code", label: null, id: null };
     }
-    return { prompt: data.system_prompt, source: "db", label: data.label };
+    return { prompt: data.system_prompt, source: "db", label: data.label, id: data.id };
   } catch (e) {
     console.error("[prompt] 활성 버전 조회 실패, 코드 기본값 사용:", e);
-    return { prompt: SYSTEM_PROMPT, source: "code", label: null };
+    return { prompt: SYSTEM_PROMPT, source: "code", label: null, id: null };
   }
 }
 

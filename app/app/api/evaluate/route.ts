@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { evaluateEssay, quickScreen, GuardrailViolationError } from "@/lib/anthropic";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveSystemPrompt } from "@/lib/supabase/promptQueries";
+import { logError } from "@/lib/errorLog";
 import { EssaySubmission, WritingType, GradeBand } from "@/lib/types";
 
 // 최악의 경우 이 요청 안에서 모델을 최대 3번(본분석 + truncation 재시도 + 가드레일 재시도)
@@ -101,6 +102,13 @@ export async function POST(req: NextRequest) {
   // "애초에 과제 시도가 맞는지"만 빠르게 거른다. 실패해도 본분석은 그대로 진행한다
   // (quickScreen이 fail-open이라 여기선 결과만 받으면 된다).
   const screen = await quickScreen(submission.studentText);
+  if (screen.failure) {
+    await logError(supabase, "quick_screen", screen.failure, {
+      userId: userData.user.id,
+      childId: body.childId,
+      meta: { textLength: submission.studentText.length, note: "fail-open으로 본분석 진행" },
+    });
+  }
   if (!screen.valid) {
     return NextResponse.json(
       {
@@ -119,6 +127,17 @@ export async function POST(req: NextRequest) {
   // (스트림을 시작한 뒤에는 HTTP 상태 코드를 바꿀 수 없기 때문).
   // 관리자가 활성화해둔 평가기준(시스템 프롬프트) 버전을 쓴다. 없으면 코드 기본값.
   const activePrompt = await getActiveSystemPrompt(supabase);
+  const errorCtx = {
+    userId: userData.user.id,
+    childId: body.childId,
+    promptVersionId: activePrompt.id,
+  };
+  const errorMeta = {
+    versionNo: submission.versionNo,
+    writingType: submission.writingType,
+    gradeBand: submission.gradeBand,
+    textLength: submission.studentText.length,
+  };
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -165,17 +184,29 @@ export async function POST(req: NextRequest) {
             .single();
           if (versionError) throw versionError;
 
-          const { error: evalError } = await supabase.from("evaluations").insert({
+          const evalRow = {
             essay_version_id: version.id,
             result,
             confidence: result.scores.confidence,
             rewrote_student_text: result.guardrail_check.rewrote_student_text,
-          });
+          };
+          let { error: evalError } = await supabase
+            .from("evaluations")
+            .insert({ ...evalRow, prompt_version_id: activePrompt.id });
+          // 코드를 먼저 배포하고 schema.sql(prompt_version_id 컬럼 추가)을 아직 안 돌린 경우엔
+          // 컬럼이 없다는 오류가 난다. 그때는 버전 정보 없이라도 채점 결과는 저장한다.
+          if (evalError && /prompt_version_id/.test(evalError.message)) {
+            ({ error: evalError } = await supabase.from("evaluations").insert(evalRow));
+          }
           if (evalError) throw evalError;
 
           topicAttemptAfter = topicAttemptUsed + 1;
         } catch (persistErr) {
-          console.error("[supabase persist] 저장 실패, 학생에게는 결과만 반환:", persistErr);
+          // 학생은 피드백을 봤지만 기록은 남지 않은 상황이라, 관리자가 꼭 알아야 한다.
+          await logError(supabase, "persist", persistErr, {
+            ...errorCtx,
+            meta: { ...errorMeta, essayId, note: "저장 실패, 학생에게는 결과만 반환" },
+          });
           essayId = essayId ?? null;
         }
 
@@ -190,12 +221,13 @@ export async function POST(req: NextRequest) {
         });
       } catch (err) {
         if (err instanceof GuardrailViolationError) {
+          await logError(supabase, "guardrail", err, { ...errorCtx, meta: errorMeta });
           send({
             type: "error",
             error: "지금은 안전한 피드백을 만들지 못했어요. 잠시 후 다시 시도해 주세요.",
           });
         } else {
-          console.error(err);
+          await logError(supabase, "evaluate", err, { ...errorCtx, meta: errorMeta });
           send({
             type: "error",
             error: "피드백을 만드는 중 문제가 생겼어요. 다시 시도해 주세요.",

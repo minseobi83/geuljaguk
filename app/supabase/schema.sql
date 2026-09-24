@@ -304,3 +304,86 @@ end;
 $$;
 
 grant execute on function public.activate_prompt_version(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 관리자 기능 3차분 (2026-09-24 추가: AI 응답 품질 검토 + 오류 확인)
+-- ---------------------------------------------------------------------------
+
+-- 어떤 평가기준(프롬프트) 버전으로 채점했는지. 코드 기본 프롬프트로 채점했으면 null.
+-- 품질 검토 결과를 버전별로 비교하려면 이 값이 있어야 한다. 버전을 지워도 채점 기록은 남긴다.
+alter table public.evaluations
+  add column if not exists prompt_version_id uuid references public.prompt_versions (id) on delete set null;
+
+-- AI 첨삭 한 건에 대한 관리자의 품질 판정. 한 첨삭은 관리자 한 명당 한 번만 판정한다
+-- (다시 판정하면 덮어쓴다).
+create table if not exists public.evaluation_reviews (
+  id uuid primary key default gen_random_uuid(),
+  evaluation_id uuid not null references public.evaluations (id) on delete cascade,
+  reviewer_id uuid not null references auth.users (id) on delete cascade,
+  verdict text not null check (verdict in ('적절', '아쉬움', '부적절')),
+  issues text[] not null default '{}', -- 문제 유형 태그 (예: '등급이 후함')
+  note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (evaluation_id, reviewer_id)
+);
+
+alter table public.evaluation_reviews enable row level security;
+
+-- 읽기·쓰기 모두 관리자만. (보호자·학생에게는 검토 결과가 보이지 않는다)
+drop policy if exists "evaluation_reviews_admin_select" on public.evaluation_reviews;
+create policy "evaluation_reviews_admin_select" on public.evaluation_reviews
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "evaluation_reviews_admin_insert" on public.evaluation_reviews;
+create policy "evaluation_reviews_admin_insert" on public.evaluation_reviews
+  for insert with check (
+    reviewer_id = auth.uid()
+    and exists (select 1 from public.admins where admins.id = auth.uid())
+  );
+
+drop policy if exists "evaluation_reviews_admin_update" on public.evaluation_reviews;
+create policy "evaluation_reviews_admin_update" on public.evaluation_reviews
+  for update using (
+    reviewer_id = auth.uid()
+    and exists (select 1 from public.admins where admins.id = auth.uid())
+  )
+  with check (reviewer_id = auth.uid());
+
+grant select, insert, update on public.evaluation_reviews to authenticated;
+
+-- 서버 오류 기록. 지금까지 console.error로만 남고 사라지던 실패를 관리자가 볼 수 있게 한다.
+--
+-- 채점 API는 로그인한 보호자 권한으로 돌기 때문에(서비스 롤 키를 쓰지 않는 원칙), 로그인한
+-- 사용자는 "자기 user_id로 된 행"만 넣을 수 있게 하고 읽기·처리는 관리자만 하게 한다.
+-- 아이의 글 본문은 개인정보라 저장하지 않는다 - 길이 같은 메타 정보만 meta에 남긴다.
+create table if not exists public.app_errors (
+  id uuid primary key default gen_random_uuid(),
+  stage text not null check (stage in ('quick_screen', 'evaluate', 'guardrail', 'persist')),
+  message text not null,
+  user_id uuid references auth.users (id) on delete set null,
+  child_id uuid references public.children (id) on delete set null,
+  prompt_version_id uuid references public.prompt_versions (id) on delete set null,
+  meta jsonb not null default '{}',
+  resolved boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists app_errors_created_at_idx on public.app_errors (created_at desc);
+
+alter table public.app_errors enable row level security;
+
+drop policy if exists "app_errors_insert_own" on public.app_errors;
+create policy "app_errors_insert_own" on public.app_errors
+  for insert with check (user_id = auth.uid());
+
+drop policy if exists "app_errors_admin_select" on public.app_errors;
+create policy "app_errors_admin_select" on public.app_errors
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "app_errors_admin_update" on public.app_errors;
+create policy "app_errors_admin_update" on public.app_errors
+  for update using (exists (select 1 from public.admins where admins.id = auth.uid()))
+  with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+grant select, insert, update on public.app_errors to authenticated;

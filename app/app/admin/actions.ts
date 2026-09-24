@@ -208,3 +208,60 @@ export async function useCodeDefaultPrompt(): Promise<ActionResult> {
   revalidatePath("/admin");
   return { ok: true, message: "코드에 들어있는 기본 평가기준으로 되돌렸어요." };
 }
+
+// ---------------------------------------------------------------------------
+// AI 응답 품질 검토 · 오류 확인 (관리자 3차분)
+// ---------------------------------------------------------------------------
+
+const REVIEW_VERDICTS = ["적절", "아쉬움", "부적절"] as const;
+
+// 한 첨삭에 대한 판정은 관리자 한 명당 하나 - 다시 저장하면 덮어쓴다.
+export async function saveEvaluationReview(formData: FormData): Promise<ActionResult> {
+  const { supabase, userId, ok } = await requireAdmin();
+  if (!ok || !userId) return { ok: false, message: "관리자만 품질 검토를 남길 수 있어요." };
+
+  const evaluationId = String(formData.get("evaluation_id") ?? "");
+  const verdict = String(formData.get("verdict") ?? "");
+  const issues = formData
+    .getAll("issues")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!evaluationId) return { ok: false, message: "어떤 첨삭인지 알 수 없어요." };
+  if (!REVIEW_VERDICTS.includes(verdict as (typeof REVIEW_VERDICTS)[number])) {
+    return { ok: false, message: "적절 / 아쉬움 / 부적절 중 하나를 골라주세요." };
+  }
+
+  const { error } = await supabase.from("evaluation_reviews").upsert(
+    {
+      evaluation_id: evaluationId,
+      reviewer_id: userId,
+      verdict,
+      issues,
+      note: note || null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "evaluation_id,reviewer_id" }
+  );
+
+  if (error) return { ok: false, message: `저장하지 못했어요: ${error.message}` };
+
+  revalidatePath("/admin");
+  return { ok: true, message: `'${verdict}'(으)로 검토를 저장했어요.` };
+}
+
+export async function setErrorResolved(formData: FormData): Promise<ActionResult> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, message: "관리자만 오류를 처리할 수 있어요." };
+
+  const id = String(formData.get("id") ?? "");
+  const resolved = formData.get("resolved") === "true";
+  if (!id) return { ok: false, message: "어떤 오류인지 알 수 없어요." };
+
+  const { error } = await supabase.from("app_errors").update({ resolved }).eq("id", id);
+  if (error) return { ok: false, message: `바꾸지 못했어요: ${error.message}` };
+
+  revalidatePath("/admin");
+  return { ok: true, message: resolved ? "처리 완료로 표시했어요." : "다시 미처리로 돌렸어요." };
+}

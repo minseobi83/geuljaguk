@@ -15,6 +15,8 @@ interface Props {
   onDone: () => void;
   canCompare: boolean;
   onCompare: () => void;
+  // 관리자 품질 검토처럼 "보기만" 할 때: 답변 입력칸과 하단 버튼을 숨긴다.
+  readOnly?: boolean;
 }
 
 // 섹션 머리표 — 잡지 지면의 소제목처럼 검은 띠 + 영문 키커로 통일한다.
@@ -36,6 +38,7 @@ export default function ResultView({
   onDone,
   canCompare,
   onCompare,
+  readOnly = false,
 }: Props) {
   const isUncertain = result.scores.confidence === "판단하기 어려움";
   const paragraphs = splitParagraphs(studentText);
@@ -117,6 +120,7 @@ export default function ResultView({
                 mechanicsTable={result.mechanics_table}
                 answer={paragraphAnswers[p.paragraph_no] ?? ""}
                 onAnswerChange={(value) => onParagraphAnswerChange(p.paragraph_no, value)}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -186,30 +190,32 @@ export default function ResultView({
         <p className="mt-2 break-keep leading-7 text-white/70">{result.next_task.prompt}</p>
       </section>
 
-      <div className="flex flex-wrap justify-end gap-3 border-t-2 border-ink pt-6">
-        {canCompare && (
+      {!readOnly && (
+        <div className="flex flex-wrap justify-end gap-3 border-t-2 border-ink pt-6">
+          {canCompare && (
+            <button
+              onClick={onCompare}
+              className="border-2 border-ink px-6 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-ink hover:text-white"
+            >
+              이전 글과 비교하기
+            </button>
+          )}
+          {canRewrite && (
+            <button
+              onClick={onRewrite}
+              className="border-2 border-ink px-6 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-ink hover:text-white"
+            >
+              다시 써보기
+            </button>
+          )}
           <button
-            onClick={onCompare}
-            className="border-2 border-ink px-6 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-ink hover:text-white"
+            onClick={onDone}
+            className="bg-ink px-6 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent"
           >
-            이전 글과 비교하기
+            여기까지 완료로 저장
           </button>
-        )}
-        {canRewrite && (
-          <button
-            onClick={onRewrite}
-            className="border-2 border-ink px-6 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-ink hover:text-white"
-          >
-            다시 써보기
-          </button>
-        )}
-        <button
-          onClick={onDone}
-          className="bg-ink px-6 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent"
-        >
-          여기까지 완료로 저장
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

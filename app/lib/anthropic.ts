@@ -183,7 +183,7 @@ JSON 하나만 응답: {"valid": boolean, "reason": "invalid일 때만 한 문�
 // 뿐, 여기서 오류가 나서 학생이 피드백을 못 받는 일이 있어서는 안 된다 (fail open).
 export async function quickScreen(
   studentText: string
-): Promise<{ valid: boolean; reason?: string }> {
+): Promise<{ valid: boolean; reason?: string; failure?: unknown }> {
   try {
     const response = await client.messages.create({
       model: SCREEN_MODEL,
@@ -202,7 +202,8 @@ export async function quickScreen(
     };
   } catch (e) {
     console.error("[quickScreen] 스크리닝 실패, 본분석은 그대로 진행:", e);
-    return { valid: true };
+    // 통과시키되, 호출한 쪽이 오류 기록을 남길 수 있도록 실패 원인을 함께 돌려준다.
+    return { valid: true, failure: e };
   }
 }
 

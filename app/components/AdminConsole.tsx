@@ -19,6 +19,12 @@ import {
   updateTopic,
   useCodeDefaultPrompt,
 } from "@/app/admin/actions";
+import {
+  ErrorOverview,
+  ReviewQueueItem,
+  VersionQualitySummary,
+} from "@/lib/supabase/qualityQueries";
+import { ErrorsTab, ReviewTab } from "./AdminQualityTabs";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -36,6 +42,8 @@ const TABS = [
   { id: "topics", label: "글감 관리" },
   { id: "students", label: "학생별" },
   { id: "rubric", label: "평가기준" },
+  { id: "quality", label: "품질 검토" },
+  { id: "errors", label: "오류" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -53,6 +61,13 @@ interface Props {
   currentPromptText: string;
   currentPromptSource: "db" | "code";
   currentPromptLabel: string | null;
+  currentUserId: string;
+  reviewItems: ReviewQueueItem[];
+  reviewError: string | null;
+  qualitySummaries: VersionQualitySummary[];
+  qualityError: string | null;
+  errorOverview: ErrorOverview | null;
+  errorsError: string | null;
 }
 
 export default function AdminConsole(props: Props) {
@@ -110,6 +125,24 @@ export default function AdminConsole(props: Props) {
           currentText={props.currentPromptText}
           currentSource={props.currentPromptSource}
           currentLabel={props.currentPromptLabel}
+          onDone={setNotice}
+        />
+      )}
+      {tab === "quality" && (
+        <ReviewTab
+          items={props.reviewItems}
+          error={props.reviewError}
+          summaries={props.qualitySummaries}
+          summaryError={props.qualityError}
+          versions={props.promptVersions}
+          currentUserId={props.currentUserId}
+          onDone={setNotice}
+        />
+      )}
+      {tab === "errors" && (
+        <ErrorsTab
+          overview={props.errorOverview}
+          error={props.errorsError}
           onDone={setNotice}
         />
       )}

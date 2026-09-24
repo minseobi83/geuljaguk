@@ -9,6 +9,7 @@ interface Props {
   mechanicsTable: MechanicsRow[];
   answer: string;
   onAnswerChange: (value: string) => void;
+  readOnly?: boolean;
 }
 
 export default function ParagraphFeedbackCard({
@@ -17,6 +18,7 @@ export default function ParagraphFeedbackCard({
   mechanicsTable,
   answer,
   onAnswerChange,
+  readOnly = false,
 }: Props) {
   const highlight = paragraphText
     ? highlightParagraph(paragraphText, mechanicsTable)
@@ -70,13 +72,15 @@ export default function ParagraphFeedbackCard({
       <p className="mt-4 break-keep leading-7 text-ink/70">{feedback.good}</p>
       <p className="mt-2 break-keep font-bold leading-7 text-ink">{feedback.question}</p>
 
-      <textarea
-        className="mt-3 w-full border border-ink/20 bg-ink/[0.02] p-3 text-sm leading-7 outline-none focus:border-ink"
-        placeholder="이 질문에 대한 내 생각을 적어보세요"
-        rows={2}
-        value={answer}
-        onChange={(e) => onAnswerChange(e.target.value)}
-      />
+      {!readOnly && (
+        <textarea
+          className="mt-3 w-full border border-ink/20 bg-ink/[0.02] p-3 text-sm leading-7 outline-none focus:border-ink"
+          placeholder="이 질문에 대한 내 생각을 적어보세요"
+          rows={2}
+          value={answer}
+          onChange={(e) => onAnswerChange(e.target.value)}
+        />
+      )}
     </div>
   );
 }

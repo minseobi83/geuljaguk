@@ -8,6 +8,11 @@ import {
 } from "@/lib/supabase/adminQueries";
 import { getAllTopicsForAdmin } from "@/lib/supabase/topicQueries";
 import { getActiveSystemPrompt, getPromptVersions } from "@/lib/supabase/promptQueries";
+import {
+  getErrorOverview,
+  getQualitySummary,
+  getReviewQueue,
+} from "@/lib/supabase/qualityQueries";
 import TopNav from "@/components/TopNav";
 import AdminConsole from "@/components/AdminConsole";
 
@@ -43,15 +48,27 @@ export default async function AdminPage() {
     );
   }
 
-  const [stats, flagged, topicResult, childResult, promptResult, activePrompt] =
-    await Promise.all([
-      getUsageStats(supabase),
-      getFlaggedEssays(supabase),
-      getAllTopicsForAdmin(supabase),
-      getChildOverview(supabase),
-      getPromptVersions(supabase),
-      getActiveSystemPrompt(supabase),
-    ]);
+  const [
+    stats,
+    flagged,
+    topicResult,
+    childResult,
+    promptResult,
+    activePrompt,
+    reviewResult,
+    qualityResult,
+    errorResult,
+  ] = await Promise.all([
+    getUsageStats(supabase),
+    getFlaggedEssays(supabase),
+    getAllTopicsForAdmin(supabase),
+    getChildOverview(supabase),
+    getPromptVersions(supabase),
+    getActiveSystemPrompt(supabase),
+    getReviewQueue(supabase),
+    getQualitySummary(supabase),
+    getErrorOverview(supabase),
+  ]);
 
   return (
     <>
@@ -83,6 +100,13 @@ export default async function AdminPage() {
           currentPromptText={activePrompt.prompt}
           currentPromptSource={activePrompt.source}
           currentPromptLabel={activePrompt.label}
+          currentUserId={user.id}
+          reviewItems={reviewResult.items}
+          reviewError={reviewResult.error}
+          qualitySummaries={qualityResult.summaries}
+          qualityError={qualityResult.error}
+          errorOverview={errorResult.overview}
+          errorsError={errorResult.error}
         />
       </main>
       <footer className="mt-16 bg-ink py-6 text-white">

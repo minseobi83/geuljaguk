@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import BrandMark from "./BrandMark";
 
 interface MenuItem {
   label: string;
@@ -67,7 +66,9 @@ export default function TopNav() {
           className="flex shrink-0 items-center gap-2 transition hover:opacity-70 sm:gap-3"
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-white sm:h-10 sm:w-10">
-            <BrandMark size={20} />
+            {/* 초기화면 대표 그림(hero-illustration.png)에서 아이 얼굴 부분만 잘라낸 작은 마크 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/nav-mark.png" alt="" className="h-7 w-7 sm:h-9 sm:w-9" />
           </span>
           <span className="text-lg font-black tracking-tight sm:text-xl">글자국</span>
         </Link>

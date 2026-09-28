@@ -48,6 +48,7 @@ function translateAuthError(error: { code?: string; message: string }): string {
 // 새 항목을 맨 위(또는 최신 날짜)에 추가한다. 아래 화면(LATEST_TICKER_ITEMS)은 가장 최근
 // 날짜의 항목만 자동으로 골라 보여주므로, 날짜만 오늘 날짜로 맞추면 예전 항목은 자연히 빠진다.
 const TICKER_ITEMS = [
+  { tag: "UPDATE", text: "초기화면 대표 그림 새 단장", date: "2026.09.28" },
   { tag: "NEW", text: "관리자 콘솔 - AI 첨삭 품질 검토", date: "2026.09.24" },
   { tag: "NEW", text: "관리자 콘솔 - 서비스 오류 확인", date: "2026.09.24" },
   { tag: "UPDATE", text: "첨삭 캘린더와 쓴 글 히스토리 강조 표시", date: "2026.09.24" },

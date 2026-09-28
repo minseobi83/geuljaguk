@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { FALLBACK_TOPICS, Topic } from "@/lib/topics";
+import { DIFFICULTIES, Difficulty, FALLBACK_TOPICS, Topic, defaultDifficulty } from "@/lib/topics";
 import { GradeBand, WritingType } from "@/lib/types";
 
 // DB의 한 행. grades는 postgres text[]라 그대로 문자열 배열로 온다.
@@ -9,6 +9,7 @@ interface TopicRow {
   title: string;
   hint: string;
   grades: string[];
+  difficulty?: string | null;
   sort_order: number;
   is_active: boolean;
 }
@@ -20,6 +21,10 @@ function toTopic(row: TopicRow): Topic {
     title: row.title,
     hint: row.hint,
     grades: row.grades as GradeBand[],
+    // 난이도 컬럼이 아직 없거나(7차분 SQL 미실행) 값이 이상하면 학년 범위로 정한 기본값을 쓴다.
+    difficulty: DIFFICULTIES.includes(row.difficulty as Difficulty)
+      ? (row.difficulty as Difficulty)
+      : defaultDifficulty(row.grades as GradeBand[]),
   };
 }
 
@@ -30,19 +35,31 @@ function toTopic(row: TopicRow): Topic {
 // 폴백하고 로그만 남긴다.
 // 부수효과: 관리자가 모든 글감을 숨기면 기본 목록이 다시 보인다. 글감이 하나도 없는 화면보다
 // 나으니 그대로 둔다 (특정 유형만 비우려면 그 유형의 글감만 숨기면 된다).
+// 난이도 컬럼(7차분)을 아직 안 만든 DB에서도 동작하도록, 컬럼이 없다는 오류가 나면 빼고 다시 읽는다.
+const COLUMNS = "id, writing_type, title, hint, grades, difficulty, sort_order, is_active";
+const COLUMNS_WITHOUT_DIFFICULTY = "id, writing_type, title, hint, grades, sort_order, is_active";
+
+async function selectTopics(supabase: SupabaseClient, onlyActive: boolean) {
+  const run = (columns: string) => {
+    let q = supabase.from("topics").select(columns);
+    if (onlyActive) q = q.eq("is_active", true);
+    return q.order("writing_type", { ascending: true }).order("sort_order", { ascending: true });
+  };
+  const first = await run(COLUMNS);
+  if (first.error && /difficulty/.test(first.error.message)) {
+    return run(COLUMNS_WITHOUT_DIFFICULTY);
+  }
+  return first;
+}
+
 export async function getActiveTopics(supabase: SupabaseClient): Promise<Topic[]> {
-  const { data, error } = await supabase
-    .from("topics")
-    .select("id, writing_type, title, hint, grades, sort_order, is_active")
-    .eq("is_active", true)
-    .order("writing_type", { ascending: true })
-    .order("sort_order", { ascending: true });
+  const { data, error } = await selectTopics(supabase, true);
 
   if (error || !data || data.length === 0) {
     if (error) console.error("[topics] 글감 조회 실패, 기본 목록으로 대체:", error.message);
     return FALLBACK_TOPICS;
   }
-  return (data as TopicRow[]).map(toTopic);
+  return (data as unknown as TopicRow[]).map(toTopic);
 }
 
 // 관리자 화면용: 숨긴 글감까지 전부. 이쪽은 폴백하지 않는다 - 관리자에게는 DB에 실제로
@@ -56,15 +73,11 @@ export interface AdminTopic extends Topic {
 export async function getAllTopicsForAdmin(
   supabase: SupabaseClient
 ): Promise<{ topics: AdminTopic[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from("topics")
-    .select("id, writing_type, title, hint, grades, sort_order, is_active")
-    .order("writing_type", { ascending: true })
-    .order("sort_order", { ascending: true });
+  const { data, error } = await selectTopics(supabase, false);
 
   if (error) return { topics: [], error: error.message };
   return {
-    topics: (data as TopicRow[]).map((row) => ({
+    topics: (data as unknown as TopicRow[]).map((row) => ({
       ...toTopic(row),
       sortOrder: row.sort_order,
       isActive: row.is_active,

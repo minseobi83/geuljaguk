@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase/moderationQueries";
 import { ActionResult, recordModerationAction } from "@/app/admin/actions";
 import { EmptyNotice, FieldLabel, SectionLabel, formatDateTime } from "./AdminQualityTabs";
+import SummaryNote from "./SummaryNote";
 
 // 관리자 4차분(2026-09-28): "콘텐츠 관리" 탭 - 확인이 필요한 글을 열어 보고, 처리 상태와
 // 한 일을 기록한다. 기록은 고칠 수 없고 계속 쌓이기만 한다.
@@ -207,12 +208,7 @@ function ModerationRow({
             <p className="mt-2 whitespace-pre-wrap break-keep border-l-2 border-ink/20 pl-3 font-heading text-[15px] leading-8 text-ink/85">
               {item.studentText}
             </p>
-            {item.aiSummary && (
-              <p className="mt-3 break-keep text-xs leading-6 text-ink/45">
-                <span className="mr-1 font-bold uppercase tracking-[0.15em] text-ink/35">AI 총평</span>
-                {item.aiSummary}
-              </p>
-            )}
+            {item.aiSummary && <SummaryNote summary={item.aiSummary} />}
             {item.parentId && (
               <p className="mt-3 break-all font-mono text-[11px] text-ink/40">
                 보호자 계정 ID · {item.parentId}

@@ -4,6 +4,8 @@ import { getChildEssayHistory } from "@/lib/supabase/queries";
 import { getActiveTopics } from "@/lib/supabase/topicQueries";
 import EssayWorkspace from "@/components/EssayWorkspace";
 import { ChildProfile, RecentEssay } from "@/lib/types";
+import { resolveActiveChild } from "@/lib/studentMode";
+import { recommendDifficulty } from "@/lib/difficulty";
 
 export default async function Home({
   searchParams,
@@ -33,13 +35,18 @@ export default async function Home({
 
   const typedChildren = children as ChildProfile[];
   const { child: requestedChildId } = await searchParams;
-  const activeChild =
-    typedChildren.find((c) => c.id === requestedChildId) ?? typedChildren[0];
+  // 학생 모드면 그 아이로 고정하고, 다른 아이로 바꾸는 메뉴도 보이지 않게 한다.
+  const { activeChild, selectableChildren } = await resolveActiveChild(
+    typedChildren,
+    requestedChildId
+  );
 
   const [history, topics] = await Promise.all([
     getChildEssayHistory(supabase, activeChild.id, 5),
     getActiveTopics(supabase),
   ]);
+  // 최근 글의 등급으로 이 아이에게 맞는 글감 난이도를 추천한다.
+  const recommendation = recommendDifficulty(history.map((h) => h.scores));
   const recentEssays: RecentEssay[] = history.map((h) => ({
     id: h.id,
     writing_type: h.writingType,
@@ -52,9 +59,10 @@ export default async function Home({
   return (
     <EssayWorkspace
       child={activeChild}
-      allChildren={typedChildren}
+      allChildren={selectableChildren}
       recentEssays={recentEssays}
       topics={topics}
+      recommendation={recommendation}
     />
   );
 }

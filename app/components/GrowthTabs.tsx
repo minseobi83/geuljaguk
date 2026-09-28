@@ -6,6 +6,7 @@ import IndicatorTrends from "./IndicatorTrends";
 import HighlightedEssayText from "./HighlightedEssayText";
 import EssayCalendar from "./EssayCalendar";
 import SavedAnswerList from "./SavedAnswerList";
+import SummaryNote from "./SummaryNote";
 import { formatDateShort } from "@/lib/format";
 import { EssayHistoryItem } from "@/lib/supabase/queries";
 import { RubricScores } from "@/lib/types";
@@ -138,15 +139,7 @@ export default function GrowthTabs({
                       <p className="mt-3 text-sm text-ink/40">글 내용을 불러오지 못했어요.</p>
                     )}
 
-                    {/* 선생님 총평 - 글보다는 작게, 그래도 아이가 놓치지 않을 만큼은 진하게 */}
-                    {essay.summary && (
-                      <p className="mt-3 break-keep text-sm leading-7 text-ink/75">
-                        <span className="mr-1.5 font-bold uppercase tracking-[0.15em] text-ink">
-                          선생님 총평
-                        </span>
-                        {essay.summary}
-                      </p>
-                    )}
+                    {essay.summary && <SummaryNote summary={essay.summary} />}
 
                     <SavedAnswerList answers={essay.paragraphAnswers} label="내 생각" />
 
@@ -167,7 +160,7 @@ export default function GrowthTabs({
       )}
 
       {tab === "calendar" && (
-        <EssayCalendar historyDesc={historyDesc} summaryLabel="선생님 총평" answerLabel="내 생각" />
+        <EssayCalendar historyDesc={historyDesc} answerLabel="내 생각" />
       )}
     </div>
   );

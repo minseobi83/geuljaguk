@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { GradeBand, WritingType } from "@/lib/types";
-import { pickTopics, Topic } from "@/lib/topics";
+import { Difficulty, pickTopics, Topic } from "@/lib/topics";
+import { DifficultyRecommendation } from "@/lib/difficulty";
 import { bookGuideFor, booksFor } from "@/lib/books";
 import BookInfoPopover from "@/components/BookInfoPopover";
 
@@ -28,9 +29,10 @@ function findInitialTopicId(
   all: Topic[],
   gradeBand: GradeBand,
   writingType: WritingType,
-  topicTitle?: string
+  topicTitle: string | undefined,
+  recommended: Difficulty | undefined
 ): string {
-  const list = pickTopics(all, gradeBand, writingType);
+  const list = pickTopics(all, gradeBand, writingType, recommended);
   if (!topicTitle) return firstTopicId(list);
   const matched = list.find((t) => t.title === topicTitle);
   return matched ? matched.id : CUSTOM_TOPIC_ID;
@@ -38,6 +40,8 @@ function findInitialTopicId(
 
 interface Props {
   topics: Topic[];
+  // 최근 글로 정한 추천 난이도. 그 난이도 글감을 위로 올리고 "추천"으로 표시한다.
+  recommendation?: DifficultyRecommendation;
   initialText?: string;
   initialWritingType?: WritingType;
   initialGradeBand?: GradeBand;
@@ -56,6 +60,7 @@ type SourceKind = "topic" | "book";
 
 export default function EssayForm({
   topics: allTopics,
+  recommendation,
   initialText = "",
   initialWritingType = "주장하는 글",
   initialGradeBand = "5",
@@ -68,15 +73,17 @@ export default function EssayForm({
   const [writingType, setWritingType] = useState<WritingType>(initialWritingType);
   const [gradeBand, setGradeBand] = useState<GradeBand>(initialGradeBand);
   const [sourceKind, setSourceKind] = useState<SourceKind>("topic");
+  const recommended = recommendation?.level;
   const [selectedTopicId, setSelectedTopicId] = useState<string>(() =>
-    findInitialTopicId(allTopics, initialGradeBand, initialWritingType, initialTopicTitle)
+    findInitialTopicId(allTopics, initialGradeBand, initialWritingType, initialTopicTitle, recommended)
   );
   const [customTopic, setCustomTopic] = useState(
     findInitialTopicId(
       allTopics,
       initialGradeBand,
       initialWritingType,
-      initialTopicTitle
+      initialTopicTitle,
+      recommended
     ) === CUSTOM_TOPIC_ID
       ? initialTopicTitle ?? ""
       : ""
@@ -86,7 +93,7 @@ export default function EssayForm({
   );
 
   // 글감은 학년 + 글의 종류 조합으로 달라진다.
-  const topics = pickTopics(allTopics, gradeBand, writingType);
+  const topics = pickTopics(allTopics, gradeBand, writingType, recommended);
   const books = booksFor(gradeBand, writingType);
   // 감상문처럼 추천도서와 연결하지 않는 유형에서는 책 탭 자체를 숨긴다.
   const hasBooks = books.length > 0;
@@ -106,7 +113,7 @@ export default function EssayForm({
   function handleWritingTypeChange(newType: WritingType) {
     setWritingType(newType);
     // 글의 종류가 바뀌면 그 종류에 맞는 글감 목록으로 다시 골라야 하니 첫 번째 글감으로 초기화.
-    setSelectedTopicId(firstTopicId(pickTopics(allTopics, gradeBand, newType)));
+    setSelectedTopicId(firstTopicId(pickTopics(allTopics, gradeBand, newType, recommended)));
     setCustomTopic("");
     // 추천도서도 유형마다 어울리는 책이 다르므로, 새 유형에 맞는 책 목록의 첫 번째로 바꾼다.
     const newBooks = booksFor(gradeBand, newType);
@@ -120,7 +127,7 @@ export default function EssayForm({
     // 학년이 바뀌면 그 나이에 맞는 글감으로 목록이 바뀐다. 고르던 글감이 새 목록에 없으면
     // 첫 번째 글감으로 옮겨준다 ('직접 정하기'를 골라둔 상태는 그대로 유지).
     if (selectedTopicId !== CUSTOM_TOPIC_ID) {
-      const newTopics = pickTopics(allTopics, newGrade, writingType);
+      const newTopics = pickTopics(allTopics, newGrade, writingType, recommended);
       if (!newTopics.find((t) => t.id === selectedTopicId)) {
         setSelectedTopicId(firstTopicId(newTopics));
       }
@@ -211,6 +218,12 @@ export default function EssayForm({
 
       {source === "topic" ? (
         <>
+          {recommendation && (
+            <p className="mb-2 break-keep border-l-4 border-accent/60 py-1 pl-3 text-xs leading-6 text-ink/60">
+              <b className="mr-1 text-ink">추천 난이도 · {recommendation.level}</b>
+              {recommendation.reason}
+            </p>
+          )}
           <ul>
             {topics.map((topic, i) => {
               const selected = selectedTopicId === topic.id;
@@ -240,6 +253,16 @@ export default function EssayForm({
                       </span>
                       <span className="mt-1 block break-keep text-sm text-ink/50">
                         {topic.hint}
+                      </span>
+                      <span className="mt-2 flex gap-1.5">
+                        <span className="border border-ink/20 px-1.5 py-0.5 text-[10px] text-ink/55">
+                          {topic.difficulty}
+                        </span>
+                        {topic.difficulty === recommended && (
+                          <span className="bg-accent px-1.5 py-0.5 text-[10px] font-bold text-white">
+                            추천
+                          </span>
+                        )}
                       </span>
                     </span>
                     {selected && (

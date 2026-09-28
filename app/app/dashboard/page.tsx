@@ -4,6 +4,7 @@ import { getChildEssayHistory, EssayHistoryItem } from "@/lib/supabase/queries";
 import { computeIndicatorTrends, buildGrowthSummary } from "@/lib/growth";
 import DashboardTabs from "@/components/DashboardTabs";
 import TopNav from "@/components/TopNav";
+import StudentModePanel from "@/components/StudentModePanel";
 import { ChildProfile, RubricScores } from "@/lib/types";
 
 export default async function DashboardPage({
@@ -48,6 +49,9 @@ export default async function DashboardPage({
   const summary = buildGrowthSummary(trends, scoredAsc.length, activeChild.nickname);
   const latestScores = scoredAsc[scoredAsc.length - 1]?.scores ?? null;
   const latestDate = historyDesc[0]?.createdAt ?? null;
+  // 학생 모드용 보호자 PIN이 정해져 있는지 (PIN 자체는 DB 함수 밖으로 나오지 않는다).
+  // 7차분 SQL을 아직 안 돌렸으면 오류가 나고, 그때는 PIN이 없는 것으로 보여준다.
+  const { data: hasPin } = await supabase.rpc("has_student_pin");
 
   return (
     <>
@@ -64,6 +68,12 @@ export default async function DashboardPage({
           지난 글의 나와 비교한 변화예요.
         </p>
       </header>
+
+      <StudentModePanel
+        childList={typedChildren}
+        activeChildId={activeChild.id}
+        hasPin={hasPin === true}
+      />
 
       {typedChildren.length > 1 && (
         <div className="mb-6 flex gap-2">

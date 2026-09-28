@@ -8,6 +8,7 @@ import VersionCompare from "@/components/VersionCompare";
 import { formatDateShort } from "@/lib/format";
 import { splitByTone } from "@/lib/tone";
 import { Topic } from "@/lib/topics";
+import { DifficultyRecommendation } from "@/lib/difficulty";
 import TopNav from "@/components/TopNav";
 import { createClient } from "@/lib/supabase/client";
 import { saveParagraphAnswers } from "@/lib/supabase/queries";
@@ -61,6 +62,7 @@ interface Props {
   recentEssays: RecentEssay[];
   // 관리자가 관리하는 글감 목록. 서버에서 DB를 읽어 내려주고, 읽지 못했으면 코드의 기본 목록이 온다.
   topics: Topic[];
+  recommendation?: DifficultyRecommendation;
 }
 
 export default function EssayWorkspace({
@@ -68,6 +70,7 @@ export default function EssayWorkspace({
   allChildren,
   recentEssays,
   topics,
+  recommendation,
 }: Props) {
   const router = useRouter();
   const [history, setHistory] = useState<VersionRecord[]>([]);
@@ -349,6 +352,7 @@ export default function EssayWorkspace({
           <div className="lg:col-span-8">
             <EssayForm
               topics={topics}
+              recommendation={recommendation}
               initialText={current?.text ?? ""}
               initialWritingType={current?.writingType}
               initialGradeBand={current?.gradeBand ?? child.grade_band}

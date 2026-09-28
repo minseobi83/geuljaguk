@@ -6,6 +6,7 @@ import IndicatorTrends from "./IndicatorTrends";
 import HighlightedEssayText from "./HighlightedEssayText";
 import EssayCalendar from "./EssayCalendar";
 import SavedAnswerList from "./SavedAnswerList";
+import SummaryNote from "./SummaryNote";
 import { formatDateShort } from "@/lib/format";
 import { withYiGa } from "@/lib/korean";
 import {
@@ -232,14 +233,7 @@ export default function DashboardTabs({
                       <p className="mt-3 text-sm text-ink/40">글 내용을 불러오지 못했어요.</p>
                     )}
 
-                    {essay.summary && (
-                      <p className="mt-3 break-keep text-xs leading-6 text-ink/45">
-                        <span className="mr-1 font-bold uppercase tracking-[0.15em] text-ink/35">
-                          글자국 총평
-                        </span>
-                        {essay.summary}
-                      </p>
-                    )}
+                    {essay.summary && <SummaryNote summary={essay.summary} />}
 
                     <SavedAnswerList
                       answers={essay.paragraphAnswers}
@@ -270,7 +264,6 @@ export default function DashboardTabs({
       {tab === "calendar" && (
         <EssayCalendar
           historyDesc={historyDesc}
-          summaryLabel="글자국 총평"
           answerLabel={`${nickname}의 생각`}
         />
       )}

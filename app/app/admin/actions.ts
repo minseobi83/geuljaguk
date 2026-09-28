@@ -9,6 +9,7 @@ import {
   isAdmin,
 } from "@/lib/supabase/adminQueries";
 import { GradeBand, WritingType } from "@/lib/types";
+import { DIFFICULTIES, Difficulty } from "@/lib/topics";
 import { getActiveSystemPrompt } from "@/lib/supabase/promptQueries";
 import { getReviewDigest } from "@/lib/supabase/qualityQueries";
 import { RubricSuggestError, suggestRubricRevision } from "@/lib/anthropic";
@@ -24,6 +25,11 @@ export interface ActionResult {
 }
 
 const ALL_GRADES: GradeBand[] = ["4", "5", "6"];
+
+function readDifficulty(formData: FormData): Difficulty {
+  const raw = String(formData.get("difficulty") ?? "");
+  return DIFFICULTIES.includes(raw as Difficulty) ? (raw as Difficulty) : "보통";
+}
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -71,6 +77,7 @@ export async function createTopic(formData: FormData): Promise<ActionResult> {
     title,
     hint,
     grades: readGrades(formData),
+    difficulty: readDifficulty(formData),
     sort_order: Number(formData.get("sort_order") ?? 999) || 999,
     is_active: true,
   });
@@ -103,6 +110,7 @@ export async function updateTopic(formData: FormData): Promise<ActionResult> {
       title,
       hint,
       grades: readGrades(formData),
+      difficulty: readDifficulty(formData),
       sort_order: Number(formData.get("sort_order") ?? 999) || 999,
       updated_at: new Date().toISOString(),
     })

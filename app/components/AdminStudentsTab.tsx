@@ -18,6 +18,7 @@ import {
 } from "@/app/admin/actions";
 import TierBadge from "./TierBadge";
 import { EmptyNotice, FieldLabel, SectionLabel, formatDateTime } from "./AdminQualityTabs";
+import SummaryNote from "./SummaryNote";
 
 // 관리자 5차분(2026-09-28): "학생별" 탭 - 학생 찾기, 학습 데이터 요약·상세, 정보 수정,
 // 내보내기, 삭제. 수정·내보내기·삭제는 모두 관리 기록(admin_audit_log)에 남는다.
@@ -337,12 +338,7 @@ function EssayList({
                             안전 신호 · {v.safetyNote}
                           </p>
                         )}
-                        {v.summary && (
-                          <p className="mt-2 break-keep text-xs leading-6 text-ink/50">
-                            <b className="mr-1 text-ink/40">AI 총평</b>
-                            {v.summary}
-                          </p>
-                        )}
+                        {v.summary && <SummaryNote summary={v.summary} className="mt-2" />}
                         {(v.priorityCategory || v.nextTaskSkill) && (
                           <p className="mt-1 break-keep text-xs leading-6 text-ink/50">
                             {v.priorityCategory && <>보완점 · {v.priorityCategory} </>}

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { formatDateShort } from "@/lib/format";
 import { WritingType } from "@/lib/types";
 import { AdminTopic } from "@/lib/supabase/topicQueries";
+import { DIFFICULTIES, Difficulty } from "@/lib/topics";
 import { PromptVersion } from "@/lib/supabase/promptQueries";
 import { AdminChildRow, AuditLogEntry, UsageStats } from "@/lib/supabase/adminQueries";
 import { ModerationItem, OPEN_STATUSES } from "@/lib/supabase/moderationQueries";
@@ -397,6 +398,9 @@ function TopicsTab({
                     <span className="font-mono text-[11px] text-ink/35">
                       {topic.grades.join("·")}학년
                     </span>
+                    <span className={`border px-2 py-0.5 text-[11px] ${DIFFICULTY_STYLE[topic.difficulty]}`}>
+                      {topic.difficulty}
+                    </span>
                     {!topic.isActive && (
                       <span className="border border-ink/25 px-2 py-0.5 text-[11px] text-ink/45">
                         숨김
@@ -446,6 +450,13 @@ function TopicsTab({
   );
 }
 
+// 난이도 배지 색: 기초는 차분하게, 도전은 눈에 띄게.
+const DIFFICULTY_STYLE: Record<Difficulty, string> = {
+  기초: "border-growth/50 text-growth",
+  보통: "border-ink/25 text-ink/60",
+  도전: "border-warn/60 text-warn",
+};
+
 // 추가 폼과 수정 폼이 같은 입력들을 쓴다. topic을 주면 수정(기존 값 채움), 없으면 추가.
 function TopicFields({ topic }: { topic?: AdminTopic }) {
   const grades = topic?.grades ?? ["4", "5", "6"];
@@ -486,6 +497,20 @@ function TopicFields({ topic }: { topic?: AdminTopic }) {
             ))}
           </div>
         </div>
+        <label>
+          <FieldLabel>난이도</FieldLabel>
+          <select
+            name="difficulty"
+            defaultValue={topic?.difficulty ?? "보통"}
+            className="mt-1 block border-b-2 border-ink bg-transparent pb-1 text-sm outline-none"
+          >
+            {DIFFICULTIES.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </label>
         <label>
           <FieldLabel>순서</FieldLabel>
           <input

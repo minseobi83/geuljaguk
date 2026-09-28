@@ -11,16 +11,33 @@ import { GradeBand, WritingType } from "./types";
 //  - 5학년: 학교·또래 공동체의 문제, 근거를 두 개쯤 요구하는 주제
 //  - 6학년: 사회적·추상적 주제(권리, 미디어, 환경 등)
 
+// 같은 학년 안에서도 글감마다 생각할 거리의 양이 달라서 난이도를 따로 둔다.
+// 기초: 겪은 일을 떠올려 쓰면 되는 글감 / 보통: 이유·근거를 한두 개 요구 / 도전: 여러 입장을 비교하거나 추상적인 주제
+export type Difficulty = "기초" | "보통" | "도전";
+export const DIFFICULTIES: Difficulty[] = ["기초", "보통", "도전"];
+
 export interface Topic {
   id: string;
   writingType: WritingType;
   title: string;
   hint: string; // 무엇을 써야 할지 방향을 잡아주는 짧은 안내
   grades: GradeBand[];
+  difficulty: Difficulty;
 }
 
 // 아래 목록 리터럴 안에서는 유형이 키로 이미 드러나므로 writingType을 생략하고 적는다.
-type TopicSeed = Omit<Topic, "writingType">;
+// 난이도는 학년 범위로 기본값을 정한다 (schema.sql 7차분의 초기값 규칙과 같다).
+type TopicSeed = Omit<Topic, "writingType" | "difficulty">;
+
+// 글감이 어울리는 학년의 평균으로 정한다: 4 · 4~5학년 → 기초, 5~6 · 6학년 → 도전, 나머지 → 보통.
+// 그래서 5학년 아이에게는 세 난이도가 모두 섞여 보인다.
+export function defaultDifficulty(grades: GradeBand[]): Difficulty {
+  if (grades.length === 0) return "보통";
+  const avg = grades.reduce((s, g) => s + Number(g), 0) / grades.length;
+  if (avg <= 4.5) return "기초";
+  if (avg >= 5.5) return "도전";
+  return "보통";
+}
 
 export const WRITING_TOPICS: Record<WritingType, TopicSeed[]> = {
   "주장하는 글": [
@@ -321,18 +338,27 @@ export const WRITING_TOPICS: Record<WritingType, TopicSeed[]> = {
 // 화면에서는 둘을 구분하지 않고 똑같이 쓴다.
 export const FALLBACK_TOPICS: Topic[] = (
   Object.entries(WRITING_TOPICS) as [WritingType, TopicSeed[]][]
-).flatMap(([writingType, list]) => list.map((t) => ({ ...t, writingType })));
+).flatMap(([writingType, list]) =>
+  list.map((t) => ({ ...t, writingType, difficulty: defaultDifficulty(t.grades) }))
+);
 
 // 주어진 글감 목록에서 학년 + 글의 종류에 맞는 것만 골라 돌려준다.
 // 그 조합에 맞는 글감이 하나도 없으면 학년 조건을 풀어 그 유형 전체를 보여준다(빈 목록 방지).
 // 관리자가 한 유형의 글감을 모두 숨기면 그래도 빈 목록이 될 수 있으니, 쓰는 쪽에서 빈 경우를
 // 반드시 처리해야 한다.
+// recommended를 주면 그 난이도 글감을 앞으로 올린다 (나머지 순서는 그대로).
 export function pickTopics(
   all: Topic[],
   gradeBand: GradeBand,
-  writingType: WritingType
+  writingType: WritingType,
+  recommended?: Difficulty
 ): Topic[] {
   const byType = all.filter((t) => t.writingType === writingType);
   const byGrade = byType.filter((t) => t.grades.includes(gradeBand));
-  return byGrade.length > 0 ? byGrade : byType;
+  const list = byGrade.length > 0 ? byGrade : byType;
+  if (!recommended) return list;
+  return [
+    ...list.filter((t) => t.difficulty === recommended),
+    ...list.filter((t) => t.difficulty !== recommended),
+  ];
 }

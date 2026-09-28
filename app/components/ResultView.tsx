@@ -59,7 +59,7 @@ export default function ResultView({
 
       {/* 총평 */}
       <section>
-        <SectionTag en="Summary" ko="총평" />
+        <SectionTag en="Summary" ko="글자국 총평" />
         <p className="mt-4 break-keep text-lg leading-9 text-ink/85">{result.summary}</p>
         {isUncertain && (
           <p className="mt-3 break-keep border-l-2 border-warn pl-3 text-sm text-warn">

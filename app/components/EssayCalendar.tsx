@@ -6,11 +6,10 @@ import HighlightedEssayText from "./HighlightedEssayText";
 import { formatDateShort } from "@/lib/format";
 import { EssayHistoryItem } from "@/lib/supabase/queries";
 import SavedAnswerList from "./SavedAnswerList";
+import SummaryNote from "./SummaryNote";
 
 interface Props {
   historyDesc: EssayHistoryItem[];
-  // 대시보드는 "글자국 총평", 성장 기록은 "선생님 총평"이라고 부르므로 호출부에서 맞춰 전달한다.
-  summaryLabel?: string;
   // 문단별 답변 목록의 제목 (보호자 화면/아이 화면에 따라 다름).
   answerLabel?: string;
 }
@@ -25,7 +24,6 @@ function dateKey(iso: string): string {
 
 export default function EssayCalendar({
   historyDesc,
-  summaryLabel = "글자국 총평",
   answerLabel = "아이의 생각",
 }: Props) {
   const essaysByDate = useMemo(() => {
@@ -173,14 +171,7 @@ export default function EssayCalendar({
                     <p className="mt-3 text-sm text-ink/40">글 내용을 불러오지 못했어요.</p>
                   )}
 
-                  {essay.summary && (
-                    <p className="mt-3 break-keep text-xs leading-6 text-ink/45">
-                      <span className="mr-1 font-bold uppercase tracking-[0.15em] text-ink/35">
-                        {summaryLabel}
-                      </span>
-                      {essay.summary}
-                    </p>
-                  )}
+                  {essay.summary && <SummaryNote summary={essay.summary} />}
 
                   <SavedAnswerList answers={essay.paragraphAnswers} label={answerLabel} />
 

@@ -4,6 +4,7 @@ import { getChildEssayHistory } from "@/lib/supabase/queries";
 import { computeIndicatorTrends, buildGrowthSummary } from "@/lib/growth";
 import GrowthTabs from "@/components/GrowthTabs";
 import TopNav from "@/components/TopNav";
+import { resolveActiveChild } from "@/lib/studentMode";
 import { ChildProfile, RubricScores } from "@/lib/types";
 
 export default async function GrowthPage({
@@ -34,8 +35,11 @@ export default async function GrowthPage({
 
   const typedChildren = children as ChildProfile[];
   const { child: requestedChildId } = await searchParams;
-  const activeChild =
-    typedChildren.find((c) => c.id === requestedChildId) ?? typedChildren[0];
+  // 학생 모드면 그 아이의 기록만 보이게 고정한다.
+  const { activeChild, selectableChildren } = await resolveActiveChild(
+    typedChildren,
+    requestedChildId
+  );
 
   const historyDesc = await getChildEssayHistory(supabase, activeChild.id, 20);
   const historyAsc = [...historyDesc].reverse();
@@ -63,9 +67,9 @@ export default async function GrowthPage({
         </p>
       </header>
 
-      {typedChildren.length > 1 && (
+      {selectableChildren.length > 1 && (
         <div className="mb-6 flex gap-2">
-          {typedChildren.map((c) => (
+          {selectableChildren.map((c) => (
             <a
               key={c.id}
               href={`/growth?child=${c.id}`}

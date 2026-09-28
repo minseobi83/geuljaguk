@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useStudentMode } from "./StudentModeContext";
+import StudentModeExit from "./StudentModeExit";
 
 interface MenuItem {
   label: string;
@@ -35,6 +37,9 @@ export default function TopNav() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const router = useRouter();
+  // 학생 모드에서는 학생 메뉴만 보이고, 로그아웃 대신 PIN으로 잠긴 "보호자 화면" 버튼이 뜬다.
+  const studentMode = useStudentMode();
+  const menus = studentMode ? MENUS.filter((m) => m.label === "학생") : MENUS;
 
   async function handleLogout() {
     await createClient().auth.signOut();
@@ -61,8 +66,8 @@ export default function TopNav() {
         {/* 로고(마크 + 이름)를 누르면 소개 화면으로 간다. 잡지로 치면 표지로 돌아가는 셈.
             글쓰기 화면으로 가는 길은 학생 > 글쓰기 메뉴에 그대로 있다. */}
         <Link
-          href="/login"
-          aria-label="글자국 소개 화면으로"
+          href={studentMode ? "/" : "/login"}
+          aria-label={studentMode ? "글쓰기 화면으로" : "글자국 소개 화면으로"}
           className="flex shrink-0 items-center gap-2 transition hover:opacity-70 sm:gap-3"
         >
           <span className="flex h-8 w-11 shrink-0 items-center justify-center bg-white sm:h-10 sm:w-14">
@@ -73,7 +78,7 @@ export default function TopNav() {
           <span className="text-lg font-black tracking-tight sm:text-xl">글자국</span>
         </Link>
 
-        {MENUS.map((menu, i) => (
+        {menus.map((menu, i) => (
           <div key={menu.label} className="relative shrink-0">
             <button
               type="button"
@@ -117,13 +122,17 @@ export default function TopNav() {
           </div>
         ))}
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="ml-auto shrink-0 text-sm font-medium text-white/70 underline underline-offset-4 transition hover:text-white sm:text-[15px]"
-        >
-          로그아웃
-        </button>
+        {studentMode ? (
+          <StudentModeExit />
+        ) : (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="ml-auto shrink-0 text-sm font-medium text-white/70 underline underline-offset-4 transition hover:text-white sm:text-[15px]"
+          >
+            로그아웃
+          </button>
+        )}
       </nav>
     </div>
   );

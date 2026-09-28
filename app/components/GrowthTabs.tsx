@@ -138,10 +138,10 @@ export default function GrowthTabs({
                       <p className="mt-3 text-sm text-ink/40">글 내용을 불러오지 못했어요.</p>
                     )}
 
-                    {/* 선생님 총평은 보조로 */}
+                    {/* 선생님 총평 - 글보다는 작게, 그래도 아이가 놓치지 않을 만큼은 진하게 */}
                     {essay.summary && (
-                      <p className="mt-3 break-keep text-xs leading-6 text-ink/45">
-                        <span className="mr-1 font-bold uppercase tracking-[0.15em] text-ink/35">
+                      <p className="mt-3 break-keep text-sm leading-7 text-ink/75">
+                        <span className="mr-1.5 font-bold uppercase tracking-[0.15em] text-ink">
                           선생님 총평
                         </span>
                         {essay.summary}

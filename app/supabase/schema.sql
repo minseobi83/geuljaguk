@@ -525,3 +525,156 @@ create policy "api_calls_admin_select" on public.api_calls
   for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
 
 grant select, insert on public.api_calls to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 7차분 (2026-09-28 추가: 학생 모드 PIN + 글감 난이도)
+-- ---------------------------------------------------------------------------
+
+-- 학생 모드: 보호자가 로그인한 기기를 아이에게 건네줄 때 쓰는 모드. 보호자 화면으로 돌아가려면
+-- 보호자가 정한 4자리 PIN이 필요하다.
+--
+-- PIN은 해시로만 저장하고, 이 테이블에는 RLS 정책을 하나도 두지 않아 앱(보호자 세션 포함)이
+-- 직접 읽거나 쓸 수 없다. 아래 두 함수(security definer)로만 설정·확인한다 - 아이가 같은 로그인
+-- 세션으로 해시를 읽어 PIN을 알아내는 것을 막기 위해서다.
+create table if not exists public.parent_pins (
+  parent_id uuid primary key references public.parents (id) on delete cascade,
+  pin_hash text not null,
+  failed_count int not null default 0,
+  locked_until timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.parent_pins enable row level security;
+revoke all on public.parent_pins from anon, authenticated;
+
+-- PIN이 설정돼 있는지만 알려준다 (해시는 돌려주지 않음).
+create or replace function public.has_student_pin()
+returns boolean
+language sql
+security definer set search_path = public
+as $$
+  select exists (select 1 from public.parent_pins where parent_id = auth.uid());
+$$;
+
+-- PIN 설정/변경. 이미 PIN이 있으면 현재 PIN(current_pin)이 맞아야 바꿀 수 있다.
+create or replace function public.set_student_pin(new_pin text, current_pin text default null)
+returns text
+language plpgsql
+security definer set search_path = public, extensions
+as $$
+declare
+  existing public.parent_pins%rowtype;
+begin
+  if auth.uid() is null then return 'unauthenticated'; end if;
+  if new_pin !~ '^[0-9]{4}$' then return 'invalid'; end if;
+
+  select * into existing from public.parent_pins where parent_id = auth.uid();
+  if found then
+    if current_pin is null or existing.pin_hash <> crypt(current_pin, existing.pin_hash) then
+      return 'wrong';
+    end if;
+  end if;
+
+  insert into public.parent_pins (parent_id, pin_hash, failed_count, locked_until, updated_at)
+  values (auth.uid(), crypt(new_pin, gen_salt('bf')), 0, null, now())
+  on conflict (parent_id) do update
+    set pin_hash = excluded.pin_hash, failed_count = 0, locked_until = null, updated_at = now();
+  return 'ok';
+end;
+$$;
+
+-- PIN 확인. 5번 틀리면 5분 동안 잠근다. 'ok' | 'wrong' | 'locked' | 'no_pin'
+create or replace function public.verify_student_pin(pin text)
+returns text
+language plpgsql
+security definer set search_path = public, extensions
+as $$
+declare
+  existing public.parent_pins%rowtype;
+begin
+  if auth.uid() is null then return 'unauthenticated'; end if;
+  select * into existing from public.parent_pins where parent_id = auth.uid() for update;
+  if not found then return 'no_pin'; end if;
+  if existing.locked_until is not null and existing.locked_until > now() then return 'locked'; end if;
+
+  if existing.pin_hash = crypt(pin, existing.pin_hash) then
+    update public.parent_pins set failed_count = 0, locked_until = null where parent_id = auth.uid();
+    return 'ok';
+  end if;
+
+  update public.parent_pins
+    set failed_count = case when existing.failed_count + 1 >= 5 then 0 else existing.failed_count + 1 end,
+        locked_until = case when existing.failed_count + 1 >= 5 then now() + interval '5 minutes' else null end
+    where parent_id = auth.uid();
+  return case when existing.failed_count + 1 >= 5 then 'locked' else 'wrong' end;
+end;
+$$;
+
+-- "PIN을 잊었어요": 보호자 계정 비밀번호가 맞으면 PIN을 새로 정한다. 비밀번호 확인을 앱 서버가
+-- 아니라 이 함수 안에서 하므로, 로그인 세션만 가진 아이가 이 함수를 직접 불러도 우회할 수 없다.
+-- 틀린 횟수는 PIN과 같은 잠금(5번 → 5분)을 공유한다. 'ok' | 'wrong' | 'locked' | 'invalid'
+create or replace function public.reset_student_pin_with_password(account_password text, new_pin text)
+returns text
+language plpgsql
+security definer set search_path = public, extensions, auth
+as $$
+declare
+  stored_hash text;
+  existing public.parent_pins%rowtype;
+begin
+  if auth.uid() is null then return 'unauthenticated'; end if;
+  if new_pin !~ '^[0-9]{4}$' then return 'invalid'; end if;
+
+  select * into existing from public.parent_pins where parent_id = auth.uid() for update;
+  if found and existing.locked_until is not null and existing.locked_until > now() then
+    return 'locked';
+  end if;
+
+  select encrypted_password into stored_hash from auth.users where id = auth.uid();
+  if stored_hash is null or stored_hash <> crypt(account_password, stored_hash) then
+    if found then
+      update public.parent_pins
+        set failed_count = case when existing.failed_count + 1 >= 5 then 0 else existing.failed_count + 1 end,
+            locked_until = case when existing.failed_count + 1 >= 5 then now() + interval '5 minutes' else null end
+        where parent_id = auth.uid();
+    end if;
+    return 'wrong';
+  end if;
+
+  insert into public.parent_pins (parent_id, pin_hash, failed_count, locked_until, updated_at)
+  values (auth.uid(), crypt(new_pin, gen_salt('bf')), 0, null, now())
+  on conflict (parent_id) do update
+    set pin_hash = excluded.pin_hash, failed_count = 0, locked_until = null, updated_at = now();
+  return 'ok';
+end;
+$$;
+
+-- 예전 초안(reset_ok 인자가 있던 버전)을 이미 만들었다면 지운다.
+drop function if exists public.set_student_pin(text, text, boolean);
+
+revoke all on function public.set_student_pin(text, text) from public, anon;
+revoke all on function public.reset_student_pin_with_password(text, text) from public, anon;
+revoke all on function public.verify_student_pin(text) from public, anon;
+revoke all on function public.has_student_pin() from public, anon;
+grant execute on function public.set_student_pin(text, text) to authenticated;
+grant execute on function public.reset_student_pin_with_password(text, text) to authenticated;
+grant execute on function public.verify_student_pin(text) to authenticated;
+grant execute on function public.has_student_pin() to authenticated;
+
+-- 글감 난이도: 기초 / 보통 / 도전. 처음 한 번만 어울리는 학년의 평균으로 기본값을 채운다
+-- (4 · 4~5학년 → 기초, 5~6 · 6학년 → 도전, 나머지 → 보통 — lib/topics.ts의 defaultDifficulty와 같은 규칙).
+-- 이후에는 관리자가 글감 관리에서 고친다.
+-- 이미 값이 있는 행은 건드리지 않으므로 여러 번 실행해도 관리자가 고친 값이 되돌아가지 않는다.
+alter table public.topics add column if not exists difficulty text;
+update public.topics
+  set difficulty = case
+    when (select avg(g::int) from unnest(grades) g) <= 4.5 then '기초'
+    when (select avg(g::int) from unnest(grades) g) >= 5.5 then '도전'
+    else '보통'
+  end
+  where difficulty is null;
+alter table public.topics alter column difficulty set default '보통';
+alter table public.topics alter column difficulty set not null;
+alter table public.topics drop constraint if exists topics_difficulty_check;
+alter table public.topics add constraint topics_difficulty_check
+  check (difficulty in ('기초', '보통', '도전'));

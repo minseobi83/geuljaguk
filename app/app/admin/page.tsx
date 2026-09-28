@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
+  getAdminAuditLog,
   getChildOverview,
   getUsageStats,
   isAdmin,
@@ -58,6 +59,7 @@ export default async function AdminPage() {
     reviewResult,
     qualityResult,
     errorResult,
+    auditResult,
   ] = await Promise.all([
     getUsageStats(supabase),
     getModerationQueue(supabase),
@@ -68,6 +70,7 @@ export default async function AdminPage() {
     getReviewQueue(supabase),
     getQualitySummary(supabase),
     getErrorOverview(supabase),
+    getAdminAuditLog(supabase),
   ]);
 
   return (
@@ -97,6 +100,8 @@ export default async function AdminPage() {
           topicsError={topicResult.error}
           childRows={childResult.children}
           childrenError={childResult.error}
+          auditEntries={auditResult.entries}
+          auditError={auditResult.error}
           promptVersions={promptResult.versions}
           promptError={promptResult.error}
           currentPromptText={activePrompt.prompt}

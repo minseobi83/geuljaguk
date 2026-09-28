@@ -5,7 +5,7 @@ import { formatDateShort } from "@/lib/format";
 import { WritingType } from "@/lib/types";
 import { AdminTopic } from "@/lib/supabase/topicQueries";
 import { PromptVersion } from "@/lib/supabase/promptQueries";
-import { AdminChildRow, UsageStats } from "@/lib/supabase/adminQueries";
+import { AdminChildRow, AuditLogEntry, UsageStats } from "@/lib/supabase/adminQueries";
 import { ModerationItem, OPEN_STATUSES } from "@/lib/supabase/moderationQueries";
 import {
   ActionResult,
@@ -23,6 +23,7 @@ import {
 } from "@/lib/supabase/qualityQueries";
 import { ErrorsTab, ReviewTab } from "./AdminQualityTabs";
 import ModerationTab from "./AdminModerationTab";
+import StudentsTab from "./AdminStudentsTab";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -56,6 +57,8 @@ interface Props {
   topicsError: string | null;
   childRows: AdminChildRow[];
   childrenError: string | null;
+  auditEntries: AuditLogEntry[];
+  auditError: string | null;
   promptVersions: PromptVersion[];
   promptError: string | null;
   // 지금 채점에 실제로 쓰이는 프롬프트와, 그게 DB 버전인지 코드 기본값인지.
@@ -140,7 +143,14 @@ export default function AdminConsole(props: Props) {
         />
       )}
       {tab === "students" && (
-        <StudentsTab childRows={props.childRows} error={props.childrenError} />
+        <StudentsTab
+          childRows={props.childRows}
+          error={props.childrenError}
+          auditEntries={props.auditEntries}
+          auditError={props.auditError}
+          currentUserId={props.currentUserId}
+          onDone={setNotice}
+        />
       )}
       {tab === "rubric" && (
         <RubricTab
@@ -480,96 +490,6 @@ function TopicFields({ topic }: { topic?: AdminTopic }) {
         </label>
       </div>
     </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 학생별
-// ---------------------------------------------------------------------------
-
-function StudentsTab({
-  childRows,
-  error,
-}: {
-  childRows: AdminChildRow[];
-  error: string | null;
-}) {
-  const [openId, setOpenId] = useState<string | null>(null);
-
-  if (error) {
-    return <EmptyNotice title="학생 목록을 읽지 못했어요" body={error} />;
-  }
-  if (childRows.length === 0) {
-    return (
-      <EmptyNotice
-        title="아직 등록된 학생이 없어요"
-        body="보호자가 온보딩에서 자녀를 등록하면 여기에 나타나요."
-      />
-    );
-  }
-
-  return (
-    <section className="mt-8">
-      <SectionLabel>Students · 학생 {childRows.length}명</SectionLabel>
-      <p className="mt-3 break-keep text-xs leading-6 text-ink/45">
-        별명만 저장하고 실명은 받지 않아요. 학생 이름을 누르면 그 학생이 쓴 글 목록이
-        펼쳐져요.
-      </p>
-      <ul className="mt-4">
-        {childRows.map((c) => {
-          const open = openId === c.id;
-          return (
-            <li key={c.id} className="border-b border-ink/15">
-              <button
-                type="button"
-                onClick={() => setOpenId(open ? null : c.id)}
-                className="flex w-full flex-wrap items-baseline justify-between gap-x-6 gap-y-2 py-4 text-left transition hover:bg-ink/[0.02]"
-              >
-                <span className="flex items-baseline gap-3">
-                  <span className="break-keep text-base font-bold tracking-tight text-ink">
-                    {c.nickname}
-                  </span>
-                  <span className="text-xs text-ink/45">{c.gradeBand}학년</span>
-                </span>
-                <span className="flex gap-5 font-mono text-xs text-ink/50">
-                  <span>글 {c.essayCount}편</span>
-                  <span>시도 {c.versionCount}회</span>
-                  <span>
-                    마지막{" "}
-                    {c.lastActivityAt ? formatDateShort(c.lastActivityAt) : "기록 없음"}
-                  </span>
-                </span>
-              </button>
-              {open && (
-                <div className="pb-5">
-                  {c.essays.length === 0 ? (
-                    <p className="text-sm text-ink/45">아직 제출한 글이 없어요.</p>
-                  ) : (
-                    <ul className="border-l-2 border-ink/15 pl-4">
-                      {c.essays.map((e) => (
-                        <li
-                          key={e.id}
-                          className="flex flex-wrap items-baseline justify-between gap-3 py-2"
-                        >
-                          <span className="break-keep text-sm text-ink/80">
-                            {e.topicTitle ?? "(글감 없음)"}
-                          </span>
-                          <span className="flex shrink-0 gap-4 font-mono text-[11px] text-ink/40">
-                            <span>{e.writingType}</span>
-                            <span>{e.versionCount}번 고쳐 씀</span>
-                            <span>{formatDateShort(e.createdAt)}</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </section>
   );
 }
 

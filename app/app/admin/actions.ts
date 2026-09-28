@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/supabase/adminQueries";
+import {
+  AdminChildDetail,
+  AuditAction,
+  getChildDetail,
+  isAdmin,
+} from "@/lib/supabase/adminQueries";
 import { GradeBand, WritingType } from "@/lib/types";
 
 // 관리자 화면의 쓰기 동작들. RLS 정책(topics_admin_*, prompt_versions_admin_*)이 DB에서
@@ -306,4 +311,211 @@ export async function recordModerationAction(formData: FormData): Promise<Action
 
   revalidatePath("/admin");
   return { ok: true, message: `'${status}'(으)로 기록했어요.` };
+}
+
+// ---------------------------------------------------------------------------
+// 학생별 학습 데이터 관리 (관리자 5차분)
+// ---------------------------------------------------------------------------
+
+const NICKNAME_MAX = 20;
+
+type AdminSupabase = Awaited<ReturnType<typeof createClient>>;
+
+async function writeAudit(
+  supabase: AdminSupabase,
+  actorId: string,
+  action: AuditAction,
+  childId: string,
+  detail: Record<string, unknown>
+): Promise<string | null> {
+  const { error } = await supabase
+    .from("admin_audit_log")
+    .insert({ action, child_id: childId, detail, actor_id: actorId });
+  return error ? error.message : null;
+}
+
+// 삭제·수정 뒤 보호자·학생 화면에도 바로 반영되도록.
+function revalidateStudentPages() {
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/growth");
+}
+
+export async function loadStudentDetail(
+  childId: string
+): Promise<{ detail: AdminChildDetail | null; error: string | null }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { detail: null, error: "관리자만 학생 데이터를 볼 수 있어요." };
+  return getChildDetail(supabase, childId);
+}
+
+// 보호자의 열람 요청 등에 쓰는 내보내기. 누가 언제 내려받았는지 먼저 기록하고, 기록을 남길 수
+// 없으면 내보내지 않는다.
+export async function exportStudentData(
+  childId: string
+): Promise<ActionResult & { detail?: AdminChildDetail }> {
+  const { supabase, userId, ok } = await requireAdmin();
+  if (!ok || !userId) return { ok: false, message: "관리자만 데이터를 내보낼 수 있어요." };
+
+  const { detail, error } = await getChildDetail(supabase, childId);
+  if (!detail) return { ok: false, message: error ?? "학생을 찾을 수 없어요." };
+
+  const auditError = await writeAudit(supabase, userId, "데이터 내보내기", childId, {
+    nickname: detail.nickname,
+    essayCount: detail.essays.length,
+  });
+  if (auditError) {
+    return { ok: false, message: `관리 기록을 남길 수 없어 내보내지 않았어요: ${auditError}` };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, message: `${detail.nickname} 학생의 데이터를 내보냈어요.`, detail };
+}
+
+export async function updateStudentProfile(formData: FormData): Promise<ActionResult> {
+  const { supabase, userId, ok } = await requireAdmin();
+  if (!ok || !userId) return { ok: false, message: "관리자만 학생 정보를 고칠 수 있어요." };
+
+  const childId = String(formData.get("child_id") ?? "");
+  const nickname = String(formData.get("nickname") ?? "").trim();
+  const gradeBand = String(formData.get("grade_band") ?? "") as GradeBand;
+
+  if (!childId) return { ok: false, message: "어떤 학생인지 알 수 없어요." };
+  if (!nickname) return { ok: false, message: "별명을 비울 수 없어요." };
+  if (nickname.length > NICKNAME_MAX) {
+    return { ok: false, message: `별명은 ${NICKNAME_MAX}자 이내로 적어주세요.` };
+  }
+  if (!ALL_GRADES.includes(gradeBand)) return { ok: false, message: "학년을 골라주세요." };
+
+  const { data: before } = await supabase
+    .from("children")
+    .select("nickname, grade_band")
+    .eq("id", childId)
+    .maybeSingle();
+  if (!before) return { ok: false, message: "학생을 찾을 수 없어요." };
+  if (before.nickname === nickname && before.grade_band === gradeBand) {
+    return { ok: false, message: "바뀐 내용이 없어요." };
+  }
+
+  // RLS에 막히면 에러 없이 0행이 바뀌므로, 바뀐 행을 돌려받아 확인한다.
+  const { data: updated, error } = await supabase
+    .from("children")
+    .update({ nickname, grade_band: gradeBand })
+    .eq("id", childId)
+    .select("id");
+  if (error) return { ok: false, message: `고치지 못했어요: ${error.message}` };
+  if (!updated || updated.length === 0) {
+    return {
+      ok: false,
+      message: "고치지 못했어요. schema.sql(관리자 5차분)을 실행했는지 확인해주세요.",
+    };
+  }
+
+  const auditError = await writeAudit(supabase, userId, "학생 정보 수정", childId, {
+    before: { nickname: before.nickname, gradeBand: before.grade_band },
+    after: { nickname, gradeBand },
+  });
+
+  revalidateStudentPages();
+  return {
+    ok: true,
+    message: auditError
+      ? `고쳤지만 관리 기록은 남기지 못했어요: ${auditError}`
+      : `${nickname} (${gradeBand}학년)으로 고쳤어요.`,
+  };
+}
+
+export async function deleteStudentEssay(formData: FormData): Promise<ActionResult> {
+  const { supabase, userId, ok } = await requireAdmin();
+  if (!ok || !userId) return { ok: false, message: "관리자만 글을 삭제할 수 있어요." };
+
+  const essayId = String(formData.get("essay_id") ?? "");
+  if (!essayId) return { ok: false, message: "어떤 글인지 알 수 없어요." };
+
+  const { data: essay } = await supabase
+    .from("essays")
+    .select("id, child_id, writing_type, topic_title, created_at, essay_versions(id)")
+    .eq("id", essayId)
+    .maybeSingle();
+  if (!essay) return { ok: false, message: "글을 찾을 수 없어요. 이미 삭제됐을 수 있어요." };
+
+  // 지운 뒤에는 되돌릴 수 없으니, 기록을 먼저 남기고 남길 수 없으면 지우지 않는다.
+  const auditError = await writeAudit(supabase, userId, "글 삭제", essay.child_id, {
+    essayId,
+    topicTitle: essay.topic_title,
+    writingType: essay.writing_type,
+    writtenAt: essay.created_at,
+    versionCount: essay.essay_versions?.length ?? 0,
+  });
+  if (auditError) {
+    return { ok: false, message: `관리 기록을 남길 수 없어 삭제하지 않았어요: ${auditError}` };
+  }
+
+  const { data: deleted, error } = await supabase
+    .from("essays")
+    .delete()
+    .eq("id", essayId)
+    .select("id");
+  if (error) return { ok: false, message: `삭제하지 못했어요: ${error.message}` };
+  if (!deleted || deleted.length === 0) {
+    return {
+      ok: false,
+      message: "삭제하지 못했어요. schema.sql(관리자 5차분)을 실행했는지 확인해주세요.",
+    };
+  }
+
+  revalidateStudentPages();
+  return { ok: true, message: `'${essay.topic_title ?? essay.writing_type}' 글을 삭제했어요.` };
+}
+
+// 학생과 그 학생의 글·첨삭·답변·검토 기록을 모두 지운다. 실수를 막기 위해 별명을 똑같이
+// 입력해야 한다.
+export async function deleteStudent(formData: FormData): Promise<ActionResult> {
+  const { supabase, userId, ok } = await requireAdmin();
+  if (!ok || !userId) return { ok: false, message: "관리자만 학생을 삭제할 수 있어요." };
+
+  const childId = String(formData.get("child_id") ?? "");
+  const confirmNickname = String(formData.get("confirm_nickname") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!childId) return { ok: false, message: "어떤 학생인지 알 수 없어요." };
+  if (!reason) return { ok: false, message: "삭제하는 이유를 적어주세요 (예: 보호자 삭제 요청)." };
+
+  const { data: child } = await supabase
+    .from("children")
+    .select("id, parent_id, nickname, grade_band, created_at, essays(id)")
+    .eq("id", childId)
+    .maybeSingle();
+  if (!child) return { ok: false, message: "학생을 찾을 수 없어요. 이미 삭제됐을 수 있어요." };
+  if (confirmNickname !== child.nickname) {
+    return { ok: false, message: "확인용 별명이 일치하지 않아요." };
+  }
+
+  const auditError = await writeAudit(supabase, userId, "학생 삭제", childId, {
+    nickname: child.nickname,
+    gradeBand: child.grade_band,
+    parentId: child.parent_id,
+    joinedAt: child.created_at,
+    essayCount: child.essays?.length ?? 0,
+    reason,
+  });
+  if (auditError) {
+    return { ok: false, message: `관리 기록을 남길 수 없어 삭제하지 않았어요: ${auditError}` };
+  }
+
+  const { data: deleted, error } = await supabase
+    .from("children")
+    .delete()
+    .eq("id", childId)
+    .select("id");
+  if (error) return { ok: false, message: `삭제하지 못했어요: ${error.message}` };
+  if (!deleted || deleted.length === 0) {
+    return {
+      ok: false,
+      message: "삭제하지 못했어요. schema.sql(관리자 5차분)을 실행했는지 확인해주세요.",
+    };
+  }
+
+  revalidateStudentPages();
+  return { ok: true, message: `${child.nickname} 학생과 모든 학습 데이터를 삭제했어요.` };
 }

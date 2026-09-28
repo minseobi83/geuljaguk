@@ -431,3 +431,52 @@ create policy "content_flag_actions_admin_insert" on public.content_flag_actions
   );
 
 grant select, insert on public.content_flag_actions to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 관리자 기능 5차분 (2026-09-28 추가: 학생별 학습 데이터 관리 - 수정·내보내기·삭제)
+-- ---------------------------------------------------------------------------
+
+-- 관리자가 학생 프로필(별명·학년)을 고치고, 보호자 요청 등으로 글이나 학생 데이터 전체를
+-- 지울 수 있게 한다. 지우면 essays → essay_versions → evaluations → 검토·처리 기록까지
+-- on delete cascade로 함께 지워진다 (오류 기록 app_errors는 child_id만 비워지고 남는다).
+drop policy if exists "admins_update_children" on public.children;
+create policy "admins_update_children" on public.children
+  for update using (exists (select 1 from public.admins where admins.id = auth.uid()))
+  with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "admins_delete_children" on public.children;
+create policy "admins_delete_children" on public.children
+  for delete using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "admins_delete_essays" on public.essays;
+create policy "admins_delete_essays" on public.essays
+  for delete using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+-- 관리자가 학생 데이터에 한 일(수정·내보내기·삭제) 기록. 지운 뒤에도 "누가 언제 무엇을
+-- 지웠는지"는 남아야 하므로 대상에 외래키를 걸지 않고, 고치거나 지울 수 없게 insert만 허용한다.
+-- 아이의 글 본문은 남기지 않는다 - 별명·학년·글 수 같은 메타 정보만 detail에 적는다.
+create table if not exists public.admin_audit_log (
+  id uuid primary key default gen_random_uuid(),
+  action text not null check (action in ('학생 정보 수정', '데이터 내보내기', '글 삭제', '학생 삭제')),
+  child_id uuid, -- 지워진 학생일 수 있어 외래키 없음
+  detail jsonb not null default '{}',
+  actor_id uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists admin_audit_log_created_at_idx on public.admin_audit_log (created_at desc);
+
+alter table public.admin_audit_log enable row level security;
+
+drop policy if exists "admin_audit_log_admin_select" on public.admin_audit_log;
+create policy "admin_audit_log_admin_select" on public.admin_audit_log
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "admin_audit_log_admin_insert" on public.admin_audit_log;
+create policy "admin_audit_log_admin_insert" on public.admin_audit_log
+  for insert with check (
+    actor_id = auth.uid()
+    and exists (select 1 from public.admins where admins.id = auth.uid())
+  );
+
+grant select, insert on public.admin_audit_log to authenticated;

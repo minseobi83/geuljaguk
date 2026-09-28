@@ -1,9 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { EvaluationResult, ParagraphAnswer, RubricScores } from "@/lib/types";
 
 // 관리자 기능 1차분: 인증 + 이용 현황 확인. (확인이 필요한 글 처리는 4차분에서
 // moderationQueries.ts로 옮겼다.)
 // 2차분(2026-09-19): 글감 관리(topicQueries.ts), 평가기준·프롬프트 버전 관리
 // (promptQueries.ts), 학생별 상세 관리(이 파일의 getChildOverview).
+// 5차분(2026-09-28): 학생별 학습 데이터 상세·내보내기(getChildDetail), 관리 기록(getAdminAuditLog).
 
 export async function isAdmin(supabase: SupabaseClient, userId: string): Promise<boolean> {
   const { data } = await supabase.from("admins").select("id").eq("id", userId).maybeSingle();
@@ -61,6 +63,7 @@ export interface AdminChildEssay {
 
 export interface AdminChildRow {
   id: string;
+  parentId: string;
   nickname: string;
   gradeBand: string;
   joinedAt: string;
@@ -72,6 +75,7 @@ export interface AdminChildRow {
 
 interface RawChildRow {
   id: string;
+  parent_id: string;
   nickname: string;
   grade_band: string;
   created_at: string;
@@ -96,7 +100,7 @@ export async function getChildOverview(
   const { data, error } = await supabase
     .from("children")
     .select(
-      "id, nickname, grade_band, created_at, essays(id, writing_type, topic_title, created_at, essay_versions(id, created_at))"
+      "id, parent_id, nickname, grade_band, created_at, essays(id, writing_type, topic_title, created_at, essay_versions(id, created_at))"
     )
     .order("created_at", { ascending: false });
 
@@ -122,6 +126,7 @@ export async function getChildOverview(
 
     return {
       id: c.id,
+      parentId: c.parent_id,
       nickname: c.nickname,
       gradeBand: c.grade_band,
       joinedAt: c.created_at,
@@ -133,4 +138,154 @@ export async function getChildOverview(
   });
 
   return { children, error: null };
+}
+
+// ---------------------------------------------------------------------------
+// 학생 한 명의 학습 데이터 전체 (관리자 5차분) - 상세 보기와 내보내기에 같이 쓴다.
+// ---------------------------------------------------------------------------
+
+export interface AdminVersionDetail {
+  versionNo: number;
+  createdAt: string;
+  studentText: string;
+  paragraphAnswers: ParagraphAnswer[];
+  summary: string | null;
+  scores: RubricScores | null;
+  priorityCategory: string | null;
+  priorityNote: string | null;
+  nextTaskSkill: string | null;
+  safetyNote: string | null;
+}
+
+export interface AdminEssayDetail {
+  id: string;
+  writingType: string;
+  topicTitle: string | null;
+  createdAt: string;
+  versions: AdminVersionDetail[]; // 시도 순서대로
+}
+
+export interface AdminChildDetail {
+  id: string;
+  parentId: string;
+  nickname: string;
+  gradeBand: string;
+  joinedAt: string;
+  essays: AdminEssayDetail[]; // 최신 글 먼저
+}
+
+interface RawDetailRow {
+  id: string;
+  parent_id: string;
+  nickname: string;
+  grade_band: string;
+  created_at: string;
+  essays: {
+    id: string;
+    writing_type: string;
+    topic_title: string | null;
+    created_at: string;
+    essay_versions: {
+      version_no: number;
+      created_at: string;
+      student_text: string;
+      paragraph_answers?: ParagraphAnswer[] | null;
+      evaluations: { result: EvaluationResult | null }[];
+    }[];
+  }[];
+}
+
+export async function getChildDetail(
+  supabase: SupabaseClient,
+  childId: string
+): Promise<{ detail: AdminChildDetail | null; error: string | null }> {
+  const query = (versionColumns: string) => {
+    const columns: string = `id, parent_id, nickname, grade_band, created_at, essays(id, writing_type, topic_title, created_at, essay_versions(${versionColumns}, evaluations(result)))`;
+    return supabase.from("children").select(columns).eq("id", childId).maybeSingle();
+  };
+
+  let { data, error } = await query("version_no, created_at, student_text, paragraph_answers");
+  // paragraph_answers 컬럼을 아직 안 만든 DB에서도 나머지는 보이도록.
+  if (error && /paragraph_answers/.test(error.message)) {
+    ({ data, error } = await query("version_no, created_at, student_text"));
+  }
+  if (error) return { detail: null, error: error.message };
+  if (!data) return { detail: null, error: "학생을 찾을 수 없어요. 이미 삭제됐을 수 있어요." };
+
+  const c = data as unknown as RawDetailRow;
+  const essays: AdminEssayDetail[] = (c.essays ?? [])
+    .map((e) => ({
+      id: e.id,
+      writingType: e.writing_type,
+      topicTitle: e.topic_title,
+      createdAt: e.created_at,
+      versions: [...(e.essay_versions ?? [])]
+        .sort((a, b) => a.version_no - b.version_no)
+        .map((v) => {
+          const r = v.evaluations?.[0]?.result ?? null;
+          return {
+            versionNo: v.version_no,
+            createdAt: v.created_at,
+            studentText: v.student_text,
+            paragraphAnswers: v.paragraph_answers ?? [],
+            summary: r?.summary ?? null,
+            scores: r?.scores ?? null,
+            priorityCategory: r?.priority_issue?.category ?? null,
+            priorityNote: r?.priority_issue?.note ?? null,
+            nextTaskSkill: r?.next_task?.skill ?? null,
+            safetyNote: r?.safety?.concern ? r.safety.note : null,
+          };
+        }),
+    }))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  return {
+    detail: {
+      id: c.id,
+      parentId: c.parent_id,
+      nickname: c.nickname,
+      gradeBand: c.grade_band,
+      joinedAt: c.created_at,
+      essays,
+    },
+    error: null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 관리 기록 (관리자 5차분)
+// ---------------------------------------------------------------------------
+
+export type AuditAction = "학생 정보 수정" | "데이터 내보내기" | "글 삭제" | "학생 삭제";
+
+export interface AuditLogEntry {
+  id: string;
+  action: AuditAction;
+  childId: string | null;
+  detail: Record<string, unknown>;
+  actorId: string | null;
+  createdAt: string;
+}
+
+export async function getAdminAuditLog(
+  supabase: SupabaseClient,
+  limit = 40
+): Promise<{ entries: AuditLogEntry[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from("admin_audit_log")
+    .select("id, action, child_id, detail, actor_id, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) return { entries: [], error: error.message };
+  return {
+    entries: (data ?? []).map((r) => ({
+      id: r.id,
+      action: r.action as AuditAction,
+      childId: r.child_id,
+      detail: (r.detail ?? {}) as Record<string, unknown>,
+      actorId: r.actor_id,
+      createdAt: r.created_at,
+    })),
+    error: null,
+  };
 }

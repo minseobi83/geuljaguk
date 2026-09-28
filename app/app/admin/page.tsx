@@ -14,11 +14,15 @@ import {
   getReviewQueue,
 } from "@/lib/supabase/qualityQueries";
 import { getModerationQueue } from "@/lib/supabase/moderationQueries";
+import { getApiHealth } from "@/lib/supabase/apiUsageQueries";
 import TopNav from "@/components/TopNav";
 import AdminConsole from "@/components/AdminConsole";
 
 // 관리자 화면은 항상 지금 DB 상태를 보여줘야 한다 (글감을 고치자마자 반영되도록).
 export const dynamic = "force-dynamic";
+
+// 평가기준 개선안 만들기(서버 액션)는 AI가 긴 수정안을 쓰느라 1분 넘게 걸릴 수 있다.
+export const maxDuration = 300;
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -60,6 +64,7 @@ export default async function AdminPage() {
     qualityResult,
     errorResult,
     auditResult,
+    apiHealthResult,
   ] = await Promise.all([
     getUsageStats(supabase),
     getModerationQueue(supabase),
@@ -71,6 +76,7 @@ export default async function AdminPage() {
     getQualitySummary(supabase),
     getErrorOverview(supabase),
     getAdminAuditLog(supabase),
+    getApiHealth(supabase),
   ]);
 
   return (
@@ -114,6 +120,8 @@ export default async function AdminPage() {
           qualityError={qualityResult.error}
           errorOverview={errorResult.overview}
           errorsError={errorResult.error}
+          apiHealth={apiHealthResult.health}
+          apiHealthError={apiHealthResult.error}
         />
       </main>
       <footer className="mt-16 bg-ink py-6 text-white">

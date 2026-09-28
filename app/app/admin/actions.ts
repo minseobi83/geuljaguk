@@ -9,6 +9,11 @@ import {
   isAdmin,
 } from "@/lib/supabase/adminQueries";
 import { GradeBand, WritingType } from "@/lib/types";
+import { getActiveSystemPrompt } from "@/lib/supabase/promptQueries";
+import { getReviewDigest } from "@/lib/supabase/qualityQueries";
+import { RubricSuggestError, suggestRubricRevision } from "@/lib/anthropic";
+import { logApiCalls } from "@/lib/apiUsageLog";
+import { RubricSuggestion, isApplicable } from "@/lib/rubricChanges";
 
 // 관리자 화면의 쓰기 동작들. RLS 정책(topics_admin_*, prompt_versions_admin_*)이 DB에서
 // 한 번 더 막아주지만, 액션 진입 시점에도 관리자인지 확인해서 의미 있는 메시지를 돌려준다.
@@ -518,4 +523,62 @@ export async function deleteStudent(formData: FormData): Promise<ActionResult> {
 
   revalidateStudentPages();
   return { ok: true, message: `${child.nickname} 학생과 모든 학습 데이터를 삭제했어요.` };
+}
+
+// ---------------------------------------------------------------------------
+// 평가기준 반자동 개선 (관리자 6차분)
+// ---------------------------------------------------------------------------
+
+// 개선안을 만들려면 지금 기준으로 채점한 첨삭 중 '아쉬움'·'부적절' 검토가 이만큼은 있어야 한다.
+const MIN_NEGATIVE_REVIEWS = 3;
+
+export interface RubricSuggestResult extends ActionResult {
+  suggestion?: RubricSuggestion & { applicable: boolean[] };
+  basePrompt?: string;
+  baseLabel?: string;
+  reviewCounts?: { 적절: number; 아쉬움: number; 부적절: number };
+}
+
+// Claude가 검토를 읽고 "찾아 바꾸기" 수정안을 만든다. 저장·활성화는 하지 않는다 - 관리자가
+// 변경을 하나씩 골라 새 버전으로 저장하고, 활성화는 따로 결정한다.
+export async function suggestRubricImprovement(): Promise<RubricSuggestResult> {
+  const { supabase, userId, ok } = await requireAdmin();
+  if (!ok || !userId) return { ok: false, message: "관리자만 개선안을 만들 수 있어요." };
+
+  const active = await getActiveSystemPrompt(supabase);
+  const { digest, error } = await getReviewDigest(supabase, active.id);
+  if (!digest) return { ok: false, message: `검토 기록을 읽지 못했어요: ${error}` };
+
+  const baseLabel = active.label ?? "코드 기본값";
+  if (digest.items.length < MIN_NEGATIVE_REVIEWS) {
+    return {
+      ok: false,
+      message: `'${baseLabel}' 기준의 '아쉬움'·'부적절' 검토가 ${digest.items.length}건뿐이에요. ${MIN_NEGATIVE_REVIEWS}건 이상 쌓이면 개선안을 만들 수 있어요.`,
+    };
+  }
+
+  try {
+    const { suggestion, call } = await suggestRubricRevision(active.prompt, digest);
+    await logApiCalls(supabase, [call], { userId, promptVersionId: active.id });
+    return {
+      ok: true,
+      message:
+        suggestion.changes.length > 0
+          ? `검토 ${digest.items.length}건을 바탕으로 변경 ${suggestion.changes.length}개를 제안했어요. 아래에서 골라 새 버전으로 저장하세요.`
+          : "검토를 읽었지만 지금은 고칠 만한 반복 패턴이 없다고 판단했어요.",
+      suggestion: {
+        ...suggestion,
+        applicable: suggestion.changes.map((c) => isApplicable(active.prompt, c)),
+      },
+      basePrompt: active.prompt,
+      baseLabel,
+      reviewCounts: digest.counts,
+    };
+  } catch (e) {
+    const message =
+      e instanceof RubricSuggestError
+        ? e.message
+        : `개선안을 만들지 못했어요: ${e instanceof Error ? e.message : String(e)}`;
+    return { ok: false, message };
+  }
 }

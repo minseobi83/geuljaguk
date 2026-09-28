@@ -480,3 +480,48 @@ create policy "admin_audit_log_admin_insert" on public.admin_audit_log
   );
 
 grant select, insert on public.admin_audit_log to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 관리자 기능 6차분 (2026-09-28 추가: API 호출 기록 + 평가기준 반자동 개선)
+-- ---------------------------------------------------------------------------
+
+-- Claude API를 부를 때마다 한 줄씩 남기는 사용량 기록. 관리자 콘솔 "API 상태" 탭에서
+-- 스트리밍·프롬프트 캐시·사전 선별(quickScreen)이 실제로 동작하는지, 비용이 얼마인지 확인한다.
+-- 아이의 글 본문은 남기지 않는다 - 토큰 수·시간 같은 숫자만 저장한다.
+create table if not exists public.api_calls (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('quick_screen', 'evaluate', 'rubric_suggest')),
+  model text not null,
+  attempt int not null default 1,       -- 한 번의 채점 요청 안에서 몇 번째 호출인지 (재시도면 2 이상)
+  retry_reason text,                    -- 'truncated' | 'guardrail' (첫 호출이면 null)
+  version_no int,                       -- 몇 번째 고쳐 쓰기인지 (멀티턴 캐시 확인용)
+  input_tokens int not null default 0,
+  cache_write_tokens int not null default 0,
+  cache_write_1h_tokens int not null default 0,
+  cache_read_tokens int not null default 0,
+  output_tokens int not null default 0,
+  stop_reason text,
+  duration_ms int,
+  streamed_events int,                  -- 스트리밍으로 받은 텍스트 조각 수 (0이면 스트리밍이 안 된 것)
+  screen_result text check (screen_result in ('valid', 'invalid', 'error')),
+  cost_usd numeric(12, 6),
+  user_id uuid references auth.users (id) on delete set null,
+  prompt_version_id uuid references public.prompt_versions (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists api_calls_created_at_idx on public.api_calls (created_at desc);
+
+alter table public.api_calls enable row level security;
+
+-- 채점 API는 로그인한 보호자 권한으로 돌기 때문에, 자기 user_id로 된 행만 넣을 수 있게 하고
+-- 읽기는 관리자만.
+drop policy if exists "api_calls_insert_own" on public.api_calls;
+create policy "api_calls_insert_own" on public.api_calls
+  for insert with check (user_id = auth.uid());
+
+drop policy if exists "api_calls_admin_select" on public.api_calls;
+create policy "api_calls_admin_select" on public.api_calls
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+grant select, insert on public.api_calls to authenticated;

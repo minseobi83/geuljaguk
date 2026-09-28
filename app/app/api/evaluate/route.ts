@@ -3,6 +3,8 @@ import { evaluateEssay, quickScreen, GuardrailViolationError } from "@/lib/anthr
 import { createClient } from "@/lib/supabase/server";
 import { getActiveSystemPrompt } from "@/lib/supabase/promptQueries";
 import { logError } from "@/lib/errorLog";
+import { logApiCalls } from "@/lib/apiUsageLog";
+import { ApiCallRecord } from "@/lib/apiUsage";
 import { EssaySubmission, WritingType, GradeBand } from "@/lib/types";
 
 // 최악의 경우 이 요청 안에서 모델을 최대 3번(본분석 + truncation 재시도 + 가드레일 재시도)
@@ -102,6 +104,12 @@ export async function POST(req: NextRequest) {
   // "애초에 과제 시도가 맞는지"만 빠르게 거른다. 실패해도 본분석은 그대로 진행한다
   // (quickScreen이 fail-open이라 여기선 결과만 받으면 된다).
   const screen = await quickScreen(submission.studentText);
+  if (screen.call) {
+    await logApiCalls(supabase, [screen.call], {
+      userId: userData.user.id,
+      versionNo: submission.versionNo,
+    });
+  }
   if (screen.failure) {
     await logError(supabase, "quick_screen", screen.failure, {
       userId: userData.user.id,
@@ -146,11 +154,14 @@ export async function POST(req: NextRequest) {
         controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
       }
 
+      // 이 요청 안에서 부른 본분석 호출들(재시도 포함)의 사용량. 성공이든 실패든 finally에서 저장한다.
+      const calls: ApiCallRecord[] = [];
       try {
         const { result, rawResponseText } = await evaluateEssay(
           submission,
           (chars) => send({ type: "progress", chars }),
-          activePrompt.prompt
+          activePrompt.prompt,
+          calls
         );
 
         // 저장은 최선을 다해 시도하되(best-effort), 실패해도 학생에게는 피드백을 보여준다.
@@ -238,6 +249,11 @@ export async function POST(req: NextRequest) {
           });
         }
       } finally {
+        await logApiCalls(supabase, calls, {
+          userId: userData.user.id,
+          promptVersionId: activePrompt.id,
+          versionNo: submission.versionNo,
+        });
         controller.close();
       }
     },

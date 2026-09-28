@@ -244,6 +244,96 @@ export async function getQualitySummary(
 }
 
 // ---------------------------------------------------------------------------
+// 평가기준 반자동 개선용 검토 모음 (관리자 6차분)
+// ---------------------------------------------------------------------------
+
+export interface ReviewDigestItem {
+  verdict: ReviewVerdict;
+  issues: string[];
+  note: string | null;
+  gradeBand: string;
+  writingType: string;
+  versionNo: number;
+  // 학생 글은 앞부분만 (판단 근거로 필요한 만큼만 보낸다).
+  studentExcerpt: string;
+  aiSummary: string;
+  aiScores: string;
+  aiPriority: string;
+}
+
+export interface ReviewDigest {
+  counts: Record<ReviewVerdict, number>;
+  items: ReviewDigestItem[]; // '아쉬움' · '부적절'만
+}
+
+interface RawDigestRow {
+  verdict: ReviewVerdict;
+  issues: string[] | null;
+  note: string | null;
+  evaluations: {
+    prompt_version_id: string | null;
+    result: Partial<EvaluationResult> | null;
+    essay_versions: {
+      version_no: number;
+      student_text: string;
+      essays: { writing_type: string; children: { grade_band: string } | null } | null;
+    } | null;
+  } | null;
+}
+
+const EXCERPT_CHARS = 600;
+
+// 지금 채점에 쓰는 평가기준 버전(promptVersionId, null이면 코드 기본값)으로 채점된 첨삭에 대한
+// 관리자 검토를 모은다. 다른 버전의 검토는 섞지 않는다 - 이미 고친 문제를 다시 고치지 않도록.
+export async function getReviewDigest(
+  supabase: SupabaseClient,
+  promptVersionId: string | null,
+  limit = 40
+): Promise<{ digest: ReviewDigest | null; error: string | null }> {
+  let query = supabase
+    .from("evaluation_reviews")
+    .select(
+      "verdict, issues, note, evaluations!inner(prompt_version_id, result, essay_versions(version_no, student_text, essays(writing_type, children(grade_band))))"
+    )
+    .order("updated_at", { ascending: false })
+    .limit(500);
+  query = promptVersionId
+    ? query.eq("evaluations.prompt_version_id", promptVersionId)
+    : query.is("evaluations.prompt_version_id", null);
+
+  const { data, error } = await query;
+  if (error) return { digest: null, error: error.message };
+
+  const rows = (data ?? []) as unknown as RawDigestRow[];
+  const counts: Record<ReviewVerdict, number> = { 적절: 0, 아쉬움: 0, 부적절: 0 };
+  for (const r of rows) counts[r.verdict] = (counts[r.verdict] ?? 0) + 1;
+
+  const items: ReviewDigestItem[] = rows
+    .filter((r) => r.verdict !== "적절" && r.evaluations)
+    .slice(0, limit)
+    .map((r) => {
+      const ev = r.evaluations!;
+      const res = ev.result ?? {};
+      const v = ev.essay_versions;
+      const s = res.scores;
+      return {
+        verdict: r.verdict,
+        issues: r.issues ?? [],
+        note: r.note,
+        gradeBand: v?.essays?.children?.grade_band ?? "-",
+        writingType: v?.essays?.writing_type ?? res.writing_type ?? "-",
+        versionNo: v?.version_no ?? 1,
+        studentExcerpt: (v?.student_text ?? "").slice(0, EXCERPT_CHARS),
+        aiSummary: res.summary ?? "",
+        aiScores: s ? `사고력 ${s.사고력} / 논리력 ${s.논리력} / 표현력 ${s.표현력} / 구성력 ${s.구성력}` : "",
+        aiPriority: res.priority_issue ? `${res.priority_issue.category}: ${res.priority_issue.note}` : "",
+      };
+    });
+
+  return { digest: { counts, items }, error: null };
+}
+
+// ---------------------------------------------------------------------------
 // 오류 확인
 // ---------------------------------------------------------------------------
 

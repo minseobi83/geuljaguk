@@ -24,6 +24,9 @@ import {
 import { ErrorsTab, ReviewTab } from "./AdminQualityTabs";
 import ModerationTab from "./AdminModerationTab";
 import StudentsTab from "./AdminStudentsTab";
+import ApiHealthTab from "./AdminApiHealthTab";
+import RubricSuggestPanel from "./AdminRubricSuggest";
+import { ApiHealth } from "@/lib/supabase/apiUsageQueries";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -44,6 +47,7 @@ const TABS = [
   { id: "rubric", label: "평가기준" },
   { id: "quality", label: "품질 검토" },
   { id: "errors", label: "오류" },
+  { id: "api", label: "API 상태" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -72,6 +76,8 @@ interface Props {
   qualityError: string | null;
   errorOverview: ErrorOverview | null;
   errorsError: string | null;
+  apiHealth: ApiHealth | null;
+  apiHealthError: string | null;
 }
 
 export default function AdminConsole(props: Props) {
@@ -173,6 +179,7 @@ export default function AdminConsole(props: Props) {
           onDone={setNotice}
         />
       )}
+      {tab === "api" && <ApiHealthTab health={props.apiHealth} error={props.apiHealthError} />}
       {tab === "errors" && (
         <ErrorsTab
           overview={props.errorOverview}
@@ -611,6 +618,8 @@ function RubricTab({
           </button>
         </form>
       )}
+
+      <RubricSuggestPanel onDone={onDone} />
 
       <div className="mt-10">
         <SectionLabel>History · 버전 기록</SectionLabel>

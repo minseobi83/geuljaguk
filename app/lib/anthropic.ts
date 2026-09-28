@@ -3,6 +3,9 @@ import type { MessageParam, TextBlockParam } from "@anthropic-ai/sdk/resources/m
 import { EvaluationResult, EssaySubmission } from "./types";
 import { SYSTEM_PROMPT, buildConversationTurns } from "./prompt";
 import { detectRewrittenStudentText, detectSafetyKeywords } from "./guardrail";
+import { ApiCallRecord, RetryReason, buildCallRecord } from "./apiUsage";
+import { RubricSuggestion } from "./rubricChanges";
+import type { ReviewDigest } from "./supabase/qualityQueries";
 
 const DEFAULT_SAFETY_NOTE =
   "아이의 글에서 어른이 함께 살펴보면 좋을 내용이 보였어요. 아이와 편하게 대화를 나눠보시고, " +
@@ -104,13 +107,24 @@ interface CallResult {
   rawResponseText: string;
 }
 
+// calls: 호출할 때마다 사용량 기록을 여기에 쌓는다. 호출 뒤에 예외를 던지는 경우(응답 잘림 등)에도
+// 기록은 먼저 남겨서, 재시도 비용까지 빠짐없이 API 상태 탭에 잡히게 한다.
+interface CallMeta {
+  calls: ApiCallRecord[];
+  attempt: number;
+  retryReason: RetryReason | null;
+}
+
 async function callModel(
   submission: EssaySubmission,
   systemPrompt: string,
-  retryNote?: string,
-  onProgress?: (charsSoFar: number) => void
+  retryNote: string | undefined,
+  onProgress: ((charsSoFar: number) => void) | undefined,
+  meta: CallMeta
 ): Promise<CallResult> {
   const messages = buildMessages(submission, retryNote);
+  const startedAt = Date.now();
+  let streamedEvents = 0;
 
   // 스트리밍으로 호출한다: 완성된 응답을 기다리는 동안에도 텍스트가 도착하는 대로
   // onProgress로 진행 상황을 알려줄 수 있다 (학생이 "선생님이 읽고 있어요"만 보며
@@ -123,11 +137,24 @@ async function callModel(
     messages,
   });
 
-  if (onProgress) {
-    stream.on("text", (_delta, snapshot) => onProgress(snapshot.length));
-  }
+  stream.on("text", (_delta, snapshot) => {
+    streamedEvents += 1;
+    onProgress?.(snapshot.length);
+  });
 
   const response = await stream.finalMessage();
+  meta.calls.push(
+    buildCallRecord({
+      kind: "evaluate",
+      model: response.model || MODEL,
+      usage: response.usage,
+      stopReason: response.stop_reason,
+      startedAt,
+      attempt: meta.attempt,
+      retryReason: meta.retryReason,
+      streamedEvents,
+    })
+  );
 
   // 캐시가 실제로 히트되는지, 응답이 왜 비어있는지 배포 로그에서 바로 확인하기 위한 관측 로그.
   console.log(
@@ -183,7 +210,8 @@ JSON 하나만 응답: {"valid": boolean, "reason": "invalid일 때만 한 문�
 // 뿐, 여기서 오류가 나서 학생이 피드백을 못 받는 일이 있어서는 안 된다 (fail open).
 export async function quickScreen(
   studentText: string
-): Promise<{ valid: boolean; reason?: string; failure?: unknown }> {
+): Promise<{ valid: boolean; reason?: string; failure?: unknown; call?: ApiCallRecord }> {
+  const startedAt = Date.now();
   try {
     const response = await client.messages.create({
       model: SCREEN_MODEL,
@@ -192,31 +220,74 @@ export async function quickScreen(
       // 판별에는 앞부분만으로 충분해서, 스크리닝 자체의 토큰 비용도 최소로 유지한다.
       messages: [{ role: "user", content: studentText.slice(0, 1000) }],
     });
+    const record = (screenResult: "valid" | "invalid" | "error") =>
+      buildCallRecord({
+        kind: "quick_screen",
+        model: response.model || SCREEN_MODEL,
+        usage: response.usage,
+        stopReason: response.stop_reason,
+        startedAt,
+        screenResult,
+      });
     const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return { valid: true };
-    const parsed = extractJson(textBlock.text) as { valid?: unknown; reason?: unknown };
-    if (typeof parsed.valid !== "boolean") return { valid: true };
+    if (!textBlock || textBlock.type !== "text") return { valid: true, call: record("error") };
+    let parsed: { valid?: unknown; reason?: unknown };
+    try {
+      parsed = extractJson(textBlock.text) as { valid?: unknown; reason?: unknown };
+    } catch {
+      return { valid: true, call: record("error") };
+    }
+    if (typeof parsed.valid !== "boolean") return { valid: true, call: record("error") };
     return {
       valid: parsed.valid,
       reason: typeof parsed.reason === "string" ? parsed.reason : undefined,
+      call: record(parsed.valid ? "valid" : "invalid"),
     };
   } catch (e) {
     console.error("[quickScreen] 스크리닝 실패, 본분석은 그대로 진행:", e);
     // 통과시키되, 호출한 쪽이 오류 기록을 남길 수 있도록 실패 원인을 함께 돌려준다.
-    return { valid: true, failure: e };
+    // (API 호출 자체가 실패했으니 토큰 사용량은 없다 - 결과만 'error'로 남긴다.)
+    return {
+      valid: true,
+      failure: e,
+      call: {
+        kind: "quick_screen",
+        model: SCREEN_MODEL,
+        attempt: 1,
+        retryReason: null,
+        inputTokens: 0,
+        cacheWriteTokens: 0,
+        cacheWrite1hTokens: 0,
+        cacheReadTokens: 0,
+        outputTokens: 0,
+        stopReason: null,
+        durationMs: Date.now() - startedAt,
+        streamedEvents: null,
+        screenResult: "error",
+        costUsd: 0,
+      },
+    };
   }
 }
 
 // 본분석 호출 + 가드레일 검사 + 필요 시 1회 재시도까지 담당하는 최상위 함수.
 // systemPrompt: 관리자가 활성화해둔 프롬프트 버전. 넘기지 않으면 코드의 기본 프롬프트를 쓴다.
+// calls: 이 요청 안에서 모델을 부를 때마다 사용량 기록이 쌓인다. 예외가 나도 그때까지의 기록은
+// 남아 있으니, 호출한 쪽이 finally에서 저장하면 된다.
 export async function evaluateEssay(
   submission: EssaySubmission,
   onProgress?: (charsSoFar: number) => void,
-  systemPrompt: string = SYSTEM_PROMPT
+  systemPrompt: string = SYSTEM_PROMPT,
+  calls: ApiCallRecord[] = []
 ): Promise<CallResult> {
+  const meta = (retryReason: RetryReason | null): CallMeta => ({
+    calls,
+    attempt: calls.length + 1,
+    retryReason,
+  });
   let call: CallResult;
   try {
-    call = await callModel(submission, systemPrompt, undefined, onProgress);
+    call = await callModel(submission, systemPrompt, undefined, onProgress, meta(null));
   } catch (e) {
     if (e instanceof TruncatedResponseError) {
       // 한 번 더 시도. 생각 과정과 설명을 줄여서 JSON을 끝까지 완성하도록 유도한다.
@@ -225,7 +296,8 @@ export async function evaluateEssay(
         systemPrompt,
         "직전 응답이 너무 길어서 중간에 잘렸습니다. 각 항목을 더 간결하게 써서 " +
           "JSON 전체를 반드시 끝까지 완성해서 응답하세요.",
-        onProgress
+        onProgress,
+        meta("truncated")
       );
     } else {
       throw e;
@@ -239,7 +311,8 @@ export async function evaluateEssay(
       systemPrompt,
       "이전 답변에서 mechanics_table 밖의 문장이 학생이 쓴 문장과 거의 동일했습니다. " +
         "학생 문장을 그대로 옮기지 말고, 질문이나 방향 제시로만 다시 작성하세요.",
-      onProgress
+      onProgress,
+      meta("guardrail")
     );
     rewrote = detectRewrittenStudentText(submission.studentText, call.result);
   }
@@ -269,4 +342,137 @@ export class GuardrailViolationError extends Error {
   constructor(public lastResult: EvaluationResult) {
     super("가드레일 위반: AI가 학생 문장을 그대로 재사용했습니다.");
   }
+}
+
+// ---------------------------------------------------------------------------
+// 평가기준 반자동 개선 (관리자 6차분)
+// ---------------------------------------------------------------------------
+
+// 관리자가 가끔 누르는 기능이라 호출 수가 적고, 교육 기준을 고치는 판단이라 가장 좋은 모델을 쓴다.
+const SUGGEST_MODEL = process.env.ANTHROPIC_SUGGEST_MODEL || "claude-opus-5";
+
+const SUGGEST_SYSTEM_PROMPT = `너는 초등학교 4~6학년 글쓰기 첨삭 AI의 "평가기준 프롬프트"를 다듬는 편집자야.
+관리자들이 실제 첨삭을 검토하고 남긴 판정('아쉬움'·'부적절')과 메모를 근거로, 지금 프롬프트에서
+고쳐야 할 부분만 최소한으로 찾아 바꾸는 수정안을 만든다. 수정안은 사람이 검토한 뒤 적용한다.
+
+지켜야 할 원칙:
+- 여러 검토에서 반복되는 문제(2건 이상)나, '부적절' 판정처럼 한 건이라도 심각한 문제만 고친다.
+  근거가 한두 건의 취향 차이뿐이면 고치지 말고, changes를 비운 채 summary에 이유를 적는다.
+- 서비스의 교육 철학은 바꾸지 않는다: 잘한 점을 먼저 찾기, 모범답안을 대신 써주지 않기,
+  한 번에 너무 많이 지적하지 않기, 아이 수준(학년)에 맞추기, 창의적인 관점을 감점하지 않기.
+- 응답 JSON의 구조(필드 이름, 값의 종류, 등급 이름 '능숙/보통/도움필요' 등)는 절대 바꾸지 않는다.
+  앱이 그 구조를 그대로 읽기 때문에, 바꾸면 채점 화면이 깨진다.
+- 변경은 최대 6개. 각 변경의 find에는 현재 프롬프트에 있는 문장을 한 글자도 바꾸지 말고 그대로
+  복사하되, 프롬프트 안에서 한 번만 나오는 충분히 긴 구절을 고른다. 새 규칙을 덧붙일 때만 find를
+  빈 문자열로 두고 replace에 덧붙일 내용을 쓴다.
+- replace는 find를 대신할 전체 문장이다. 기존 문장의 좋은 부분은 살린다.
+- 모든 설명(summary, issue, rationale, caution)은 관리자가 읽을 한국어로, 짧고 구체적으로 쓴다.
+- caution에는 이 수정안을 적용했을 때 생길 수 있는 부작용(예: 등급이 전체적으로 박해질 수 있음)을 적는다.`;
+
+const SUGGEST_SCHEMA = {
+  type: "object",
+  properties: {
+    summary: { type: "string" },
+    caution: { type: "string" },
+    changes: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          issue: { type: "string" },
+          rationale: { type: "string" },
+          find: { type: "string" },
+          replace: { type: "string" },
+        },
+        required: ["issue", "rationale", "find", "replace"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["summary", "caution", "changes"],
+  additionalProperties: false,
+};
+
+function formatDigest(digest: ReviewDigest): string {
+  const lines = digest.items.map((r, i) =>
+    [
+      `## 검토 ${i + 1} — ${r.verdict}`,
+      `학년: ${r.gradeBand}학년 · 글 종류: ${r.writingType} · ${r.versionNo}번째 시도`,
+      r.issues.length ? `문제 유형: ${r.issues.join(", ")}` : "",
+      r.note ? `관리자 메모: ${r.note}` : "",
+      `AI 등급: ${r.aiScores}`,
+      r.aiPriority ? `AI가 꼽은 보완점: ${r.aiPriority}` : "",
+      r.aiSummary ? `AI 총평: ${r.aiSummary}` : "",
+      `학생 글(앞부분): ${r.studentExcerpt}`,
+    ]
+      .filter(Boolean)
+      .join("\n")
+  );
+  return [
+    "# 이 평가기준으로 채점한 첨삭의 검토 결과",
+    `적절 ${digest.counts.적절}건 · 아쉬움 ${digest.counts.아쉬움}건 · 부적절 ${digest.counts.부적절}건`,
+    `아래는 '아쉬움'·'부적절' 판정 ${digest.items.length}건이야.`,
+    "",
+    lines.join("\n\n"),
+  ].join("\n");
+}
+
+export class RubricSuggestError extends Error {}
+
+export async function suggestRubricRevision(
+  currentPrompt: string,
+  digest: ReviewDigest
+): Promise<{ suggestion: RubricSuggestion; call: ApiCallRecord }> {
+  const startedAt = Date.now();
+  // 출력이 길 수 있어 스트리밍으로 받고(요청 타임아웃 방지) 완성된 메시지만 쓴다.
+  // fallbacks "default": 안전 분류기가 요청을 거절하면 서버가 알맞은 다른 모델로 다시 돌려준다.
+  const stream = client.beta.messages.stream({
+    model: SUGGEST_MODEL,
+    max_tokens: 32000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    thinking: { type: "adaptive" },
+    output_config: {
+      effort: "high",
+      format: { type: "json_schema", schema: SUGGEST_SCHEMA },
+    },
+    system: SUGGEST_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          `<current_prompt>\n${currentPrompt}\n</current_prompt>`,
+          formatDigest(digest),
+          "위 검토를 근거로 현재 프롬프트의 수정안을 만들어줘.",
+        ].join("\n\n"),
+      },
+    ],
+  });
+  const response = await stream.finalMessage();
+
+  const call = buildCallRecord({
+    kind: "rubric_suggest",
+    model: response.model || SUGGEST_MODEL,
+    usage: response.usage,
+    stopReason: response.stop_reason,
+    startedAt,
+  });
+
+  if (response.stop_reason === "refusal") {
+    throw new RubricSuggestError("AI가 이 요청에 응답하지 않았어요. 잠시 후 다시 시도해주세요.");
+  }
+  if (response.stop_reason === "max_tokens") {
+    throw new RubricSuggestError("수정안이 너무 길어 중간에 끊겼어요. 다시 시도해주세요.");
+  }
+  const textBlock = response.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new RubricSuggestError("AI가 수정안을 돌려주지 않았어요.");
+  }
+  let suggestion: RubricSuggestion;
+  try {
+    suggestion = JSON.parse(textBlock.text) as RubricSuggestion;
+  } catch {
+    throw new RubricSuggestError("AI 수정안을 해석하지 못했어요. 다시 시도해주세요.");
+  }
+  return { suggestion, call };
 }

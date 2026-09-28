@@ -20,7 +20,7 @@ import ResultView from "./ResultView";
 
 const noop = () => {};
 
-function formatDateTime(iso: string): string {
+export function formatDateTime(iso: string): string {
   const d = new Date(iso);
   const hh = String(d.getHours()).padStart(2, "0");
   const mi = String(d.getMinutes()).padStart(2, "0");
@@ -488,7 +488,7 @@ export function ErrorsTab({
 // 공통 조각 (AdminConsole.tsx와 같은 모양)
 // ---------------------------------------------------------------------------
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+export function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="bg-ink px-3 py-2 text-[10px] uppercase tracking-[0.3em] text-white">
       {children}
@@ -496,13 +496,13 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+export function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <span className="text-[10px] uppercase tracking-[0.25em] text-ink/45">{children}</span>
   );
 }
 
-function EmptyNotice({ title, body }: { title: string; body: string }) {
+export function EmptyNotice({ title, body }: { title: string; body: string }) {
   return (
     <div className="mt-6 border-l-4 border-ink/30 pl-5">
       <p className="break-keep text-base font-bold tracking-tight text-ink">{title}</p>

@@ -1,7 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { EvaluationResult } from "@/lib/types";
 
-// 관리자 기능 1차분: 인증 + 이용 현황 확인 + AI 응답 품질/부적절 콘텐츠 검토.
+// 관리자 기능 1차분: 인증 + 이용 현황 확인. (확인이 필요한 글 처리는 4차분에서
+// moderationQueries.ts로 옮겼다.)
 // 2차분(2026-09-19): 글감 관리(topicQueries.ts), 평가기준·프롬프트 버전 관리
 // (promptQueries.ts), 학생별 상세 관리(이 파일의 getChildOverview).
 
@@ -45,72 +45,6 @@ export async function getUsageStats(supabase: SupabaseClient): Promise<UsageStat
     essaysLast7Days: essaysLast7.count ?? 0,
     essaysLast30Days: essaysLast30.count ?? 0,
   };
-}
-
-export interface FlaggedEssay {
-  essayId: string;
-  versionId: string;
-  childNickname: string;
-  childGrade: string;
-  writingType: string;
-  topicTitle: string | null;
-  createdAt: string;
-  safetyNote: string | null;
-  rewroteStudentText: boolean;
-}
-
-interface RawFlaggedRow {
-  created_at: string;
-  essays: {
-    id: string;
-    writing_type: string;
-    topic_title: string | null;
-    children: { nickname: string; grade_band: string } | null;
-  } | null;
-  evaluations: { result: EvaluationResult; rewrote_student_text: boolean }[];
-}
-
-// 최근 버전들 중에서 "어른이 봐야 할" 것만 골라낸다: AI/서버가 안전 신호로 표시했거나
-// (safety.concern), 가드레일이 걸려 학생 문장을 그대로 재사용할 뻔한 응답(rewrote_student_text).
-// 전용 인덱스/뷰 없이 최근 N개 버전만 훑는 가벼운 구현 - 트래픽이 커지면 별도 집계 테이블로
-// 옮기는 게 좋다.
-export async function getFlaggedEssays(
-  supabase: SupabaseClient,
-  scanLimit = 300,
-  resultLimit = 50
-): Promise<FlaggedEssay[]> {
-  const { data, error } = await supabase
-    .from("essay_versions")
-    .select(
-      "id, created_at, essays(id, writing_type, topic_title, children(nickname, grade_band)), evaluations(result, rewrote_student_text)"
-    )
-    .order("created_at", { ascending: false })
-    .limit(scanLimit);
-
-  if (error || !data) return [];
-
-  const flagged: FlaggedEssay[] = [];
-  for (const row of data as unknown as (RawFlaggedRow & { id: string })[]) {
-    const evalRow = row.evaluations?.[0];
-    if (!evalRow || !row.essays) continue;
-    const safety = evalRow.result?.safety;
-    const rewrote = Boolean(evalRow.rewrote_student_text);
-    if (!safety?.concern && !rewrote) continue;
-
-    flagged.push({
-      essayId: row.essays.id,
-      versionId: row.id,
-      childNickname: row.essays.children?.nickname ?? "(알 수 없음)",
-      childGrade: row.essays.children?.grade_band ?? "-",
-      writingType: row.essays.writing_type,
-      topicTitle: row.essays.topic_title,
-      createdAt: row.created_at,
-      safetyNote: safety?.concern ? safety.note : null,
-      rewroteStudentText: rewrote,
-    });
-    if (flagged.length >= resultLimit) break;
-  }
-  return flagged;
 }
 
 // ---------------------------------------------------------------------------

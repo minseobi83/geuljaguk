@@ -394,3 +394,40 @@ create policy "app_errors_admin_update" on public.app_errors
   with check (exists (select 1 from public.admins where admins.id = auth.uid()));
 
 grant select, insert, update on public.app_errors to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 관리자 기능 4차분 (2026-09-28 추가: 부적절한 콘텐츠 처리 흐름)
+-- ---------------------------------------------------------------------------
+
+-- "확인이 필요한 글"(안전 신호 / 가드레일 위반 / 관리자가 품질 검토에서 '부적절' 판정)을
+-- 관리자가 어떻게 처리했는지 남기는 기록. 고쳐 쓰지 않고 한 줄씩 쌓기만 하는 로그라,
+-- 누가 언제 어떤 판단을 했는지 끝까지 되짚을 수 있다. 글의 현재 상태는 가장 최근 행으로 정한다
+-- (행이 하나도 없으면 '미확인').
+create table if not exists public.content_flag_actions (
+  id uuid primary key default gen_random_uuid(),
+  essay_version_id uuid not null references public.essay_versions (id) on delete cascade,
+  status text not null check (status in ('확인 중', '조치 완료', '문제 없음', '미확인')),
+  action_taken text, -- 예: '보호자 안내', '전문기관 연계 안내' (앱에서 고르는 목록, 자유롭게 늘릴 수 있게 check는 두지 않음)
+  note text,
+  actor_id uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists content_flag_actions_version_idx
+  on public.content_flag_actions (essay_version_id, created_at desc);
+
+alter table public.content_flag_actions enable row level security;
+
+-- 읽기·쓰기 모두 관리자만, 쓰기는 본인 이름으로만. update/delete 정책은 두지 않는다(기록은 고칠 수 없음).
+drop policy if exists "content_flag_actions_admin_select" on public.content_flag_actions;
+create policy "content_flag_actions_admin_select" on public.content_flag_actions
+  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+
+drop policy if exists "content_flag_actions_admin_insert" on public.content_flag_actions;
+create policy "content_flag_actions_admin_insert" on public.content_flag_actions
+  for insert with check (
+    actor_id = auth.uid()
+    and exists (select 1 from public.admins where admins.id = auth.uid())
+  );
+
+grant select, insert on public.content_flag_actions to authenticated;

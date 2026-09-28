@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   getChildOverview,
-  getFlaggedEssays,
   getUsageStats,
   isAdmin,
 } from "@/lib/supabase/adminQueries";
@@ -13,6 +12,7 @@ import {
   getQualitySummary,
   getReviewQueue,
 } from "@/lib/supabase/qualityQueries";
+import { getModerationQueue } from "@/lib/supabase/moderationQueries";
 import TopNav from "@/components/TopNav";
 import AdminConsole from "@/components/AdminConsole";
 
@@ -50,7 +50,7 @@ export default async function AdminPage() {
 
   const [
     stats,
-    flagged,
+    moderationResult,
     topicResult,
     childResult,
     promptResult,
@@ -60,7 +60,7 @@ export default async function AdminPage() {
     errorResult,
   ] = await Promise.all([
     getUsageStats(supabase),
-    getFlaggedEssays(supabase),
+    getModerationQueue(supabase),
     getAllTopicsForAdmin(supabase),
     getChildOverview(supabase),
     getPromptVersions(supabase),
@@ -90,7 +90,9 @@ export default async function AdminPage() {
 
         <AdminConsole
           stats={stats}
-          flagged={flagged}
+          moderationItems={moderationResult.items}
+          moderationError={moderationResult.error}
+          moderationLogError={moderationResult.logError}
           topics={topicResult.topics}
           topicsError={topicResult.error}
           childRows={childResult.children}

@@ -5,11 +5,8 @@ import { formatDateShort } from "@/lib/format";
 import { WritingType } from "@/lib/types";
 import { AdminTopic } from "@/lib/supabase/topicQueries";
 import { PromptVersion } from "@/lib/supabase/promptQueries";
-import {
-  AdminChildRow,
-  FlaggedEssay,
-  UsageStats,
-} from "@/lib/supabase/adminQueries";
+import { AdminChildRow, UsageStats } from "@/lib/supabase/adminQueries";
+import { ModerationItem, OPEN_STATUSES } from "@/lib/supabase/moderationQueries";
 import {
   ActionResult,
   activatePromptVersion,
@@ -25,6 +22,7 @@ import {
   VersionQualitySummary,
 } from "@/lib/supabase/qualityQueries";
 import { ErrorsTab, ReviewTab } from "./AdminQualityTabs";
+import ModerationTab from "./AdminModerationTab";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -39,6 +37,7 @@ const WRITING_TYPES: WritingType[] = [
 
 const TABS = [
   { id: "usage", label: "이용 현황" },
+  { id: "moderation", label: "콘텐츠 관리" },
   { id: "topics", label: "글감 관리" },
   { id: "students", label: "학생별" },
   { id: "rubric", label: "평가기준" },
@@ -50,7 +49,9 @@ type TabId = (typeof TABS)[number]["id"];
 
 interface Props {
   stats: UsageStats;
-  flagged: FlaggedEssay[];
+  moderationItems: ModerationItem[];
+  moderationError: string | null;
+  moderationLogError: string | null;
   topics: AdminTopic[];
   topicsError: string | null;
   childRows: AdminChildRow[];
@@ -74,6 +75,9 @@ export default function AdminConsole(props: Props) {
   const [tab, setTab] = useState<TabId>("usage");
   // 서버 액션 결과 한 줄 알림. 어느 탭에서 무엇을 했든 같은 자리에 보여준다.
   const [notice, setNotice] = useState<ActionResult | null>(null);
+  const openModerationCount = props.moderationItems.filter((i) =>
+    OPEN_STATUSES.includes(i.status)
+  ).length;
 
   return (
     <>
@@ -93,6 +97,11 @@ export default function AdminConsole(props: Props) {
             }`}
           >
             {t.label}
+            {t.id === "moderation" && openModerationCount > 0 && (
+              <span className="ml-1.5 bg-warn px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {openModerationCount}
+              </span>
+            )}
           </button>
         ))}
       </nav>
@@ -107,7 +116,22 @@ export default function AdminConsole(props: Props) {
         </p>
       )}
 
-      {tab === "usage" && <UsageTab stats={props.stats} flagged={props.flagged} />}
+      {tab === "usage" && (
+        <UsageTab
+          stats={props.stats}
+          openModerationCount={openModerationCount}
+          onOpenModeration={() => setTab("moderation")}
+        />
+      )}
+      {tab === "moderation" && (
+        <ModerationTab
+          items={props.moderationItems}
+          error={props.moderationError}
+          logError={props.moderationLogError}
+          currentUserId={props.currentUserId}
+          onDone={setNotice}
+        />
+      )}
       {tab === "topics" && (
         <TopicsTab
           topics={props.topics}
@@ -154,7 +178,15 @@ export default function AdminConsole(props: Props) {
 // 이용 현황
 // ---------------------------------------------------------------------------
 
-function UsageTab({ stats, flagged }: { stats: UsageStats; flagged: FlaggedEssay[] }) {
+function UsageTab({
+  stats,
+  openModerationCount,
+  onOpenModeration,
+}: {
+  stats: UsageStats;
+  openModerationCount: number;
+  onOpenModeration: () => void;
+}) {
   return (
     <>
       <section className="mt-8 grid grid-cols-2 gap-px bg-ink/15 sm:grid-cols-5">
@@ -167,45 +199,23 @@ function UsageTab({ stats, flagged }: { stats: UsageStats; flagged: FlaggedEssay
 
       <section className="mt-12">
         <SectionLabel>Review · 확인이 필요한 글</SectionLabel>
-        <p className="mt-3 break-keep text-xs leading-6 text-ink/45">
-          안전 신호가 감지됐거나, AI가 학생 문장을 그대로 재사용할 뻔해 가드레일이 걸린
-          글이에요. 최근 300개 제출 중에서 골랐어요.
+        <p className="mt-4 break-keep text-sm leading-6 text-ink/70">
+          {openModerationCount > 0 ? (
+            <>
+              아직 처리하지 않은 글이{" "}
+              <b className="text-warn">{openModerationCount}건</b> 있어요.
+            </>
+          ) : (
+            "지금은 처리할 글이 없어요."
+          )}{" "}
+          <button
+            type="button"
+            onClick={onOpenModeration}
+            className="text-ink/60 underline underline-offset-4"
+          >
+            콘텐츠 관리 탭에서 보기
+          </button>
         </p>
-        {flagged.length === 0 ? (
-          <p className="mt-6 text-sm text-ink/50">지금은 확인할 항목이 없어요.</p>
-        ) : (
-          <ul className="mt-4 grid gap-x-10 lg:grid-cols-2">
-            {flagged.map((f) => (
-              <li key={f.versionId} className="border-b border-ink/15 py-4">
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="break-keep text-base font-bold tracking-tight text-ink">
-                    {f.childNickname} ({f.childGrade}학년) · {f.topicTitle ?? f.writingType}
-                  </p>
-                  <span className="shrink-0 font-mono text-xs text-ink/40">
-                    {formatDateShort(f.createdAt)}
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {f.safetyNote && (
-                    <span className="border border-warn px-2 py-0.5 text-[11px] font-bold text-warn">
-                      안전 신호
-                    </span>
-                  )}
-                  {f.rewroteStudentText && (
-                    <span className="border border-ink/25 px-2 py-0.5 text-[11px] text-ink/60">
-                      가드레일 위반(학생 문장 재사용)
-                    </span>
-                  )}
-                </div>
-                {f.safetyNote && (
-                  <p className="mt-2 break-keep text-sm leading-6 text-ink/70">
-                    {f.safetyNote}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
     </>
   );

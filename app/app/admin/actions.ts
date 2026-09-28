@@ -265,3 +265,45 @@ export async function setErrorResolved(formData: FormData): Promise<ActionResult
   revalidatePath("/admin");
   return { ok: true, message: resolved ? "처리 완료로 표시했어요." : "다시 미처리로 돌렸어요." };
 }
+
+// ---------------------------------------------------------------------------
+// 부적절한 콘텐츠 처리 (관리자 4차분)
+// ---------------------------------------------------------------------------
+
+const MODERATION_STATUS_VALUES = ["미확인", "확인 중", "조치 완료", "문제 없음"] as const;
+
+// 처리 기록은 고쳐 쓰지 않고 한 줄씩 쌓는다 - 가장 최근 줄이 그 글의 현재 상태.
+export async function recordModerationAction(formData: FormData): Promise<ActionResult> {
+  const { supabase, userId, ok } = await requireAdmin();
+  if (!ok || !userId) return { ok: false, message: "관리자만 콘텐츠를 처리할 수 있어요." };
+
+  const versionId = String(formData.get("version_id") ?? "");
+  const status = String(formData.get("status") ?? "");
+  const actionTaken = String(formData.get("action_taken") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!versionId) return { ok: false, message: "어떤 글인지 알 수 없어요." };
+  if (!MODERATION_STATUS_VALUES.includes(status as (typeof MODERATION_STATUS_VALUES)[number])) {
+    return { ok: false, message: "처리 상태를 골라주세요." };
+  }
+  if (status === "조치 완료" && !actionTaken) {
+    return { ok: false, message: "어떤 조치를 했는지 골라주세요." };
+  }
+  // 닫는 판단(조치 완료 / 문제 없음)과 다시 여는 판단은 나중에 이유를 알 수 있어야 한다.
+  if (status !== "확인 중" && !note) {
+    return { ok: false, message: "판단한 이유나 한 일을 메모로 남겨주세요." };
+  }
+
+  const { error } = await supabase.from("content_flag_actions").insert({
+    essay_version_id: versionId,
+    status,
+    action_taken: status === "조치 완료" ? actionTaken : null,
+    note: note || null,
+    actor_id: userId,
+  });
+
+  if (error) return { ok: false, message: `저장하지 못했어요: ${error.message}` };
+
+  revalidatePath("/admin");
+  return { ok: true, message: `'${status}'(으)로 기록했어요.` };
+}

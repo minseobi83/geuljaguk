@@ -5,6 +5,7 @@ import TierBadge from "./TierBadge";
 import IndicatorTrends from "./IndicatorTrends";
 import HighlightedEssayText from "./HighlightedEssayText";
 import EssayCalendar from "./EssayCalendar";
+import SavedAnswerList from "./SavedAnswerList";
 import { formatDateShort } from "@/lib/format";
 import { withYiGa } from "@/lib/korean";
 import {
@@ -240,6 +241,11 @@ export default function DashboardTabs({
                       </p>
                     )}
 
+                    <SavedAnswerList
+                      answers={essay.paragraphAnswers}
+                      label={`${nickname}의 생각`}
+                    />
+
                     {essay.scores && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         <TierBadge label="사고력" tier={essay.scores.사고력} size="sm" />
@@ -262,7 +268,11 @@ export default function DashboardTabs({
       )}
 
       {tab === "calendar" && (
-        <EssayCalendar historyDesc={historyDesc} summaryLabel="글자국 총평" />
+        <EssayCalendar
+          historyDesc={historyDesc}
+          summaryLabel="글자국 총평"
+          answerLabel={`${nickname}의 생각`}
+        />
       )}
     </div>
   );

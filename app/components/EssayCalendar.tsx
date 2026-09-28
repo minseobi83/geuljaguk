@@ -5,11 +5,14 @@ import TierBadge from "./TierBadge";
 import HighlightedEssayText from "./HighlightedEssayText";
 import { formatDateShort } from "@/lib/format";
 import { EssayHistoryItem } from "@/lib/supabase/queries";
+import SavedAnswerList from "./SavedAnswerList";
 
 interface Props {
   historyDesc: EssayHistoryItem[];
   // 대시보드는 "글자국 총평", 성장 기록은 "선생님 총평"이라고 부르므로 호출부에서 맞춰 전달한다.
   summaryLabel?: string;
+  // 문단별 답변 목록의 제목 (보호자 화면/아이 화면에 따라 다름).
+  answerLabel?: string;
 }
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -20,7 +23,11 @@ function dateKey(iso: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-export default function EssayCalendar({ historyDesc, summaryLabel = "글자국 총평" }: Props) {
+export default function EssayCalendar({
+  historyDesc,
+  summaryLabel = "글자국 총평",
+  answerLabel = "아이의 생각",
+}: Props) {
   const essaysByDate = useMemo(() => {
     const map = new Map<string, EssayHistoryItem[]>();
     for (const essay of historyDesc) {
@@ -174,6 +181,8 @@ export default function EssayCalendar({ historyDesc, summaryLabel = "글자국 �
                       {essay.summary}
                     </p>
                   )}
+
+                  <SavedAnswerList answers={essay.paragraphAnswers} label={answerLabel} />
 
                   {essay.scores && (
                     <div className="mt-3 flex flex-wrap gap-1.5">

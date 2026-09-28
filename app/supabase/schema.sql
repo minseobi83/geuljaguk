@@ -63,6 +63,13 @@ create table if not exists public.essay_versions (
   unique (essay_id, version_no)
 );
 
+-- 이 시도의 첨삭을 보고 아이가 문단별 질문에 적은 답변 (2026-09-28 추가).
+-- [{ "paragraph_no": 1, "answer": "..." }, ...] 형태. 글쓰기 화면에서 적는 동안 자동 저장되고,
+-- 쓴 글 히스토리·첨삭 캘린더에서 다시 볼 수 있다. 기존 RLS(essay_versions_own_rows)가
+-- update도 자기 자녀 것만 허용하므로 정책을 따로 추가할 필요는 없다.
+alter table public.essay_versions
+  add column if not exists paragraph_answers jsonb not null default '[]'::jsonb;
+
 -- AI 평가 결과. lib/types.ts의 EvaluationResult 전체를 JSON으로 그대로 저장한다.
 -- (지금 단계에선 세부 지표별 테이블로 정규화하지 않고 jsonb 하나로 - 화면은 항상 전체를 같이 보여주기 때문)
 create table if not exists public.evaluations (

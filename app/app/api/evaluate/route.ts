@@ -157,6 +157,8 @@ export async function POST(req: NextRequest) {
         // RLS가 자녀 소유권을 검증하므로, childId가 이 보호자의 자녀가 아니면 essays insert가
         // 그냥 실패한다 (그래도 evaluate 자체는 이미 끝났으니 결과는 돌려준다).
         let essayId: string | null = body.essayId ?? null;
+        // 이번 시도 행의 id. 클라이언트가 문단별 답변을 이 행에 저장할 때 쓴다.
+        let versionId: string | null = null;
         let topicAttemptAfter = topicAttemptUsed;
         try {
           if (!essayId) {
@@ -183,6 +185,7 @@ export async function POST(req: NextRequest) {
             .select("id")
             .single();
           if (versionError) throw versionError;
+          versionId = version.id;
 
           const evalRow = {
             essay_version_id: version.id,
@@ -215,6 +218,7 @@ export async function POST(req: NextRequest) {
           result,
           rawResponseText,
           essayId,
+          versionId,
           topicAttempt: submission.topicTitle
             ? { used: topicAttemptAfter, max: MAX_ATTEMPTS_PER_TOPIC }
             : null,

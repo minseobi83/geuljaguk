@@ -5,6 +5,7 @@ import TierBadge from "./TierBadge";
 import IndicatorTrends from "./IndicatorTrends";
 import HighlightedEssayText from "./HighlightedEssayText";
 import EssayCalendar from "./EssayCalendar";
+import SavedAnswerList from "./SavedAnswerList";
 import { formatDateShort } from "@/lib/format";
 import { EssayHistoryItem } from "@/lib/supabase/queries";
 import { RubricScores } from "@/lib/types";
@@ -147,6 +148,8 @@ export default function GrowthTabs({
                       </p>
                     )}
 
+                    <SavedAnswerList answers={essay.paragraphAnswers} label="내 생각" />
+
                     {essay.scores && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         <TierBadge label="사고력" tier={essay.scores.사고력} size="sm" />
@@ -164,7 +167,7 @@ export default function GrowthTabs({
       )}
 
       {tab === "calendar" && (
-        <EssayCalendar historyDesc={historyDesc} summaryLabel="선생님 총평" />
+        <EssayCalendar historyDesc={historyDesc} summaryLabel="선생님 총평" answerLabel="내 생각" />
       )}
     </div>
   );

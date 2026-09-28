@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import EssayForm from "@/components/EssayForm";
 import ResultView from "@/components/ResultView";
@@ -9,6 +9,8 @@ import { formatDateShort } from "@/lib/format";
 import { splitByTone } from "@/lib/tone";
 import { Topic } from "@/lib/topics";
 import TopNav from "@/components/TopNav";
+import { createClient } from "@/lib/supabase/client";
+import { saveParagraphAnswers } from "@/lib/supabase/queries";
 import {
   ChildProfile,
   EvaluationResult,
@@ -31,12 +33,27 @@ interface VersionRecord {
   topicTitle?: string;
   result: EvaluationResult;
   paragraphAnswers?: ParagraphAnswer[];
+  // DB에 저장된 이 시도 행의 id. 문단별 답변을 이 행에 저장한다 (저장에 실패한 시도면 null).
+  versionId: string | null;
   // AI가 그 시도에서 실제로 반환한 원문 텍스트. 다음 시도를 채점할 때 대화 턴으로
   // 다시 보내서(멀티턴 프롬프트 캐싱) 매번 이전 글 전체를 새 토큰으로 청구하지 않게 한다.
   rawResponseText: string;
 }
 
 type ViewMode = "writing" | "result" | "done" | "compare";
+type AnswerSaveState = "idle" | "saving" | "saved" | "error";
+
+// 답변을 적는 동안 이 시간만큼 손을 멈추면 자동 저장한다.
+const ANSWER_SAVE_DELAY_MS = 1200;
+
+function toAnswerList(answers: Record<number, string>): ParagraphAnswer[] {
+  return Object.entries(answers)
+    .filter(([, answer]) => answer.trim().length > 0)
+    .map(([paragraphNo, answer]) => ({
+      paragraph_no: Number(paragraphNo),
+      answer: answer.trim(),
+    }));
+}
 
 interface Props {
   child: ChildProfile;
@@ -61,6 +78,8 @@ export default function EssayWorkspace({
   const [progressChars, setProgressChars] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [paragraphAnswers, setParagraphAnswers] = useState<Record<number, string>>({});
+  const [answerSaveState, setAnswerSaveState] = useState<AnswerSaveState>("idle");
+  const answerSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 첨삭 노트가 길면 접어두고, 누르면 펼친다.
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
 
@@ -123,6 +142,7 @@ export default function EssayWorkspace({
         result: EvaluationResult;
         rawResponseText: string;
         essayId: string | null;
+        versionId: string | null;
         topicAttempt: TopicAttempt | null;
       } | null = null;
       let streamErrorMessage: string | null = null;
@@ -168,10 +188,12 @@ export default function EssayWorkspace({
           gradeBand: data.gradeBand,
           topicTitle: data.topicTitle,
           result: doneEvent.result,
+          versionId: doneEvent.versionId ?? null,
           rawResponseText: doneEvent.rawResponseText,
         },
       ]);
       setParagraphAnswers({});
+      setAnswerSaveState("idle");
       setView("result");
     } catch {
       setError("서버와 통신하는 중 문제가 생겼어요. 다시 시도해 주세요.");
@@ -181,18 +203,42 @@ export default function EssayWorkspace({
     }
   }
 
+  async function persistAnswers(versionId: string | null, answers: ParagraphAnswer[]) {
+    if (!versionId) return; // 이 시도 자체가 저장되지 못했으면 답변도 붙일 곳이 없다.
+    setAnswerSaveState("saving");
+    const { ok } = await saveParagraphAnswers(createClient(), versionId, answers);
+    setAnswerSaveState(ok ? "saved" : "error");
+  }
+
   function handleParagraphAnswerChange(paragraphNo: number, value: string) {
-    setParagraphAnswers((prev) => ({ ...prev, [paragraphNo]: value }));
+    const next = { ...paragraphAnswers, [paragraphNo]: value };
+    setParagraphAnswers(next);
+    // 적는 동안 잠깐 멈추면 자동 저장 - 새로고침하거나 창을 닫아도 답변이 남도록.
+    if (answerSaveTimer.current) clearTimeout(answerSaveTimer.current);
+    const versionId = current?.versionId ?? null;
+    answerSaveTimer.current = setTimeout(() => {
+      answerSaveTimer.current = null;
+      void persistAnswers(versionId, toAnswerList(next));
+    }, ANSWER_SAVE_DELAY_MS);
+  }
+
+  // 자동 저장을 기다리는 중인 답변이 있으면 바로 저장한다 (화면을 떠나기 전에 호출).
+  function flushAnswerSave() {
+    if (!answerSaveTimer.current) return;
+    clearTimeout(answerSaveTimer.current);
+    answerSaveTimer.current = null;
+    void persistAnswers(current?.versionId ?? null, toAnswerList(paragraphAnswers));
+  }
+
+  function handleDone() {
+    flushAnswerSave();
+    setView("done");
   }
 
   function handleRewrite() {
+    flushAnswerSave();
     // 지금까지 적은 문단별 답변을 이번 시도 기록에 붙여둔다 - 다음 채점 때 아이 생각을 참고하도록.
-    const answers: ParagraphAnswer[] = Object.entries(paragraphAnswers)
-      .filter(([, answer]) => answer.trim().length > 0)
-      .map(([paragraphNo, answer]) => ({
-        paragraph_no: Number(paragraphNo),
-        answer: answer.trim(),
-      }));
+    const answers = toAnswerList(paragraphAnswers);
     if (answers.length > 0) {
       setHistory((prev) =>
         prev.map((h, i) => (i === prev.length - 1 ? { ...h, paragraphAnswers: answers } : h))
@@ -207,6 +253,7 @@ export default function EssayWorkspace({
     setTopicAttempt(null);
     setError(null);
     setParagraphAnswers({});
+    setAnswerSaveState("idle");
     setView("writing");
     router.refresh(); // 최근에 쓴 글 목록에 방금 저장한 글이 반영되도록
   }
@@ -412,6 +459,17 @@ export default function EssayWorkspace({
               </p>
             )}
           </div>
+          {answerSaveState !== "idle" && (
+            <p
+              className={`-mt-3 text-right font-mono text-[11px] ${
+                answerSaveState === "error" ? "text-warn" : "text-ink/40"
+              }`}
+            >
+              {answerSaveState === "saving" && "답변 저장 중..."}
+              {answerSaveState === "saved" && "답변을 저장했어요"}
+              {answerSaveState === "error" && "답변을 저장하지 못했어요. 조금 뒤 다시 적어볼까요?"}
+            </p>
+          )}
           <ResultView
             result={current.result}
             studentText={current.text}
@@ -419,7 +477,7 @@ export default function EssayWorkspace({
             onParagraphAnswerChange={handleParagraphAnswerChange}
             canRewrite={!reachedLimit}
             onRewrite={handleRewrite}
-            onDone={() => setView("done")}
+            onDone={handleDone}
             canCompare={Boolean(previous)}
             onCompare={() => setView("compare")}
           />

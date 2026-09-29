@@ -11,6 +11,7 @@ const KIND_LABELS: Record<ApiCallKind, string> = {
   evaluate: "본분석(첨삭)",
   quick_screen: "사전 선별",
   rubric_suggest: "평가기준 개선안",
+  ocr: "사진 글 읽기",
 };
 
 const STATUS_STYLE: Record<CheckStatus, { label: string; className: string }> = {

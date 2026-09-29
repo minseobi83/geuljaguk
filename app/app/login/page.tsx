@@ -48,6 +48,8 @@ function translateAuthError(error: { code?: string; message: string }): string {
 // 새 항목을 맨 위(또는 최신 날짜)에 추가한다. 아래 화면(LATEST_TICKER_ITEMS)은 가장 최근
 // 날짜의 항목만 자동으로 골라 보여주므로, 날짜만 오늘 날짜로 맞추면 예전 항목은 자연히 빠진다.
 const TICKER_ITEMS = [
+  { tag: "NEW", text: "공책에 쓴 글, 사진 한 장으로 올리기", date: "2026.09.29" },
+  { tag: "UPDATE", text: "저장할 때 화면 위 로딩 바로 진행 상황 표시", date: "2026.09.29" },
   { tag: "NEW", text: "보호자 대시보드 - 최근 8주 꾸준히 쓴 흐름 한눈에", date: "2026.09.29" },
   { tag: "UPDATE", text: "첨삭 질문 답변, 창을 닫아도 바로 저장돼요", date: "2026.09.29" },
   { tag: "NEW", text: "관리자 콘솔 - 직접 신고, 보호자 연락처, 검토 화면에 아이 답변", date: "2026.09.29" },

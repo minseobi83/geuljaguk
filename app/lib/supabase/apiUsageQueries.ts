@@ -155,7 +155,7 @@ export async function getApiHealth(
           ".",
   });
 
-  const kinds: KindSummary[] = (["evaluate", "quick_screen", "rubric_suggest"] as ApiCallKind[]).map(
+  const kinds: KindSummary[] = (["evaluate", "quick_screen", "rubric_suggest", "ocr"] as ApiCallKind[]).map(
     (kind) => {
       const ks = rows.filter((r) => r.kind === kind);
       return {

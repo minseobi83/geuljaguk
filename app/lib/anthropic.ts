@@ -476,3 +476,93 @@ export async function suggestRubricRevision(
   }
   return { suggestion, call };
 }
+
+// ---------------------------------------------------------------------------
+// 사진 속 손글씨 읽기 (2026-09-29, 업로드 1단계)
+// ---------------------------------------------------------------------------
+
+// 아이 손글씨는 반듯하지 않아 가장 잘 읽는 모델을 쓴다. 사진 한 장당 한 번만 부른다.
+const OCR_MODEL = process.env.ANTHROPIC_OCR_MODEL || "claude-opus-5";
+
+export type OcrImageType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+
+const OCR_SYSTEM_PROMPT = `너는 초등학생이 공책이나 원고지에 손으로 쓴 글을 사진에서 읽어 그대로 옮겨 적는 도우미야.
+옮긴 글은 곧바로 아이의 글쓰기 첨삭에 쓰인다. 그래서 가장 중요한 원칙은 "쓴 그대로" 옮기는 것이다.
+
+- 맞춤법, 띄어쓰기, 문장 부호가 틀려도 절대 고치지 않는다. 틀린 그대로가 첨삭할 내용이다.
+- 아이가 문단을 나눈 곳(들여쓰기나 줄을 비운 곳)은 빈 줄 하나로 나눈다. 공책 줄이 바뀐 것만으로는 줄을 나누지 않고 이어 쓴다.
+- 줄을 그어 지운 글자는 옮기지 않는다. 고쳐 쓴 글자가 있으면 고친 쪽을 옮긴다.
+- 확실히 읽을 수 없는 글자는 추측하지 말고 [?]로 남긴다. 한 글자에 [?] 하나.
+- 이름, 학교, 반, 날짜처럼 글 본문이 아닌 머리말은 옮기지 않는다.
+- 글이 아닌 사진(사람, 풍경, 그림만 있는 종이 등)이면 is_writing을 false로 하고 text는 비운다.`;
+
+const OCR_SCHEMA = {
+  type: "object",
+  properties: {
+    is_writing: { type: "boolean" },
+    text: { type: "string" },
+  },
+  required: ["is_writing", "text"],
+  additionalProperties: false,
+};
+
+export class OcrError extends Error {}
+
+export async function transcribeHandwriting(
+  imageBase64: string,
+  mediaType: OcrImageType
+): Promise<{ text: string; unreadable: number; call: ApiCallRecord }> {
+  const startedAt = Date.now();
+  // fallbacks "default": 안전 분류기가 요청을 거절하면 서버가 알맞은 다른 모델로 다시 돌려준다.
+  const response = await client.beta.messages.create({
+    model: OCR_MODEL,
+    max_tokens: 8000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    // 글자를 옮기는 일이라 깊은 추론은 필요 없다 - 비용과 시간을 줄인다.
+    output_config: {
+      effort: "low",
+      format: { type: "json_schema", schema: OCR_SCHEMA },
+    },
+    system: OCR_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
+          { type: "text", text: "이 사진 속 글을 쓴 그대로 옮겨줘." },
+        ],
+      },
+    ],
+  });
+
+  const call = buildCallRecord({
+    kind: "ocr",
+    model: response.model || OCR_MODEL,
+    usage: response.usage,
+    stopReason: response.stop_reason,
+    startedAt,
+  });
+
+  if (response.stop_reason === "refusal") {
+    throw Object.assign(new OcrError("이 사진은 읽을 수 없어요. 다른 사진으로 해볼까요?"), { call });
+  }
+  const textBlock = response.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw Object.assign(new OcrError("사진에서 글을 찾지 못했어요."), { call });
+  }
+  let parsed: { is_writing?: unknown; text?: unknown };
+  try {
+    parsed = JSON.parse(textBlock.text);
+  } catch {
+    throw Object.assign(new OcrError("사진을 읽는 중에 문제가 생겼어요. 다시 해볼까요?"), { call });
+  }
+  const text = typeof parsed.text === "string" ? parsed.text.trim() : "";
+  if (parsed.is_writing === false || !text) {
+    throw Object.assign(
+      new OcrError("사진에서 글을 찾지 못했어요. 글이 잘 보이게 다시 찍어볼까요?"),
+      { call }
+    );
+  }
+  return { text, unreadable: (text.match(/\[\?\]/g) ?? []).length, call };
+}

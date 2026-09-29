@@ -5,7 +5,7 @@ import type { BetaUsage } from "@anthropic-ai/sdk/resources/beta/messages/messag
 // 스트리밍·캐시·사전 선별이 실제로 동작하는지, 비용이 얼마인지 보여주는 데 쓴다.
 // 아이의 글 본문은 절대 담지 않는다 - 숫자만.
 
-export type ApiCallKind = "quick_screen" | "evaluate" | "rubric_suggest";
+export type ApiCallKind = "quick_screen" | "evaluate" | "rubric_suggest" | "ocr";
 export type RetryReason = "truncated" | "guardrail";
 export type ScreenResult = "valid" | "invalid" | "error";
 

@@ -6,6 +6,7 @@ import { Difficulty, pickTopics, Topic } from "@/lib/topics";
 import { DifficultyRecommendation } from "@/lib/difficulty";
 import { bookGuideFor, booksFor } from "@/lib/books";
 import BookInfoPopover from "@/components/BookInfoPopover";
+import PhotoToText from "@/components/PhotoToText";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -407,6 +408,7 @@ export default function EssayForm({
             {text.length.toLocaleString()}자
           </p>
         </div>
+        <PhotoToText currentText={text} onText={setText} disabled={submitting} />
         {/* 원고지 느낌의 괘선 배경 — 줄 간격(38px)과 line-height를 같게 맞춰 글이 줄 위에 앉는다 */}
         <textarea
           value={text}

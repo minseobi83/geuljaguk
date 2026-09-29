@@ -700,3 +700,13 @@ $$;
 
 revoke all on function public.admin_parent_emails(uuid[]) from public, anon;
 grant execute on function public.admin_parent_emails(uuid[]) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 9차분 (2026-09-29 추가: 사진 속 손글씨 읽기 사용량 기록)
+-- ---------------------------------------------------------------------------
+
+-- 공책 사진에서 글자를 읽는 호출('ocr')도 API 상태 탭의 사용량·비용에 잡히도록 종류를 늘린다.
+-- 사진 자체는 어디에도 저장하지 않는다 (글자만 읽고 버림).
+alter table public.api_calls drop constraint if exists api_calls_kind_check;
+alter table public.api_calls add constraint api_calls_kind_check
+  check (kind in ('quick_screen', 'evaluate', 'rubric_suggest', 'ocr'));

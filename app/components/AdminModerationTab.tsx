@@ -12,6 +12,7 @@ import {
 import { ActionResult, recordModerationAction } from "@/app/admin/actions";
 import { EmptyNotice, FieldLabel, SectionLabel, formatDateTime } from "./AdminQualityTabs";
 import SummaryNote from "./SummaryNote";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 // 관리자 4차분(2026-09-28): "콘텐츠 관리" 탭 - 확인이 필요한 글을 열어 보고, 처리 상태와
 // 한 일을 기록한다. 기록은 고칠 수 없고 계속 쌓이기만 한다.
@@ -269,6 +270,7 @@ function ActionForm({
   const [actionTaken, setActionTaken] = useState<string>(MODERATION_ACTIONS[0]);
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   function submit(nextStatus: ModerationStatus, withDetails: boolean) {
     const fd = new FormData();

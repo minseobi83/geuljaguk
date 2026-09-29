@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { exitStudentMode, resetPinWithPassword } from "@/app/student-mode/actions";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 // 학생 모드에서 상단 메뉴의 "보호자 화면" 버튼. 누르면 보호자 PIN을 묻고, 맞으면 학생 모드를 끈다.
 export default function StudentModeExit() {
@@ -13,6 +14,7 @@ export default function StudentModeExit() {
   const [newPin, setNewPin] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
   const router = useRouter();
 
   function close() {

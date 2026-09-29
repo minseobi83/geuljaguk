@@ -20,6 +20,7 @@ import {
   RecentEssay,
   WritingType,
 } from "@/lib/types";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 interface TopicAttempt {
   used: number;
@@ -82,6 +83,8 @@ export default function EssayWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [paragraphAnswers, setParagraphAnswers] = useState<Record<number, string>>({});
   const [answerSaveState, setAnswerSaveState] = useState<AnswerSaveState>("idle");
+  useSavingIndicator(answerSaveState === "saving", "답변을 저장하는 중이에요…");
+  useSavingIndicator(submitting, "선생님이 글을 읽고 있어요…");
   const answerSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 자동 저장을 기다리는 중인 답변. 그 사이 창을 닫으면 이 값을 sendBeacon으로 보낸다.
   const pendingAnswers = useRef<{ versionId: string; answers: ParagraphAnswer[] } | null>(null);

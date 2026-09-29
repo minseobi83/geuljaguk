@@ -20,6 +20,7 @@ import {
 import TierBadge from "./TierBadge";
 import { EmptyNotice, FieldLabel, SectionLabel, formatDateTime } from "./AdminQualityTabs";
 import SummaryNote from "./SummaryNote";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 // 관리자 5차분(2026-09-28): "학생별" 탭 - 학생 찾기, 학습 데이터 요약·상세, 정보 수정,
 // 내보내기, 삭제. 수정·내보내기·삭제는 모두 관리 기록(admin_audit_log)에 남는다.
@@ -297,6 +298,7 @@ function EssayList({
 }) {
   const [openEssayId, setOpenEssayId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   function remove(essayId: string, title: string) {
     if (!window.confirm(`'${title}' 글과 모든 시도·첨삭·답변을 삭제할까요? 되돌릴 수 없어요.`)) {
@@ -399,6 +401,7 @@ function ProfileForm({
   const [nickname, setNickname] = useState(detail.nickname);
   const [gradeBand, setGradeBand] = useState(detail.gradeBand);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   function save() {
     const fd = new FormData();
@@ -462,6 +465,7 @@ function DataActions({
   const [reason, setReason] = useState("");
   const [showDelete, setShowDelete] = useState(false);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   function exportJson() {
     startTransition(async () => {
@@ -627,6 +631,7 @@ function ReportButton({
   const [reason, setReason] = useState("");
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   if (!open) {
     return (

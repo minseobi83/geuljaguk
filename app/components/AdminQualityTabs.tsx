@@ -16,6 +16,7 @@ import {
 import { ActionResult, saveEvaluationReview, setErrorResolved } from "@/app/admin/actions";
 import ResultView from "./ResultView";
 import SavedAnswerList from "./SavedAnswerList";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 // 관리자 3차분(2026-09-24): "품질 검토" · "오류" 탭. AdminConsole.tsx가 커져서 따로 뺐다.
 
@@ -283,6 +284,7 @@ function ReviewForm({
   const [result, setResult] = useState<ActionResult | null>(null);
   const [saved, setSaved] = useState(Boolean(initial));
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   return (
     <form
@@ -405,6 +407,7 @@ export function ErrorsTab({
 }) {
   const [onlyOpen, setOnlyOpen] = useState(true);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   if (error || !overview) {
     return (

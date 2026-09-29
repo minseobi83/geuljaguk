@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { StudentModeProvider } from "@/components/StudentModeContext";
+import GlobalSavingBar from "@/components/GlobalSavingBar";
 import { getStudentModeChildId } from "@/lib/studentMode";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default async function RootLayout({
         <StudentModeProvider value={Boolean(await getStudentModeChildId())}>
           {children}
         </StudentModeProvider>
+        <GlobalSavingBar />
       </body>
     </html>
   );

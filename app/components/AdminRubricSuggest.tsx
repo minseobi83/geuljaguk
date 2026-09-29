@@ -9,6 +9,7 @@ import {
 } from "@/app/admin/actions";
 import { applyRubricChanges } from "@/lib/rubricChanges";
 import { FieldLabel, SectionLabel } from "./AdminQualityTabs";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 // 관리자 6차분(2026-09-28): 평가기준 반자동 개선. 품질 검토 결과를 Claude가 읽고 "찾아 바꾸기"
 // 수정안을 내면, 관리자가 변경을 하나씩 골라 미리 보고 새 버전으로 저장한다. 활성화는 저장 뒤
@@ -17,6 +18,7 @@ import { FieldLabel, SectionLabel } from "./AdminQualityTabs";
 export default function RubricSuggestPanel({ onDone }: { onDone: (r: ActionResult) => void }) {
   const [result, setResult] = useState<RubricSuggestResult | null>(null);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending, "검토를 읽고 개선안을 만드는 중이에요… (1~2분)");
 
   function generate() {
     startTransition(async () => {
@@ -65,6 +67,7 @@ function SuggestionReview({
     `${result.baseLabel} 개선안 (${new Date().getMonth() + 1}/${new Date().getDate()})`
   );
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   const chosen = suggestion.changes.filter((_, i) => picked[i]);
   const preview = edited ?? applyRubricChanges(base, chosen);

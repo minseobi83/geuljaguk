@@ -28,6 +28,7 @@ import StudentsTab from "./AdminStudentsTab";
 import ApiHealthTab from "./AdminApiHealthTab";
 import RubricSuggestPanel from "./AdminRubricSuggest";
 import { ApiHealth } from "@/lib/supabase/apiUsageQueries";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 const WRITING_TYPES: WritingType[] = [
   "주장하는 글",
@@ -256,6 +257,7 @@ function TopicsTab({
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<WritingType | "전체">("전체");
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   const shown =
     filter === "전체" ? topics : topics.filter((t) => t.writingType === filter);
@@ -547,6 +549,7 @@ function RubricTab({
   const [composing, setComposing] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
 
   function run(action: (fd: FormData) => Promise<ActionResult>, fd: FormData) {
     startTransition(async () => {

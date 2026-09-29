@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GradeBand } from "@/lib/types";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 interface Props {
   userId: string;
@@ -22,6 +23,7 @@ export default function OnboardingFlow({
   const [nickname, setNickname] = useState("");
   const [gradeBand, setGradeBand] = useState<GradeBand>("5");
   const [submitting, setSubmitting] = useState(false);
+  useSavingIndicator(submitting);
   const [error, setError] = useState<string | null>(null);
 
   async function handleConsent() {

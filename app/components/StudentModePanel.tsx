@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChildProfile } from "@/lib/types";
 import { enterStudentMode, setStudentPin } from "@/app/student-mode/actions";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 // 보호자 대시보드의 "학생 모드" 칸. 아이에게 기기를 건네주기 전에 켠다.
 // 처음이면 보호자 PIN(학생 모드를 끌 때 필요)부터 정한다.
@@ -24,6 +25,7 @@ export default function StudentModePanel({
   const [confirmPin, setConfirmPin] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  useSavingIndicator(pending);
   const router = useRouter();
 
   const digitsOnly = (v: string) => v.replace(/[^0-9]/g, "").slice(0, 4);

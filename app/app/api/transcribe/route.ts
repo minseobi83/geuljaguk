@@ -11,7 +11,7 @@ import { ApiCallRecord } from "@/lib/apiUsage";
 
 export const maxDuration = 60;
 
-// 브라우저에서 긴 변 1600px JPEG로 줄여 보내므로 보통 1MB 안쪽이다. Vercel 요청 크기 제한(4.5MB)보다
+// 브라우저에서 긴 변 2576px JPEG로 줄여 보내므로 보통 1~2MB다. Vercel 요청 크기 제한(4.5MB)보다
 // 작게 막아서, 줄이기에 실패한 원본이 와도 의미 있는 오류를 돌려준다.
 const MAX_BYTES = 4 * 1024 * 1024;
 const ALLOWED: OcrImageType[] = ["image/jpeg", "image/png", "image/webp", "image/gif"];

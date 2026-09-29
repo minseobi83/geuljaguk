@@ -4,10 +4,14 @@ import { useRef, useState } from "react";
 import { useSavingIndicator } from "@/lib/savingIndicator";
 
 // 공책 사진 한 장을 올리면 손글씨를 읽어 원고 입력칸에 채워준다 (업로드 1단계).
-// 사진은 브라우저에서 긴 변 1600px JPEG로 줄여서 보내고, 서버는 글자만 읽고 사진을 버린다.
-
-const MAX_EDGE = 1600;
-const JPEG_QUALITY = 0.85;
+// 사진은 브라우저에서 줄여서 보내고, 서버는 글자만 읽고 사진을 버린다.
+//
+// 크기: Claude Opus 5가 그대로 읽을 수 있는 최대 해상도(긴 변 2576px, 약 375만 화소)에 맞춘다.
+// 처음엔 1600px로 줄였는데, 공책 한 쪽을 통째로 찍으면 글자 하나가 몇 픽셀밖에 안 돼 인식이 떨어졌다.
+const MAX_EDGE = 2576;
+const MAX_PIXELS = 3_750_000;
+const JPEG_QUALITY = 0.9;
+const MAX_UPLOAD_BYTES = 3.5 * 1024 * 1024;
 
 async function loadImage(file: File): Promise<CanvasImageSource & { width: number; height: number }> {
   // 대부분의 브라우저는 createImageBitmap이 사진의 회전 정보(EXIF)까지 반영해준다.
@@ -29,7 +33,11 @@ async function loadImage(file: File): Promise<CanvasImageSource & { width: numbe
 
 async function shrinkToJpeg(file: File): Promise<Blob> {
   const img = await loadImage(file);
-  const scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height));
+  const scale = Math.min(
+    1,
+    MAX_EDGE / Math.max(img.width, img.height),
+    Math.sqrt(MAX_PIXELS / (img.width * img.height))
+  );
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(img.width * scale);
   canvas.height = Math.round(img.height * scale);
@@ -38,9 +46,13 @@ async function shrinkToJpeg(file: File): Promise<Blob> {
   ctx.fillStyle = "#ffffff"; // 투명한 PNG도 흰 종이처럼
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/jpeg", JPEG_QUALITY)
-  );
+  const encode = (quality: number) =>
+    new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/jpeg", quality)
+    );
+  const blob = await encode(JPEG_QUALITY);
+  // 아주 선명한 사진은 업로드 한도(서버 4MB)를 넘을 수 있어, 그때만 한 번 더 압축한다.
+  return blob.size > MAX_UPLOAD_BYTES ? encode(0.72) : blob;
 }
 
 export default function PhotoToText({
@@ -116,7 +128,8 @@ export default function PhotoToText({
           {reading ? "사진 읽는 중..." : "공책 사진으로 올리기"}
         </button>
         <span className="break-keep text-xs text-ink/45">
-          종이에 쓴 글을 찍어 올리면 글자로 옮겨줘요. 사진은 저장하지 않아요.
+          종이에 쓴 글을 찍어 올리면 글자로 옮겨줘요. 글씨가 화면에 꽉 차고 그림자가 없게 찍으면
+          더 잘 읽어요. 사진은 저장하지 않아요.
         </span>
       </div>
       <input

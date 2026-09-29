@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import EssayForm from "@/components/EssayForm";
 import ResultView from "@/components/ResultView";
@@ -83,6 +83,38 @@ export default function EssayWorkspace({
   const [paragraphAnswers, setParagraphAnswers] = useState<Record<number, string>>({});
   const [answerSaveState, setAnswerSaveState] = useState<AnswerSaveState>("idle");
   const answerSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 자동 저장을 기다리는 중인 답변. 그 사이 창을 닫으면 이 값을 sendBeacon으로 보낸다.
+  const pendingAnswers = useRef<{ versionId: string; answers: ParagraphAnswer[] } | null>(null);
+
+  // 창을 닫거나(pagehide) 다른 앱·탭으로 넘어갈 때(visibilitychange → hidden) 저장을 기다리던
+  // 답변을 바로 보낸다. 일반 요청은 페이지가 닫히며 끊길 수 있어, 전송이 보장되는 sendBeacon을 쓴다.
+  // (모바일에서는 탭을 닫기 전에 hidden 상태를 거치는 경우가 많아 두 이벤트를 모두 본다.)
+  useEffect(() => {
+    function sendPendingAnswers() {
+      const pending = pendingAnswers.current;
+      if (!pending) return;
+      if (answerSaveTimer.current) {
+        clearTimeout(answerSaveTimer.current);
+        answerSaveTimer.current = null;
+      }
+      pendingAnswers.current = null;
+      const body = new Blob([JSON.stringify(pending)], { type: "text/plain" });
+      if (!navigator.sendBeacon?.("/api/paragraph-answers", body)) {
+        void fetch("/api/paragraph-answers", { method: "POST", body, keepalive: true });
+      }
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") sendPendingAnswers();
+    }
+    window.addEventListener("pagehide", sendPendingAnswers);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", sendPendingAnswers);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      // 앱 안에서 다른 화면으로 이동해 이 화면이 사라질 때도 남은 답변을 보낸다.
+      sendPendingAnswers();
+    };
+  }, []);
   // 첨삭 노트가 길면 접어두고, 누르면 펼친다.
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
 
@@ -207,6 +239,7 @@ export default function EssayWorkspace({
   }
 
   async function persistAnswers(versionId: string | null, answers: ParagraphAnswer[]) {
+    pendingAnswers.current = null;
     if (!versionId) return; // 이 시도 자체가 저장되지 못했으면 답변도 붙일 곳이 없다.
     setAnswerSaveState("saving");
     const { ok } = await saveParagraphAnswers(createClient(), versionId, answers);
@@ -219,6 +252,7 @@ export default function EssayWorkspace({
     // 적는 동안 잠깐 멈추면 자동 저장 - 새로고침하거나 창을 닫아도 답변이 남도록.
     if (answerSaveTimer.current) clearTimeout(answerSaveTimer.current);
     const versionId = current?.versionId ?? null;
+    pendingAnswers.current = versionId ? { versionId, answers: toAnswerList(next) } : null;
     answerSaveTimer.current = setTimeout(() => {
       answerSaveTimer.current = null;
       void persistAnswers(versionId, toAnswerList(next));

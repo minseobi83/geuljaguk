@@ -13,6 +13,8 @@ import {
   buildDashboardRecommendation,
   buildEngagementSummary,
   computeEngagementStats,
+  ENGAGEMENT_WEEKS,
+  EngagementStats,
   computeRepeatedIssues,
 } from "@/lib/growth";
 import { EssayHistoryItem } from "@/lib/supabase/queries";
@@ -134,6 +136,7 @@ export default function DashboardTabs({
             <section>
               <SectionTag en="Engagement" ko="학습 성실도 · 수정 참여도" />
               <p className="mt-4 break-keep leading-8 text-ink/80">{engagementSummary}</p>
+              <EngagementDetail stats={engagementStats} />
             </section>
 
             {repeatedIssues.length > 0 && (
@@ -267,6 +270,52 @@ export default function DashboardTabs({
           answerLabel={`${nickname}의 생각`}
         />
       )}
+    </div>
+  );
+}
+
+// 꾸준함을 한눈에: 최근 8주 동안 주마다 몇 편 썼는지 막대 + 세 가지 숫자.
+function EngagementDetail({ stats }: { stats: EngagementStats }) {
+  if (stats.totalEssays === 0) return null;
+  const max = Math.max(1, ...stats.weeklyCounts);
+  const pct = (r: number) => `${Math.round(r * 100)}%`;
+  return (
+    <div className="mt-5">
+      <div className="flex h-16 items-end gap-1.5" aria-label={`최근 ${ENGAGEMENT_WEEKS}주 주별 글 수`}>
+        {stats.weeklyCounts.map((c, i) => {
+          const isThisWeek = i === stats.weeklyCounts.length - 1;
+          return (
+            <div key={i} className="flex flex-1 flex-col items-center gap-1">
+              <span className="font-mono text-[10px] text-ink/45">{c > 0 ? c : ""}</span>
+              <div
+                title={isThisWeek ? `이번 주 ${c}편` : `${stats.weeklyCounts.length - 1 - i}주 전 ${c}편`}
+                className={`w-full ${c > 0 ? (isThisWeek ? "bg-accent" : "bg-ink/70") : "bg-ink/10"}`}
+                style={{ height: c > 0 ? `${Math.max(12, (c / max) * 40)}px` : "4px" }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-1 flex justify-between font-mono text-[10px] text-ink/35">
+        <span>{ENGAGEMENT_WEEKS - 1}주 전</span>
+        <span>이번 주</span>
+      </div>
+      <dl className="mt-4 grid grid-cols-3 gap-px bg-ink/15 text-center">
+        <div className="bg-white p-3">
+          <dt className="text-[10px] tracking-[0.1em] text-ink/45">글 쓴 주</dt>
+          <dd className="mt-1 text-lg font-black text-ink">
+            {stats.activeWeeks}/{ENGAGEMENT_WEEKS}주
+          </dd>
+        </div>
+        <div className="bg-white p-3">
+          <dt className="text-[10px] tracking-[0.1em] text-ink/45">스스로 고쳐 쓴 글</dt>
+          <dd className="mt-1 text-lg font-black text-ink">{pct(stats.revisedRate)}</dd>
+        </div>
+        <div className="bg-white p-3">
+          <dt className="text-[10px] tracking-[0.1em] text-ink/45">질문에 답한 글</dt>
+          <dd className="mt-1 text-lg font-black text-ink">{pct(stats.answeredRate)}</dd>
+        </div>
+      </dl>
     </div>
   );
 }

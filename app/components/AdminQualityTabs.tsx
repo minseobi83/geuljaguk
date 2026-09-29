@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase/qualityQueries";
 import { ActionResult, saveEvaluationReview, setErrorResolved } from "@/app/admin/actions";
 import ResultView from "./ResultView";
+import SavedAnswerList from "./SavedAnswerList";
 
 // 관리자 3차분(2026-09-24): "품질 검토" · "오류" 탭. AdminConsole.tsx가 커져서 따로 뺐다.
 
@@ -202,6 +203,16 @@ export function ReviewTab({
                           <p className="mt-2 whitespace-pre-wrap break-keep border border-ink/15 bg-ink/[0.02] p-4 font-heading text-base leading-8 text-ink/85">
                             {item.studentText}
                           </p>
+                          {item.paragraphAnswers.length > 0 ? (
+                            <SavedAnswerList
+                              answers={item.paragraphAnswers}
+                              label="아이가 첨삭 질문에 적은 답"
+                            />
+                          ) : (
+                            <p className="mt-3 text-xs text-ink/40">
+                              아이가 첨삭 질문에 적은 답이 없어요.
+                            </p>
+                          )}
                         </div>
                         <div>
                           <FieldLabel>AI 첨삭</FieldLabel>

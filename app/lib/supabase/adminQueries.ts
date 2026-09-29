@@ -12,6 +12,23 @@ export async function isAdmin(supabase: SupabaseClient, userId: string): Promise
   return Boolean(data);
 }
 
+// 보호자 이메일 (8차분 admin_parent_emails). 관리자 세션에서만 값이 오고, 함수가 아직 없거나
+// 실패하면 빈 맵을 돌려준다 - 연락처를 못 읽었다고 관리자 화면이 멈추면 안 된다.
+export async function getParentEmails(
+  supabase: SupabaseClient,
+  parentIds: string[]
+): Promise<Map<string, string>> {
+  const ids = [...new Set(parentIds.filter(Boolean))];
+  if (ids.length === 0) return new Map();
+  const { data, error } = await supabase.rpc("admin_parent_emails", { parent_ids: ids });
+  if (error || !data) return new Map();
+  return new Map(
+    (data as { parent_id: string; email: string | null }[])
+      .filter((r) => r.email)
+      .map((r) => [r.parent_id, r.email as string])
+  );
+}
+
 export interface UsageStats {
   totalParents: number;
   totalChildren: number;
@@ -64,6 +81,7 @@ export interface AdminChildEssay {
 export interface AdminChildRow {
   id: string;
   parentId: string;
+  parentEmail: string | null;
   nickname: string;
   gradeBand: string;
   joinedAt: string;
@@ -127,6 +145,7 @@ export async function getChildOverview(
     return {
       id: c.id,
       parentId: c.parent_id,
+      parentEmail: null as string | null,
       nickname: c.nickname,
       gradeBand: c.grade_band,
       joinedAt: c.created_at,
@@ -137,6 +156,12 @@ export async function getChildOverview(
     };
   });
 
+  const emails = await getParentEmails(
+    supabase,
+    children.map((c) => c.parentId)
+  );
+  for (const c of children) c.parentEmail = emails.get(c.parentId) ?? null;
+
   return { children, error: null };
 }
 
@@ -145,6 +170,7 @@ export async function getChildOverview(
 // ---------------------------------------------------------------------------
 
 export interface AdminVersionDetail {
+  id: string;
   versionNo: number;
   createdAt: string;
   studentText: string;
@@ -168,6 +194,7 @@ export interface AdminEssayDetail {
 export interface AdminChildDetail {
   id: string;
   parentId: string;
+  parentEmail: string | null;
   nickname: string;
   gradeBand: string;
   joinedAt: string;
@@ -186,6 +213,7 @@ interface RawDetailRow {
     topic_title: string | null;
     created_at: string;
     essay_versions: {
+      id: string;
       version_no: number;
       created_at: string;
       student_text: string;
@@ -204,10 +232,10 @@ export async function getChildDetail(
     return supabase.from("children").select(columns).eq("id", childId).maybeSingle();
   };
 
-  let { data, error } = await query("version_no, created_at, student_text, paragraph_answers");
+  let { data, error } = await query("id, version_no, created_at, student_text, paragraph_answers");
   // paragraph_answers 컬럼을 아직 안 만든 DB에서도 나머지는 보이도록.
   if (error && /paragraph_answers/.test(error.message)) {
-    ({ data, error } = await query("version_no, created_at, student_text"));
+    ({ data, error } = await query("id, version_no, created_at, student_text"));
   }
   if (error) return { detail: null, error: error.message };
   if (!data) return { detail: null, error: "학생을 찾을 수 없어요. 이미 삭제됐을 수 있어요." };
@@ -224,6 +252,7 @@ export async function getChildDetail(
         .map((v) => {
           const r = v.evaluations?.[0]?.result ?? null;
           return {
+            id: v.id,
             versionNo: v.version_no,
             createdAt: v.created_at,
             studentText: v.student_text,
@@ -243,6 +272,7 @@ export async function getChildDetail(
     detail: {
       id: c.id,
       parentId: c.parent_id,
+      parentEmail: (await getParentEmails(supabase, [c.parent_id])).get(c.parent_id) ?? null,
       nickname: c.nickname,
       gradeBand: c.grade_band,
       joinedAt: c.created_at,

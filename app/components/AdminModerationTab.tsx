@@ -27,12 +27,14 @@ const REASON_STYLE: Record<FlagReason, string> = {
   "안전 신호": "border-warn text-warn font-bold",
   "가드레일 위반": "border-ink/25 text-ink/60",
   "관리자 판정 부적절": "border-ink/25 text-ink/60",
+  "관리자 신고": "border-ink/25 text-ink/60",
 };
 
 const REASON_HELP: Record<FlagReason, string> = {
   "안전 신호": "글에서 자해·폭력·학대처럼 어른이 알아야 할 신호가 보여 AI가 표시한 글",
   "가드레일 위반": "AI가 학생 문장을 그대로 고쳐 써줄 뻔해 안전장치가 걸린 첨삭",
   "관리자 판정 부적절": "품질 검토 탭에서 관리자가 첨삭을 '부적절'로 판정한 글",
+  "관리자 신고": "AI가 표시하지 않았지만 관리자가 학생별 탭에서 직접 신고한 글",
 };
 
 type Filter = "open" | "all" | ModerationStatus;
@@ -209,8 +211,16 @@ function ModerationRow({
               {item.studentText}
             </p>
             {item.aiSummary && <SummaryNote summary={item.aiSummary} />}
+            {item.parentEmail && (
+              <p className="mt-3 break-all text-sm text-ink/70">
+                보호자 연락처 ·{" "}
+                <a href={`mailto:${item.parentEmail}`} className="underline underline-offset-4">
+                  {item.parentEmail}
+                </a>
+              </p>
+            )}
             {item.parentId && (
-              <p className="mt-3 break-all font-mono text-[11px] text-ink/40">
+              <p className="mt-1 break-all font-mono text-[11px] text-ink/40">
                 보호자 계정 ID · {item.parentId}
               </p>
             )}

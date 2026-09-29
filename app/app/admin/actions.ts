@@ -15,6 +15,7 @@ import { getReviewDigest } from "@/lib/supabase/qualityQueries";
 import { RubricSuggestError, suggestRubricRevision } from "@/lib/anthropic";
 import { logApiCalls } from "@/lib/apiUsageLog";
 import { RubricSuggestion, isApplicable } from "@/lib/rubricChanges";
+import { MANUAL_REPORT_ACTION } from "@/lib/supabase/moderationQueries";
 
 // 관리자 화면의 쓰기 동작들. RLS 정책(topics_admin_*, prompt_versions_admin_*)이 DB에서
 // 한 번 더 막아주지만, 액션 진입 시점에도 관리자인지 확인해서 의미 있는 메시지를 돌려준다.
@@ -589,4 +590,32 @@ export async function suggestRubricImprovement(): Promise<RubricSuggestResult> {
         : `개선안을 만들지 못했어요: ${e instanceof Error ? e.message : String(e)}`;
     return { ok: false, message };
   }
+}
+
+// ---------------------------------------------------------------------------
+// 관리자 직접 신고 (2026-09-29)
+// ---------------------------------------------------------------------------
+
+// AI가 표시하지 않은 글이라도 관리자가 보기에 확인이 필요하면 콘텐츠 관리로 올린다.
+// 처리 기록에 '미확인' + '관리자 신고' 한 줄을 남기는 것으로 신고가 된다.
+export async function reportContent(formData: FormData): Promise<ActionResult> {
+  const { supabase, userId, ok } = await requireAdmin();
+  if (!ok || !userId) return { ok: false, message: "관리자만 신고할 수 있어요." };
+
+  const versionId = String(formData.get("version_id") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!versionId) return { ok: false, message: "어떤 글인지 알 수 없어요." };
+  if (!reason) return { ok: false, message: "신고하는 이유를 적어주세요." };
+
+  const { error } = await supabase.from("content_flag_actions").insert({
+    essay_version_id: versionId,
+    status: "미확인",
+    action_taken: MANUAL_REPORT_ACTION,
+    note: reason,
+    actor_id: userId,
+  });
+  if (error) return { ok: false, message: `신고하지 못했어요: ${error.message}` };
+
+  revalidatePath("/admin");
+  return { ok: true, message: "콘텐츠 관리로 신고했어요. 콘텐츠 관리 탭에서 이어서 처리하세요." };
 }

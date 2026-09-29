@@ -678,3 +678,25 @@ alter table public.topics alter column difficulty set not null;
 alter table public.topics drop constraint if exists topics_difficulty_check;
 alter table public.topics add constraint topics_difficulty_check
   check (difficulty in ('기초', '보통', '도전'));
+
+-- ---------------------------------------------------------------------------
+-- 8차분 (2026-09-29 추가: 관리자가 보호자 연락처 확인)
+-- ---------------------------------------------------------------------------
+
+-- 보호자 이메일은 Supabase Auth(auth.users)에만 있고 앱 테이블에는 복사하지 않는다(개인정보 최소화).
+-- 관리자가 안전 신호 등으로 보호자에게 연락해야 할 때만, 관리자임을 확인한 뒤 이메일을 돌려준다.
+-- 관리자가 아니면 빈 결과가 나온다.
+create or replace function public.admin_parent_emails(parent_ids uuid[])
+returns table (parent_id uuid, email text)
+language sql
+stable
+security definer set search_path = public, auth
+as $$
+  select u.id, u.email::text
+  from auth.users u
+  where u.id = any(parent_ids)
+    and exists (select 1 from public.admins where admins.id = auth.uid());
+$$;
+
+revoke all on function public.admin_parent_emails(uuid[]) from public, anon;
+grant execute on function public.admin_parent_emails(uuid[]) to authenticated;

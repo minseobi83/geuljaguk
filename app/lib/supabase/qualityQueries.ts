@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { EvaluationResult } from "@/lib/types";
+import { EvaluationResult, ParagraphAnswer } from "@/lib/types";
+import type { SavedParagraphAnswer } from "./queries";
 
 // 관리자 3차분(2026-09-24): AI 응답 품질 검토 + 오류 확인.
 // 둘 다 admins RLS 정책 덕분에 관리자 세션에서만 전체가 읽힌다.
@@ -48,6 +49,8 @@ export interface ReviewQueueItem {
   // 먼저 봐야 할 이유 (안전 신호 / 가드레일 / 판단하기 어려움). 없으면 빈 배열.
   flags: string[];
   reviews: ReviewEntry[];
+  // 아이가 이 첨삭의 문단별 질문에 적은 답. 첨삭 질문이 아이에게 잘 통했는지 판단하는 근거.
+  paragraphAnswers: SavedParagraphAnswer[];
 }
 
 interface RawReviewRow {
@@ -60,6 +63,7 @@ interface RawReviewRow {
   essay_versions: {
     version_no: number;
     student_text: string;
+    paragraph_answers?: ParagraphAnswer[] | null;
     essays: {
       writing_type: string;
       topic_title: string | null;
@@ -131,24 +135,56 @@ function flagsOf(row: RawReviewRow): string[] {
   return flags;
 }
 
-// 최근 첨삭을 가져와 "아직 아무도 검토하지 않은 것 → 그중 신호가 있는 것" 순으로 앞에 세운다.
-// 최근 N건만 훑는 가벼운 구현이라, 오래된 미검토 첨삭은 목록에서 밀려날 수 있다.
+function reviewColumns(withAnswers: boolean): string {
+  const versionCols = withAnswers ? "version_no, student_text, paragraph_answers" : "version_no, student_text";
+  return `id, created_at, prompt_version_id, confidence, rewrote_student_text, result, essay_versions(${versionCols}, essays(writing_type, topic_title, children(nickname, grade_band))), evaluation_reviews(reviewer_id, verdict, issues, note, updated_at)`;
+}
+
+// 검토 대기열: 아직 아무도 검토하지 않은 첨삭은 오래됐어도 빠짐없이(최대 unreviewedLimit건),
+// 이미 검토한 첨삭은 최근 recentLimit건만 가져와 "미검토 → 그중 신호가 있는 것" 순으로 세운다.
+// (예전에는 최근 80건만 훑어서 오래된 미검토 첨삭이 목록에서 밀려났다.)
 export async function getReviewQueue(
   supabase: SupabaseClient,
-  limit = 80
+  unreviewedLimit = 300,
+  recentLimit = 60
 ): Promise<{ items: ReviewQueueItem[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from("evaluations")
-    .select(
-      "id, created_at, prompt_version_id, confidence, rewrote_student_text, result, essay_versions(version_no, student_text, essays(writing_type, topic_title, children(nickname, grade_band))), evaluation_reviews(reviewer_id, verdict, issues, note, updated_at)"
-    )
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const fetchRows = async (withAnswers: boolean) => {
+    const columns: string = reviewColumns(withAnswers);
+    const [unreviewed, recent] = await Promise.all([
+      // 검토 기록이 하나도 없는 첨삭만 (PostgREST의 embedded 필터: evaluation_reviews=is.null)
+      supabase
+        .from("evaluations")
+        .select(columns)
+        .is("evaluation_reviews", null)
+        .order("created_at", { ascending: false })
+        .limit(unreviewedLimit),
+      supabase
+        .from("evaluations")
+        .select(columns)
+        .order("created_at", { ascending: false })
+        .limit(recentLimit),
+    ]);
+    return { unreviewed, recent };
+  };
 
-  if (error) return { items: [], error: error.message };
+  let { unreviewed, recent } = await fetchRows(true);
+  // paragraph_answers 컬럼을 아직 안 만든 DB에서도 나머지는 보이도록.
+  if (recent.error && /paragraph_answers/.test(recent.error.message)) {
+    ({ unreviewed, recent } = await fetchRows(false));
+  }
+  if (recent.error) return { items: [], error: recent.error.message };
+
+  // 미검토 전용 조회가 실패해도(필터 미지원 등) 최근 목록만으로 예전처럼 보여준다.
+  const rows = [
+    ...((unreviewed.error ? [] : unreviewed.data ?? []) as unknown as RawReviewRow[]),
+    ...((recent.data ?? []) as unknown as RawReviewRow[]),
+  ];
+  const seen = new Set<string>();
 
   const items: ReviewQueueItem[] = [];
-  for (const row of data as unknown as RawReviewRow[]) {
+  for (const row of rows) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
     const version = row.essay_versions;
     if (!version || !row.result) continue;
     items.push({
@@ -170,13 +206,24 @@ export async function getReviewQueue(
         note: r.note,
         updatedAt: r.updated_at,
       })),
+      paragraphAnswers: (version.paragraph_answers ?? [])
+        .filter((a) => a.answer?.trim())
+        .sort((a, b) => a.paragraph_no - b.paragraph_no)
+        .map((a) => ({
+          versionNo: version.version_no,
+          paragraphNo: a.paragraph_no,
+          question:
+            row.result.paragraph_feedback?.find((f) => f.paragraph_no === a.paragraph_no)
+              ?.question ?? null,
+          answer: a.answer.trim(),
+        })),
     });
   }
 
   const rank = (i: ReviewQueueItem) =>
     i.reviews.length > 0 ? 2 : i.flags.length > 0 ? 0 : 1;
-  // sort는 안정 정렬이라, 같은 순위 안에서는 위에서 가져온 최신순이 그대로 유지된다.
-  items.sort((a, b) => rank(a) - rank(b));
+  // 같은 순위 안에서는 최신순.
+  items.sort((a, b) => rank(a) - rank(b) || b.createdAt.localeCompare(a.createdAt));
 
   return { items, error: null };
 }

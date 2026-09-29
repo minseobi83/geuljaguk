@@ -141,32 +141,74 @@ export function computeRepeatedIssues(
 
 // --- 학습 성실도 · 수정 참여도 ---
 
+// 꾸준함은 "주 단위"로 본다. 초등학생에게 매일 쓰기를 기대하는 건 무리라, 일주일에 한 편이라도
+// 썼는지를 기준으로 삼는다.
+export const ENGAGEMENT_WEEKS = 8;
+
 export interface EngagementStats {
   totalEssays: number;
   revisedEssays: number; // 한 번 이상 스스로 다시 써본 글의 수
   revisedRate: number; // 0~1
+  answeredEssays: number; // 첨삭 질문에 한 번이라도 답을 적은 글의 수
+  answeredRate: number; // 0~1
   last7Days: number;
   last30Days: number;
+  weeklyCounts: number[]; // 최근 ENGAGEMENT_WEEKS주, 오래된 주 → 이번 주 순서
+  activeWeeks: number; // 그중 한 편이라도 쓴 주의 수
+  weekStreak: number; // 이번 주(아직 안 썼으면 지난주)부터 거슬러 올라가 연속으로 쓴 주 수
+}
+
+// 월요일 0시 기준으로 몇 주 전인지 (이번 주 = 0).
+function weeksAgo(iso: string, now: Date): number {
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const t = new Date(iso).getTime();
+  if (t >= monday.getTime()) return 0;
+  return Math.floor((monday.getTime() - t) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
 export function computeEngagementStats(
-  history: Pick<EssayHistoryItem, "createdAt" | "versionCount">[]
+  history: Pick<EssayHistoryItem, "createdAt" | "versionCount" | "paragraphAnswers">[],
+  now: Date = new Date()
 ): EngagementStats {
   const DAY = 24 * 60 * 60 * 1000;
-  const now = Date.now();
+  const nowMs = now.getTime();
   const totalEssays = history.length;
   const revisedEssays = history.filter((h) => h.versionCount >= 2).length;
-  const last7Days = history.filter((h) => now - new Date(h.createdAt).getTime() <= 7 * DAY).length;
+  const answeredEssays = history.filter((h) => (h.paragraphAnswers?.length ?? 0) > 0).length;
+  const last7Days = history.filter((h) => nowMs - new Date(h.createdAt).getTime() <= 7 * DAY).length;
   const last30Days = history.filter(
-    (h) => now - new Date(h.createdAt).getTime() <= 30 * DAY
+    (h) => nowMs - new Date(h.createdAt).getTime() <= 30 * DAY
   ).length;
+
+  const weeklyCounts = new Array(ENGAGEMENT_WEEKS).fill(0);
+  for (const h of history) {
+    const w = weeksAgo(h.createdAt, now);
+    if (w < ENGAGEMENT_WEEKS) weeklyCounts[ENGAGEMENT_WEEKS - 1 - w] += 1;
+  }
+  const activeWeeks = weeklyCounts.filter((c) => c > 0).length;
+
+  // 이번 주에 아직 안 썼어도 지난주까지 이어졌다면 끊긴 것으로 보지 않는다.
+  let i = ENGAGEMENT_WEEKS - 1;
+  if (weeklyCounts[i] === 0) i -= 1;
+  let weekStreak = 0;
+  while (i >= 0 && weeklyCounts[i] > 0) {
+    weekStreak += 1;
+    i -= 1;
+  }
 
   return {
     totalEssays,
     revisedEssays,
     revisedRate: totalEssays > 0 ? revisedEssays / totalEssays : 0,
+    answeredEssays,
+    answeredRate: totalEssays > 0 ? answeredEssays / totalEssays : 0,
     last7Days,
     last30Days,
+    weeklyCounts,
+    activeWeeks,
+    weekStreak,
   };
 }
 
@@ -185,6 +227,11 @@ export function buildEngagementSummary(stats: EngagementStats, nickname: string)
     );
   } else {
     parts.push(`아직 다시 고쳐 쓴 글은 없어요 - 피드백을 보고 한 번 더 도전해보면 더 좋아요.`);
+  }
+  if (stats.weekStreak >= 2) {
+    parts.push(`${stats.weekStreak}주 연속으로 꾸준히 쓰고 있어요.`);
+  } else if (stats.activeWeeks > 0 && stats.last7Days === 0) {
+    parts.push(`이번 주는 아직 쓰지 않았어요. 짧은 글 한 편으로 흐름을 이어가 보세요.`);
   }
   return parts.join(" ");
 }

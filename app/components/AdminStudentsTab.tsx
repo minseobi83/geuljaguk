@@ -14,6 +14,7 @@ import {
   deleteStudentEssay,
   exportStudentData,
   loadStudentDetail,
+  reportContent,
   updateStudentProfile,
 } from "@/app/admin/actions";
 import TierBadge from "./TierBadge";
@@ -58,7 +59,10 @@ export default function StudentsTab({
     const rows = childRows.filter(
       (c) =>
         (grade === "all" || c.gradeBand === grade) &&
-        (!q || c.nickname.toLowerCase().includes(q) || c.parentId.startsWith(q))
+        (!q ||
+          c.nickname.toLowerCase().includes(q) ||
+          c.parentId.startsWith(q) ||
+          (c.parentEmail ?? "").toLowerCase().includes(q))
     );
     const key = (c: AdminChildRow) =>
       sort === "recent" ? c.lastActivityAt ?? "" : sort === "joined" ? c.joinedAt : "";
@@ -84,7 +88,7 @@ export default function StudentsTab({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="별명 또는 보호자 계정 ID로 찾기"
+            placeholder="별명, 보호자 이메일 또는 계정 ID로 찾기"
             className="min-w-0 flex-1 border-b border-ink/30 bg-transparent py-1 outline-none focus:border-ink"
           />
           <select
@@ -260,7 +264,15 @@ function LearningSummary({ detail }: { detail: AdminChildDetail }) {
           </span>
         )}
       </div>
-      <p className="mt-3 break-all font-mono text-[11px] text-ink/40">
+      {detail.parentEmail && (
+        <p className="mt-3 break-all text-sm text-ink/70">
+          보호자 연락처 ·{" "}
+          <a href={`mailto:${detail.parentEmail}`} className="underline underline-offset-4">
+            {detail.parentEmail}
+          </a>
+        </p>
+      )}
+      <p className="mt-1 break-all font-mono text-[11px] text-ink/40">
         가입 {formatDateShort(detail.joinedAt)} · 보호자 계정 ID {detail.parentId}
       </p>
     </div>
@@ -345,6 +357,7 @@ function EssayList({
                             {v.nextTaskSkill && <>· 다음 과제 · {v.nextTaskSkill}</>}
                           </p>
                         )}
+                        <ReportButton versionId={v.id} onDone={onDone} />
                         {v.paragraphAnswers.length > 0 && (
                           <ul className="mt-2 border-l-2 border-accent/40 pl-3">
                             {v.paragraphAnswers.map((a) => (
@@ -599,5 +612,76 @@ function AuditLogSection({
         </ul>
       )}
     </section>
+  );
+}
+
+// 시도 하나를 콘텐츠 관리로 신고한다. AI가 안전 신호를 놓친 글을 관리자가 직접 올리는 길.
+function ReportButton({
+  versionId,
+  onDone,
+}: {
+  versionId: string;
+  onDone: (r: ActionResult) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [result, setResult] = useState<ActionResult | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  if (!open) {
+    return (
+      <div className="mt-2 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-xs text-warn underline underline-offset-4"
+        >
+          이 시도 신고
+        </button>
+        {result?.ok && <span className="text-xs text-growth">✓ 신고했어요</span>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 border-l-4 border-warn pl-3">
+      <input
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="신고 이유 (예: 친구에게 괴롭힘을 당한다는 내용이 있음)"
+        className="w-full border-b border-ink/30 bg-transparent py-1 text-sm outline-none focus:border-ink"
+      />
+      <div className="mt-2 flex items-center gap-3">
+        <button
+          type="button"
+          disabled={pending || !reason.trim()}
+          onClick={() => {
+            const fd = new FormData();
+            fd.set("version_id", versionId);
+            fd.set("reason", reason);
+            startTransition(async () => {
+              const r = await reportContent(fd);
+              setResult(r);
+              onDone(r);
+              if (r.ok) {
+                setOpen(false);
+                setReason("");
+              }
+            });
+          }}
+          className="bg-warn px-4 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+        >
+          {pending ? "신고하는 중..." : "콘텐츠 관리로 신고"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-xs text-ink/50 underline underline-offset-4"
+        >
+          취소
+        </button>
+        {result && !result.ok && <span className="text-xs text-warn">{result.message}</span>}
+      </div>
+    </div>
   );
 }

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import FeatureDemo from "@/components/FeatureDemos";
+import { useSavingIndicator } from "@/lib/savingIndicator";
 
 type Mode = "signin" | "signup";
 
@@ -48,6 +49,8 @@ function translateAuthError(error: { code?: string; message: string }): string {
 // 새 항목을 맨 위(또는 최신 날짜)에 추가한다. 아래 화면(LATEST_TICKER_ITEMS)은 가장 최근
 // 날짜의 항목만 자동으로 골라 보여주므로, 날짜만 오늘 날짜로 맞추면 예전 항목은 자연히 빠진다.
 const TICKER_ITEMS = [
+  { tag: "UPDATE", text: "로그인·글쓰기 화면으로 넘어갈 때도 로딩 바로 알려줘요", date: "2026.09.30" },
+  { tag: "UPDATE", text: "공책 사진 속 손글씨를 더 정확하게 읽어요", date: "2026.09.30" },
   { tag: "NEW", text: "공책에 쓴 글, 사진 한 장으로 올리기", date: "2026.09.29" },
   { tag: "UPDATE", text: "저장할 때 화면 위 로딩 바로 진행 상황 표시", date: "2026.09.29" },
   { tag: "NEW", text: "보호자 대시보드 - 최근 8주 꾸준히 쓴 흐름 한눈에", date: "2026.09.29" },
@@ -177,6 +180,21 @@ export default function LoginPage() {
   const [openFeature, setOpenFeature] = useState<string | null>(null);
   // 이미 로그인한 사람이 이 화면(소개 페이지)에 들어온 경우엔 로그인 폼 대신 바로 글쓰기로 보낸다.
   const [signedIn, setSignedIn] = useState(false);
+  // "글자국 남기기"를 누른 뒤 글쓰기 화면이 뜰 때까지.
+  const [openingWorkspace, setOpeningWorkspace] = useState(false);
+
+  // 로그인은 성공한 뒤에도 글쓰기 화면을 불러오는 데 시간이 걸린다. submitting은 로그인에 성공하면
+  // 되돌리지 않으므로(이 화면이 사라질 때까지 유지), 화면이 바뀔 때까지 로딩 바가 계속 보인다.
+  useSavingIndicator(
+    submitting,
+    mode === "signin" ? "로그인하는 중이에요…" : "가입하는 중이에요…"
+  );
+  useSavingIndicator(openingWorkspace, "글쓰기 화면을 여는 중이에요…");
+  // 새 탭으로 여는 클릭(Ctrl·Cmd·Shift·가운데 버튼)은 이 화면이 그대로 남으니 로딩 바를 띄우지 않는다.
+  function startOpeningWorkspace(e: React.MouseEvent) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    setOpeningWorkspace(true);
+  }
 
   useEffect(() => {
     let alive = true;
@@ -247,7 +265,11 @@ export default function LoginPage() {
           <div className="flex items-center justify-between gap-4 border-b border-white/20 py-3 text-[10px] uppercase tracking-[0.3em] text-white/70">
             <span>AI Writing Coach</span>
             {signedIn ? (
-              <Link href="/" className="text-white underline underline-offset-4">
+              <Link
+                href="/"
+                onClick={startOpeningWorkspace}
+                className="text-white underline underline-offset-4"
+              >
                 글자국 남기기
               </Link>
             ) : (
@@ -283,6 +305,7 @@ export default function LoginPage() {
                   {signedIn ? (
                     <Link
                       href="/"
+                      onClick={startOpeningWorkspace}
                       className="bg-white px-8 py-3 text-sm font-bold tracking-wide text-ink transition hover:bg-white/85"
                     >
                       글자국 남기기
@@ -486,6 +509,7 @@ export default function LoginPage() {
             <div className="flex items-center border-2 border-ink p-6 lg:col-span-7">
               <Link
                 href="/"
+                onClick={startOpeningWorkspace}
                 className="bg-ink px-8 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-accent"
               >
                 글자국 남기기

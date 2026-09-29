@@ -63,11 +63,12 @@ export default function TopNav() {
         ref={navRef}
         className="mx-auto flex max-w-6xl items-center gap-5 px-4 py-4 sm:gap-8 sm:px-5 sm:py-5 lg:gap-10 lg:px-10"
       >
-        {/* 로고(마크 + 이름)를 누르면 소개 화면으로 간다. 잡지로 치면 표지로 돌아가는 셈.
+        {/* 로고(마크 + 이름)를 누르면 소개 화면(초기화면)으로 간다. 잡지로 치면 표지로 돌아가는 셈.
+            학생 모드에서도 같다 - 소개 화면에는 로그인 폼 대신 "글자국 남기기"만 보여서 안전하다.
             글쓰기 화면으로 가는 길은 학생 > 글쓰기 메뉴에 그대로 있다. */}
         <Link
-          href={studentMode ? "/" : "/login"}
-          aria-label={studentMode ? "글쓰기 화면으로" : "글자국 소개 화면으로"}
+          href="/login"
+          aria-label="글자국 소개 화면으로"
           className="flex shrink-0 items-center gap-2 transition hover:opacity-70 sm:gap-3"
         >
           <span className="flex h-8 w-11 shrink-0 items-center justify-center bg-white sm:h-10 sm:w-14">

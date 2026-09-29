@@ -334,12 +334,72 @@ export const WRITING_TOPICS: Record<WritingType, TopicSeed[]> = {
   ],
 };
 
+// 글감별 난이도 (2026-09-29 정리). 학년 평균만으로 정하면 4학년은 거의 '기초', 6학년은 거의
+// '도전'만 나와서 추천이 의미가 없었다. 그래서 글감이 요구하는 생각의 양으로 다시 정했다:
+//  - 기초: 겪은 일을 떠올려 쓰면 되는 글감
+//  - 보통: 이유·순서·비교처럼 한 가지 짜임을 요구하는 글감
+//  - 도전: 여러 입장을 따지거나 추상적·사회적인 주제
+// 학년 × 글의 종류마다 되도록 세 난이도가 섞이도록 맞췄다. DB에는
+// supabase/topic_difficulty_2026-09-29.sql로 같은 값을 넣는다. 여기 없는 글감은 학년 평균 규칙.
+export const SEED_DIFFICULTY: Record<string, Difficulty> = {
+  "kind-words-rule": "기초",
+  "pet-day": "보통",
+  "leftover-food": "도전",
+  "phone-to-school": "기초",
+  "phone-time": "보통",
+  "student-council": "도전",
+  "my-chore": "기초",
+  "way-to-school": "보통",
+  "favorite-game-rule": "도전",
+  "recycling": "기초",
+  "favorite-sport": "보통",
+  "what-is-ai": "보통",
+  "climate-change": "도전",
+  "memorable-scene": "기초",
+  "book-recommend": "보통",
+  "like-me-character": "도전",
+  "character-choice": "보통",
+  "book-today": "도전",
+  "first-alone": "기초",
+  "grateful": "기초",
+  "proud-moment": "보통",
+  "mistake-learned": "도전",
+  "mind-changed": "도전",
+  "favorite-song": "기초",
+  "field-trip": "기초",
+  "movie-or-show": "보통",
+  "sports-game": "보통",
+  "exhibition": "도전",
+  "news-doc": "도전",
+  "season-compare": "기초",
+  "home-vs-school-meal": "보통",
+  "pet-compare": "도전",
+  "youtube-vs-book": "기초",
+  "online-vs-offline-class": "보통",
+  "paper-vs-ebook": "도전",
+  "messy-locker": "기초",
+  "classroom-noise": "보통",
+  "friend-conflict": "도전",
+  "leftover-food-solution": "기초",
+  "street-trash": "보통",
+  "object-alive": "기초",
+  "one-day-adult": "보통",
+  "animal-talks": "도전",
+  "future-school": "기초",
+  "time-machine": "보통",
+  "alone-on-earth": "도전",
+};
+
 // 위 목록을 유형별 묶음에서 한 줄짜리 목록으로 펴놓은 것. DB에서 읽어온 글감과 같은 모양이라
 // 화면에서는 둘을 구분하지 않고 똑같이 쓴다.
 export const FALLBACK_TOPICS: Topic[] = (
   Object.entries(WRITING_TOPICS) as [WritingType, TopicSeed[]][]
 ).flatMap(([writingType, list]) =>
-  list.map((t) => ({ ...t, writingType, difficulty: defaultDifficulty(t.grades) }))
+  list.map((t) => ({
+    ...t,
+    writingType,
+    difficulty: SEED_DIFFICULTY[t.id] ?? defaultDifficulty(t.grades),
+  }))
 );
 
 // 주어진 글감 목록에서 학년 + 글의 종류에 맞는 것만 골라 돌려준다.

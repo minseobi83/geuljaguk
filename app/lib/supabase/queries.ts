@@ -40,7 +40,8 @@ type VersionRow = {
   version_no: number;
   student_text: string;
   paragraph_answers?: ParagraphAnswer[] | null;
-  evaluations: { result: EvaluationResult }[];
+  // 첨삭 결과 중 화면에 쓰는 항목만 골라 받는다 (EVALUATION_FIELDS). 모양은 결과의 일부와 같다.
+  evaluations: Partial<EvaluationResult>[];
 };
 
 type EssayRow = {
@@ -55,7 +56,7 @@ function collectParagraphAnswers(versions: VersionRow[]): SavedParagraphAnswer[]
   return [...versions]
     .sort((a, b) => a.version_no - b.version_no)
     .flatMap((v) => {
-      const feedback = v.evaluations?.[0]?.result?.paragraph_feedback ?? [];
+      const feedback = v.evaluations?.[0]?.paragraph_feedback ?? [];
       return (v.paragraph_answers ?? [])
         .filter((a) => a.answer?.trim())
         .sort((a, b) => a.paragraph_no - b.paragraph_no)
@@ -81,6 +82,19 @@ export async function saveParagraphAnswers(
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
+// 쓴 글 히스토리에서 쓰는 첨삭 항목만 JSON 경로로 골라 받는다. 첨삭 결과(result) 전체에는 문단별
+// 피드백·질문·다음 과제 설명 등이 다 들어 있어 글 20편이면 꽤 무거운데, 화면에는 이것들만 쓴다.
+// "이름:result->경로" 형태라 받은 행이 결과의 일부와 같은 모양이 된다.
+const EVALUATION_FIELDS = [
+  "scores:result->scores",
+  "summary:result->>summary",
+  "safety:result->safety",
+  "priority_issue:result->priority_issue",
+  "next_task:result->next_task",
+  "mechanics_table:result->mechanics_table",
+  "paragraph_feedback:result->paragraph_feedback",
+].join(", ");
+
 // 에세이별로 "가장 마지막 시도(재작성 포함 최신 버전)"의 평가만 골라서 돌려준다.
 // 같은 에세이를 여러 번 고쳐 썼어도, 성장 추이에는 최종 결과만 반영하는 게 맞기 때문.
 export async function getChildEssayHistory(
@@ -89,7 +103,7 @@ export async function getChildEssayHistory(
   limit = 20
 ): Promise<EssayHistoryItem[]> {
   const query = (versionColumns: string) => {
-    const columns: string = `id, writing_type, topic_title, created_at, essay_versions(${versionColumns}, evaluations(result))`;
+    const columns: string = `id, writing_type, topic_title, created_at, essay_versions(${versionColumns}, evaluations(${EVALUATION_FIELDS}))`;
     return supabase
       .from("essays")
       .select(columns)
@@ -108,7 +122,7 @@ export async function getChildEssayHistory(
   return ((essays ?? []) as unknown as EssayRow[]).map((e) => {
     const versions = e.essay_versions ?? [];
     const latestVersion = [...versions].sort((a, b) => b.version_no - a.version_no)[0];
-    const result = latestVersion?.evaluations?.[0]?.result ?? null;
+    const result = latestVersion?.evaluations?.[0] ?? null;
     return {
       id: e.id,
       writingType: e.writing_type,

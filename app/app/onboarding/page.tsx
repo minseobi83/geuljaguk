@@ -8,16 +8,18 @@ export default async function OnboardingPage() {
   const user = userData.user;
   if (!user) redirect("/login");
 
-  const { data: parent } = await supabase
-    .from("parents")
-    .select("consent_given_at")
-    .eq("id", user.id)
-    .single();
-
-  const { data: children } = await supabase
-    .from("children")
-    .select("id, nickname, grade_band")
-    .eq("parent_id", user.id);
+  // 보호자 정보와 자녀 목록은 서로 기다릴 필요가 없어 동시에 조회한다.
+  const [{ data: parent }, { data: children }] = await Promise.all([
+    supabase
+      .from("parents")
+      .select("consent_given_at")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("children")
+      .select("id, nickname, grade_band")
+      .eq("parent_id", user.id),
+  ]);
 
   const consentGiven = Boolean(parent?.consent_given_at);
   if (consentGiven && children && children.length > 0) {

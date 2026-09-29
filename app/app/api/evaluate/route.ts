@@ -70,25 +70,48 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 같은 글감(topicTitle)에 이미 몇 번 제출했는지 확인 - AI를 부르기 전에 먼저 걸러서
-  // 한도를 넘겼으면 비용도 들이지 않고 바로 막는다. 글감이 없는 자유 주제는 제한하지 않는다.
-  let topicAttemptUsed = 0;
-  if (submission.topicTitle) {
-    const { data: matchingEssays } = await supabase
+  // 본분석 전에 필요한 세 가지를 동시에 한다 (예전엔 하나씩 기다려서 첫 반응이 늦었다).
+  //  1) 같은 글감에 이미 몇 번 제출했는지 - 글감이 없는 자유 주제는 제한하지 않는다.
+  //  2) 사전 선별(quickScreen): 비싼 본분석(Sonnet) 전에 훨씬 싼 모델(Haiku)로 "애초에 과제
+  //     시도가 맞는지"만 거른다. fail-open이라 실패해도 본분석은 그대로 진행한다.
+  //  3) 관리자가 활성화해둔 평가기준(시스템 프롬프트) 버전. 없으면 코드 기본값.
+  // 글감 한도에 걸린 경우에도 사전 선별이 이미 돌지만, 싼 모델 한 번이라 기다리는 시간을 줄이는
+  // 쪽을 택했다 (한도는 화면에서 먼저 막으므로 여기까지 오는 경우는 드물다).
+  const countTopicAttempts = async (): Promise<number> => {
+    if (!submission.topicTitle) return 0;
+    // 글감이 같은 글들의 시도 수를 한 번의 조회로 센다.
+    const { data, error } = await supabase
+      .from("essays")
+      .select("id, essay_versions(count)")
+      .eq("child_id", body.childId)
+      .eq("topic_title", submission.topicTitle);
+    if (!error) {
+      return ((data ?? []) as { essay_versions: { count: number }[] }[]).reduce(
+        (sum, e) => sum + (e.essay_versions?.[0]?.count ?? 0),
+        0
+      );
+    }
+    // 집계(count) 조회를 쓸 수 없는 설정이면 예전처럼 두 번에 나눠 센다.
+    const { data: matching } = await supabase
       .from("essays")
       .select("id")
       .eq("child_id", body.childId)
       .eq("topic_title", submission.topicTitle);
+    const essayIds = (matching ?? []).map((e) => e.id);
+    if (essayIds.length === 0) return 0;
+    const { count } = await supabase
+      .from("essay_versions")
+      .select("id", { count: "exact", head: true })
+      .in("essay_id", essayIds);
+    return count ?? 0;
+  };
+  const [topicAttemptUsed, screen, activePrompt] = await Promise.all([
+    countTopicAttempts(),
+    quickScreen(submission.studentText),
+    getActiveSystemPrompt(supabase),
+  ]);
 
-    const essayIds = (matchingEssays ?? []).map((e) => e.id);
-    if (essayIds.length > 0) {
-      const { count } = await supabase
-        .from("essay_versions")
-        .select("id", { count: "exact", head: true })
-        .in("essay_id", essayIds);
-      topicAttemptUsed = count ?? 0;
-    }
-
+  if (submission.topicTitle) {
     if (topicAttemptUsed >= MAX_ATTEMPTS_PER_TOPIC) {
       return NextResponse.json(
         {
@@ -100,16 +123,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 2차 경량 필터: 모델 티어링 - 비싼 본분석(Sonnet) 전에 훨씬 싼 모델(Haiku)로
-  // "애초에 과제 시도가 맞는지"만 빠르게 거른다. 실패해도 본분석은 그대로 진행한다
-  // (quickScreen이 fail-open이라 여기선 결과만 받으면 된다).
-  const screen = await quickScreen(submission.studentText);
-  if (screen.call) {
-    await logApiCalls(supabase, [screen.call], {
-      userId: userData.user.id,
-      versionNo: submission.versionNo,
-    });
-  }
   if (screen.failure) {
     await logError(supabase, "quick_screen", screen.failure, {
       userId: userData.user.id,
@@ -118,6 +131,12 @@ export async function POST(req: NextRequest) {
     });
   }
   if (!screen.valid) {
+    if (screen.call) {
+      await logApiCalls(supabase, [screen.call], {
+        userId: userData.user.id,
+        versionNo: submission.versionNo,
+      });
+    }
     return NextResponse.json(
       {
         error:
@@ -133,8 +152,6 @@ export async function POST(req: NextRequest) {
   // 이 지점 이전의 모든 실패는 위에서처럼 평소대로 상태 코드가 있는 JSON으로 응답하고,
   // 이 지점을 넘어서부터는 항상 200으로 스트림을 열고, 그 안에서 성공/실패를 알려준다
   // (스트림을 시작한 뒤에는 HTTP 상태 코드를 바꿀 수 없기 때문).
-  // 관리자가 활성화해둔 평가기준(시스템 프롬프트) 버전을 쓴다. 없으면 코드 기본값.
-  const activePrompt = await getActiveSystemPrompt(supabase);
   const errorCtx = {
     userId: userData.user.id,
     childId: body.childId,
@@ -249,7 +266,8 @@ export async function POST(req: NextRequest) {
           });
         }
       } finally {
-        await logApiCalls(supabase, calls, {
+        // 사전 선별 사용량도 여기서 함께 남긴다 - 응답을 시작하기 전에 기록을 기다리지 않도록.
+        await logApiCalls(supabase, screen.call ? [screen.call, ...calls] : calls, {
           userId: userData.user.id,
           promptVersionId: activePrompt.id,
           versionNo: submission.versionNo,

@@ -93,23 +93,23 @@ alter table public.evaluations enable row level security;
 -- 이 파일을 스크립트 전체로 다시 실행해도 안전하도록 매번 drop 후 create한다.
 drop policy if exists "parents_own_row" on public.parents;
 create policy "parents_own_row" on public.parents
-  for all using (auth.uid() = id) with check (auth.uid() = id);
+  for all using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 
 drop policy if exists "children_own_rows" on public.children;
 create policy "children_own_rows" on public.children
-  for all using (auth.uid() = parent_id) with check (auth.uid() = parent_id);
+  for all using ((select auth.uid()) = parent_id) with check ((select auth.uid()) = parent_id);
 
 drop policy if exists "essays_own_rows" on public.essays;
 create policy "essays_own_rows" on public.essays
   for all using (
     exists (
       select 1 from public.children c
-      where c.id = essays.child_id and c.parent_id = auth.uid()
+      where c.id = essays.child_id and c.parent_id = (select auth.uid())
     )
   ) with check (
     exists (
       select 1 from public.children c
-      where c.id = essays.child_id and c.parent_id = auth.uid()
+      where c.id = essays.child_id and c.parent_id = (select auth.uid())
     )
   );
 
@@ -119,13 +119,13 @@ create policy "essay_versions_own_rows" on public.essay_versions
     exists (
       select 1 from public.essays e
       join public.children c on c.id = e.child_id
-      where e.id = essay_versions.essay_id and c.parent_id = auth.uid()
+      where e.id = essay_versions.essay_id and c.parent_id = (select auth.uid())
     )
   ) with check (
     exists (
       select 1 from public.essays e
       join public.children c on c.id = e.child_id
-      where e.id = essay_versions.essay_id and c.parent_id = auth.uid()
+      where e.id = essay_versions.essay_id and c.parent_id = (select auth.uid())
     )
   );
 
@@ -136,14 +136,14 @@ create policy "evaluations_own_rows" on public.evaluations
       select 1 from public.essay_versions v
       join public.essays e on e.id = v.essay_id
       join public.children c on c.id = e.child_id
-      where v.id = evaluations.essay_version_id and c.parent_id = auth.uid()
+      where v.id = evaluations.essay_version_id and c.parent_id = (select auth.uid())
     )
   ) with check (
     exists (
       select 1 from public.essay_versions v
       join public.essays e on e.id = v.essay_id
       join public.children c on c.id = e.child_id
-      where v.id = evaluations.essay_version_id and c.parent_id = auth.uid()
+      where v.id = evaluations.essay_version_id and c.parent_id = (select auth.uid())
     )
   );
 
@@ -175,7 +175,7 @@ alter table public.admins enable row level security;
 -- 본인이 관리자인지 스스로 확인하는 것만 허용 (다른 사람이 관리자인지는 알 수 없음).
 drop policy if exists "admins_read_own_membership" on public.admins;
 create policy "admins_read_own_membership" on public.admins
-  for select using (auth.uid() = id);
+  for select using ((select auth.uid()) = id);
 
 grant select on public.admins to authenticated;
 
@@ -184,23 +184,23 @@ grant select on public.admins to authenticated;
 -- 합치므로, 이 정책들을 더한다고 기존 보호자 권한이 줄어들지 않는다.
 drop policy if exists "admins_read_all_parents" on public.parents;
 create policy "admins_read_all_parents" on public.parents
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "admins_read_all_children" on public.children;
 create policy "admins_read_all_children" on public.children
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "admins_read_all_essays" on public.essays;
 create policy "admins_read_all_essays" on public.essays
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "admins_read_all_essay_versions" on public.essay_versions;
 create policy "admins_read_all_essay_versions" on public.essay_versions
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "admins_read_all_evaluations" on public.evaluations;
 create policy "admins_read_all_evaluations" on public.evaluations
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 -- ---------------------------------------------------------------------------
 -- 관리자 기능 2차분 (2026-09-19 추가: 글감 관리 + 평가기준/프롬프트 버전 관리)
@@ -231,23 +231,23 @@ alter table public.topics enable row level security;
 drop policy if exists "topics_read" on public.topics;
 create policy "topics_read" on public.topics
   for select using (
-    is_active or exists (select 1 from public.admins where admins.id = auth.uid())
+    is_active or exists (select 1 from public.admins where admins.id = (select auth.uid()))
   );
 
 -- 쓰기는 관리자만. (insert/update/delete를 한 정책으로 묶되 for all은 select까지 덮으므로
 -- 명령별로 나눠서, 위의 읽기 정책이 그대로 살아있게 한다.)
 drop policy if exists "topics_admin_insert" on public.topics;
 create policy "topics_admin_insert" on public.topics
-  for insert with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for insert with check (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "topics_admin_update" on public.topics;
 create policy "topics_admin_update" on public.topics
-  for update using (exists (select 1 from public.admins where admins.id = auth.uid()))
-  with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for update using (exists (select 1 from public.admins where admins.id = (select auth.uid())))
+  with check (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "topics_admin_delete" on public.topics;
 create policy "topics_admin_delete" on public.topics
-  for delete using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for delete using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 grant select, insert, update, delete on public.topics to authenticated;
 
@@ -274,21 +274,21 @@ alter table public.prompt_versions enable row level security;
 drop policy if exists "prompt_versions_read" on public.prompt_versions;
 create policy "prompt_versions_read" on public.prompt_versions
   for select using (
-    is_active or exists (select 1 from public.admins where admins.id = auth.uid())
+    is_active or exists (select 1 from public.admins where admins.id = (select auth.uid()))
   );
 
 drop policy if exists "prompt_versions_admin_insert" on public.prompt_versions;
 create policy "prompt_versions_admin_insert" on public.prompt_versions
-  for insert with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for insert with check (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "prompt_versions_admin_update" on public.prompt_versions;
 create policy "prompt_versions_admin_update" on public.prompt_versions
-  for update using (exists (select 1 from public.admins where admins.id = auth.uid()))
-  with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for update using (exists (select 1 from public.admins where admins.id = (select auth.uid())))
+  with check (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "prompt_versions_admin_delete" on public.prompt_versions;
 create policy "prompt_versions_admin_delete" on public.prompt_versions
-  for delete using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for delete using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 grant select, insert, update, delete on public.prompt_versions to authenticated;
 
@@ -340,22 +340,22 @@ alter table public.evaluation_reviews enable row level security;
 -- 읽기·쓰기 모두 관리자만. (보호자·학생에게는 검토 결과가 보이지 않는다)
 drop policy if exists "evaluation_reviews_admin_select" on public.evaluation_reviews;
 create policy "evaluation_reviews_admin_select" on public.evaluation_reviews
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "evaluation_reviews_admin_insert" on public.evaluation_reviews;
 create policy "evaluation_reviews_admin_insert" on public.evaluation_reviews
   for insert with check (
-    reviewer_id = auth.uid()
-    and exists (select 1 from public.admins where admins.id = auth.uid())
+    reviewer_id = (select auth.uid())
+    and exists (select 1 from public.admins where admins.id = (select auth.uid()))
   );
 
 drop policy if exists "evaluation_reviews_admin_update" on public.evaluation_reviews;
 create policy "evaluation_reviews_admin_update" on public.evaluation_reviews
   for update using (
-    reviewer_id = auth.uid()
-    and exists (select 1 from public.admins where admins.id = auth.uid())
+    reviewer_id = (select auth.uid())
+    and exists (select 1 from public.admins where admins.id = (select auth.uid()))
   )
-  with check (reviewer_id = auth.uid());
+  with check (reviewer_id = (select auth.uid()));
 
 grant select, insert, update on public.evaluation_reviews to authenticated;
 
@@ -382,16 +382,16 @@ alter table public.app_errors enable row level security;
 
 drop policy if exists "app_errors_insert_own" on public.app_errors;
 create policy "app_errors_insert_own" on public.app_errors
-  for insert with check (user_id = auth.uid());
+  for insert with check (user_id = (select auth.uid()));
 
 drop policy if exists "app_errors_admin_select" on public.app_errors;
 create policy "app_errors_admin_select" on public.app_errors
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "app_errors_admin_update" on public.app_errors;
 create policy "app_errors_admin_update" on public.app_errors
-  for update using (exists (select 1 from public.admins where admins.id = auth.uid()))
-  with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for update using (exists (select 1 from public.admins where admins.id = (select auth.uid())))
+  with check (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 grant select, insert, update on public.app_errors to authenticated;
 
@@ -421,13 +421,13 @@ alter table public.content_flag_actions enable row level security;
 -- 읽기·쓰기 모두 관리자만, 쓰기는 본인 이름으로만. update/delete 정책은 두지 않는다(기록은 고칠 수 없음).
 drop policy if exists "content_flag_actions_admin_select" on public.content_flag_actions;
 create policy "content_flag_actions_admin_select" on public.content_flag_actions
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "content_flag_actions_admin_insert" on public.content_flag_actions;
 create policy "content_flag_actions_admin_insert" on public.content_flag_actions
   for insert with check (
-    actor_id = auth.uid()
-    and exists (select 1 from public.admins where admins.id = auth.uid())
+    actor_id = (select auth.uid())
+    and exists (select 1 from public.admins where admins.id = (select auth.uid()))
   );
 
 grant select, insert on public.content_flag_actions to authenticated;
@@ -441,16 +441,16 @@ grant select, insert on public.content_flag_actions to authenticated;
 -- on delete cascade로 함께 지워진다 (오류 기록 app_errors는 child_id만 비워지고 남는다).
 drop policy if exists "admins_update_children" on public.children;
 create policy "admins_update_children" on public.children
-  for update using (exists (select 1 from public.admins where admins.id = auth.uid()))
-  with check (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for update using (exists (select 1 from public.admins where admins.id = (select auth.uid())))
+  with check (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "admins_delete_children" on public.children;
 create policy "admins_delete_children" on public.children
-  for delete using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for delete using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "admins_delete_essays" on public.essays;
 create policy "admins_delete_essays" on public.essays
-  for delete using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for delete using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 -- 관리자가 학생 데이터에 한 일(수정·내보내기·삭제) 기록. 지운 뒤에도 "누가 언제 무엇을
 -- 지웠는지"는 남아야 하므로 대상에 외래키를 걸지 않고, 고치거나 지울 수 없게 insert만 허용한다.
@@ -470,13 +470,13 @@ alter table public.admin_audit_log enable row level security;
 
 drop policy if exists "admin_audit_log_admin_select" on public.admin_audit_log;
 create policy "admin_audit_log_admin_select" on public.admin_audit_log
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 drop policy if exists "admin_audit_log_admin_insert" on public.admin_audit_log;
 create policy "admin_audit_log_admin_insert" on public.admin_audit_log
   for insert with check (
-    actor_id = auth.uid()
-    and exists (select 1 from public.admins where admins.id = auth.uid())
+    actor_id = (select auth.uid())
+    and exists (select 1 from public.admins where admins.id = (select auth.uid()))
   );
 
 grant select, insert on public.admin_audit_log to authenticated;
@@ -518,11 +518,11 @@ alter table public.api_calls enable row level security;
 -- 읽기는 관리자만.
 drop policy if exists "api_calls_insert_own" on public.api_calls;
 create policy "api_calls_insert_own" on public.api_calls
-  for insert with check (user_id = auth.uid());
+  for insert with check (user_id = (select auth.uid()));
 
 drop policy if exists "api_calls_admin_select" on public.api_calls;
 create policy "api_calls_admin_select" on public.api_calls
-  for select using (exists (select 1 from public.admins where admins.id = auth.uid()));
+  for select using (exists (select 1 from public.admins where admins.id = (select auth.uid())));
 
 grant select, insert on public.api_calls to authenticated;
 
@@ -710,3 +710,13 @@ grant execute on function public.admin_parent_emails(uuid[]) to authenticated;
 alter table public.api_calls drop constraint if exists api_calls_kind_check;
 alter table public.api_calls add constraint api_calls_kind_check
   check (kind in ('quick_screen', 'evaluate', 'rubric_suggest', 'ocr'));
+
+-- ---------------------------------------------------------------------------
+-- 10차분 (2026-09-30 추가: 성능 - 색인)
+-- ---------------------------------------------------------------------------
+
+-- 자주 찾는 연결 칸에 색인이 없어서, 데이터가 쌓일수록 조회가 전체 훑기로 느려진다.
+-- (Postgres는 외래키 칸에 색인을 자동으로 만들지 않는다.)
+create index if not exists essays_child_created_idx on public.essays (child_id, created_at desc);
+create index if not exists evaluations_essay_version_idx on public.evaluations (essay_version_id);
+create index if not exists children_parent_idx on public.children (parent_id);

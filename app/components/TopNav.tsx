@@ -74,7 +74,7 @@ export default function TopNav() {
           <span className="flex h-8 w-11 shrink-0 items-center justify-center bg-white sm:h-10 sm:w-14">
             {/* 초기화면 대표 그림(hero-illustration.png) 전체를 줄인 마크. 그림이 가로로 길어서 상자도 가로로 넓게 */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/nav-mark.png" alt="" className="h-auto w-10 sm:w-[3.25rem]" />
+            <img src="/brand/nav-mark.webp" alt="" className="h-auto w-10 sm:w-[3.25rem]" />
           </span>
           <span className="text-lg font-black tracking-tight sm:text-xl">글자국</span>
         </Link>

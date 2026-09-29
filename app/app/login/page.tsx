@@ -342,12 +342,17 @@ export default function LoginPage() {
               </div>
 
               {/* 대표 시그니처 그림 - 사각 박스 없이 배경에 바로 놓는다.
-                  원본 파일 자체가 배경이 투명하게 오려져 있어서 테두리가 보이지 않는다. */}
+                  원본 파일 자체가 배경이 투명하게 오려져 있어서 테두리가 보이지 않는다.
+                  화면에서 최대 416px로 보이므로 2배 선명도(832px) WebP를 쓴다 (원본 PNG 515KB → 68KB).
+                  width/height는 그림이 도착하기 전에 자리를 잡아 화면이 밀리지 않게 하는 용도. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/brand/hero-illustration.png"
+                src="/brand/hero-illustration.webp"
+                width={832}
+                height={584}
+                fetchPriority="high"
                 alt="연필을 든 아이가 책 위에 엎드려 웃고 있고, 옆에는 새싹이 자라는 모습"
-                className="w-56 sm:w-72 lg:mt-6 lg:w-[26rem]"
+                className="h-auto w-56 sm:w-72 lg:mt-6 lg:w-[26rem]"
               />
             </div>
           </div>

@@ -61,6 +61,10 @@ export function ReviewTab({
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [onlyPending, setOnlyPending] = useState(true);
+  // 이번에 검토를 저장한(또는 저장 중인) 첨삭. "미검토만 보기"여도 목록에 남겨둔다.
+  // 저장하자마자 목록에서 빠지면 저장이 끝나기 전에 폼이 사라져서, 다음 첨삭의 저장이 막히거나
+  // 결과를 확인할 수 없었다 (두 번째 검토가 저장되지 않던 문제).
+  const [keepVisible, setKeepVisible] = useState<Set<string>>(() => new Set());
 
   if (error) {
     return (
@@ -72,7 +76,9 @@ export function ReviewTab({
   }
 
   const pendingCount = items.filter((i) => i.reviews.length === 0).length;
-  const shown = onlyPending ? items.filter((i) => i.reviews.length === 0) : items;
+  const shown = onlyPending
+    ? items.filter((i) => i.reviews.length === 0 || keepVisible.has(i.evaluationId))
+    : items;
 
   return (
     <>
@@ -230,9 +236,12 @@ export function ReviewTab({
                         ))}
 
                       <ReviewForm
-                        key={`${item.evaluationId}-${mine?.updatedAt ?? "new"}`}
+                        key={item.evaluationId}
                         evaluationId={item.evaluationId}
                         initial={mine}
+                        onSubmitting={() =>
+                          setKeepVisible((prev) => new Set(prev).add(item.evaluationId))
+                        }
                         onDone={onDone}
                       />
                     </div>
@@ -250,13 +259,18 @@ export function ReviewTab({
 function ReviewForm({
   evaluationId,
   initial,
+  onSubmitting,
   onDone,
 }: {
   evaluationId: string;
   initial?: { verdict: ReviewVerdict; issues: string[]; note: string | null };
+  onSubmitting: () => void;
   onDone: (r: ActionResult) => void;
 }) {
   const [verdict, setVerdict] = useState<ReviewVerdict | null>(initial?.verdict ?? null);
+  // 저장 결과를 버튼 바로 아래에 보여준다 (페이지 맨 위 알림은 스크롤해야 보여서 놓치기 쉬웠다).
+  const [result, setResult] = useState<ActionResult | null>(null);
+  const [saved, setSaved] = useState(Boolean(initial));
   const [pending, startTransition] = useTransition();
 
   return (
@@ -265,7 +279,22 @@ function ReviewForm({
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
-        startTransition(async () => onDone(await saveEvaluationReview(fd)));
+        setResult(null);
+        onSubmitting();
+        startTransition(async () => {
+          let r: ActionResult;
+          try {
+            r = await saveEvaluationReview(fd);
+          } catch (err) {
+            r = {
+              ok: false,
+              message: `저장 요청이 실패했어요: ${err instanceof Error ? err.message : String(err)}`,
+            };
+          }
+          setResult(r);
+          if (r.ok) setSaved(true);
+          onDone(r);
+        });
       }}
     >
       <input type="hidden" name="evaluation_id" value={evaluationId} />
@@ -323,8 +352,16 @@ function ReviewForm({
         disabled={pending || !verdict}
         className="mt-5 bg-ink px-6 py-2 text-xs font-bold tracking-wide text-white transition hover:bg-accent disabled:opacity-40"
       >
-        {initial ? "검토 고쳐 저장" : "검토 저장"}
+        {pending ? "저장하는 중..." : saved ? "검토 고쳐 저장" : "검토 저장"}
       </button>
+      {result && (
+        <p
+          className={`mt-3 break-keep text-sm ${result.ok ? "text-growth" : "text-warn"}`}
+          role="status"
+        >
+          {result.ok ? `✓ ${result.message} 목록에서 다음 첨삭을 열어 이어서 검토하세요.` : result.message}
+        </p>
+      )}
     </form>
   );
 }

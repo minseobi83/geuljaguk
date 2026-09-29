@@ -126,3 +126,21 @@ export async function getChildEssayHistory(
     };
   });
 }
+
+// 성실도(주별 글 수) 계산용: 기간 안에 쓴 글의 날짜만 가볍게 전부 가져온다.
+// 쓴 글 히스토리는 최근 20편만 불러오므로, 자주 쓰는 아이의 오래된 주가 빠지지 않게 따로 읽는다.
+export async function getEssayDatesSince(
+  supabase: SupabaseClient,
+  childId: string,
+  sinceIso: string
+): Promise<string[] | null> {
+  const { data, error } = await supabase
+    .from("essays")
+    .select("created_at")
+    .eq("child_id", childId)
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) return null;
+  return (data ?? []).map((r) => r.created_at as string);
+}

@@ -29,6 +29,8 @@ interface Props {
   latestScores: RubricScores | null;
   scoredAsc: ScoredItem[];
   historyDesc: EssayHistoryItem[];
+  // 성실도 그래프용: 최근 몇 주 동안 쓴 모든 글의 날짜 (없으면 historyDesc로 센다).
+  activityDates?: string[] | null;
 }
 
 type TabId = "recent" | "trend" | "essays" | "calendar";
@@ -48,6 +50,7 @@ export default function DashboardTabs({
   latestScores,
   scoredAsc,
   historyDesc,
+  activityDates,
 }: Props) {
   const [tab, setTab] = useState<TabId>("recent");
   // 글이 길면 접어두고, 누르면 전체를 펼친다.
@@ -55,7 +58,10 @@ export default function DashboardTabs({
   const flaggedEssays = historyDesc.filter((e) => e.safetyNote);
 
   const repeatedIssues = useMemo(() => computeRepeatedIssues(historyDesc), [historyDesc]);
-  const engagementStats = useMemo(() => computeEngagementStats(historyDesc), [historyDesc]);
+  const engagementStats = useMemo(
+    () => computeEngagementStats(historyDesc, new Date(), activityDates),
+    [historyDesc, activityDates]
+  );
   const engagementSummary = useMemo(
     () => buildEngagementSummary(engagementStats, nickname),
     [engagementStats, nickname]

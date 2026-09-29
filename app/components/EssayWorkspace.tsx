@@ -90,29 +90,52 @@ export default function EssayWorkspace({
   // 답변을 바로 보낸다. 일반 요청은 페이지가 닫히며 끊길 수 있어, 전송이 보장되는 sendBeacon을 쓴다.
   // (모바일에서는 탭을 닫기 전에 hidden 상태를 거치는 경우가 많아 두 이벤트를 모두 본다.)
   useEffect(() => {
-    function sendPendingAnswers() {
+    function takePending() {
       const pending = pendingAnswers.current;
-      if (!pending) return;
+      if (!pending) return null;
       if (answerSaveTimer.current) {
         clearTimeout(answerSaveTimer.current);
         answerSaveTimer.current = null;
       }
       pendingAnswers.current = null;
+      return pending;
+    }
+
+    // 창이 정말 닫힐 때: 응답을 기다릴 수 없으니 전송만 보장한다.
+    function sendOnUnload() {
+      const pending = takePending();
+      if (!pending) return;
       const body = new Blob([JSON.stringify(pending)], { type: "text/plain" });
       if (!navigator.sendBeacon?.("/api/paragraph-answers", body)) {
         void fetch("/api/paragraph-answers", { method: "POST", body, keepalive: true });
       }
     }
-    function onVisibilityChange() {
-      if (document.visibilityState === "hidden") sendPendingAnswers();
+
+    // 다른 탭·앱으로 넘어갈 때: 페이지는 살아 있으니 결과를 받아 저장 상태 문구도 갱신한다.
+    // keepalive라 그 사이 탭이 닫혀도 요청은 끝까지 간다.
+    function sendOnHidden() {
+      const pending = takePending();
+      if (!pending) return;
+      setAnswerSaveState("saving");
+      fetch("/api/paragraph-answers", {
+        method: "POST",
+        body: JSON.stringify(pending),
+        keepalive: true,
+      })
+        .then((res) => setAnswerSaveState(res.ok ? "saved" : "error"))
+        .catch(() => setAnswerSaveState("error"));
     }
-    window.addEventListener("pagehide", sendPendingAnswers);
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") sendOnHidden();
+    }
+    window.addEventListener("pagehide", sendOnUnload);
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
-      window.removeEventListener("pagehide", sendPendingAnswers);
+      window.removeEventListener("pagehide", sendOnUnload);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       // 앱 안에서 다른 화면으로 이동해 이 화면이 사라질 때도 남은 답변을 보낸다.
-      sendPendingAnswers();
+      sendOnUnload();
     };
   }, []);
   // 첨삭 노트가 길면 접어두고, 누르면 펼친다.

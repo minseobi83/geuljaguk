@@ -168,23 +168,26 @@ function weeksAgo(iso: string, now: Date): number {
   return Math.floor((monday.getTime() - t) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
+// activityDates: 기간 안에 쓴 모든 글의 날짜 (getEssayDatesSince). 주면 주별·최근 7/30일 글 수를
+// 이것으로 센다. 없으면 history(최근 20편)로 센다 - 자주 쓰는 아이는 오래된 주가 적게 나올 수 있다.
+// 고쳐 쓴 비율·답한 비율은 글마다의 자세한 정보가 필요해 history 기준 그대로다.
 export function computeEngagementStats(
   history: Pick<EssayHistoryItem, "createdAt" | "versionCount" | "paragraphAnswers">[],
-  now: Date = new Date()
+  now: Date = new Date(),
+  activityDates?: string[] | null
 ): EngagementStats {
   const DAY = 24 * 60 * 60 * 1000;
   const nowMs = now.getTime();
   const totalEssays = history.length;
   const revisedEssays = history.filter((h) => h.versionCount >= 2).length;
   const answeredEssays = history.filter((h) => (h.paragraphAnswers?.length ?? 0) > 0).length;
-  const last7Days = history.filter((h) => nowMs - new Date(h.createdAt).getTime() <= 7 * DAY).length;
-  const last30Days = history.filter(
-    (h) => nowMs - new Date(h.createdAt).getTime() <= 30 * DAY
-  ).length;
+  const dates = activityDates ?? history.map((h) => h.createdAt);
+  const last7Days = dates.filter((d) => nowMs - new Date(d).getTime() <= 7 * DAY).length;
+  const last30Days = dates.filter((d) => nowMs - new Date(d).getTime() <= 30 * DAY).length;
 
   const weeklyCounts = new Array(ENGAGEMENT_WEEKS).fill(0);
-  for (const h of history) {
-    const w = weeksAgo(h.createdAt, now);
+  for (const d of dates) {
+    const w = weeksAgo(d, now);
     if (w < ENGAGEMENT_WEEKS) weeklyCounts[ENGAGEMENT_WEEKS - 1 - w] += 1;
   }
   const activeWeeks = weeklyCounts.filter((c) => c > 0).length;

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getChildEssayHistory, EssayHistoryItem } from "@/lib/supabase/queries";
-import { computeIndicatorTrends, buildGrowthSummary } from "@/lib/growth";
+import { getChildEssayHistory, getEssayDatesSince, EssayHistoryItem } from "@/lib/supabase/queries";
+import { computeIndicatorTrends, buildGrowthSummary, ENGAGEMENT_WEEKS } from "@/lib/growth";
 import DashboardTabs from "@/components/DashboardTabs";
 import TopNav from "@/components/TopNav";
 import StudentModePanel from "@/components/StudentModePanel";
@@ -39,7 +39,12 @@ export default async function DashboardPage({
     typedChildren.find((c) => c.id === requestedChildId) ?? typedChildren[0];
 
   // 최신 글이 맨 앞에 오도록 가져온 다음, 추이 계산·타임라인 표시용으로 오래된 순으로 뒤집는다.
-  const historyDesc = await getChildEssayHistory(supabase, activeChild.id, 20);
+  // 성실도 그래프는 최근 ENGAGEMENT_WEEKS주(+1주 여유)의 글 날짜를 전부 따로 읽어 센다.
+  const activitySince = new Date(Date.now() - (ENGAGEMENT_WEEKS + 1) * 7 * 24 * 60 * 60 * 1000);
+  const [historyDesc, activityDates] = await Promise.all([
+    getChildEssayHistory(supabase, activeChild.id, 20),
+    getEssayDatesSince(supabase, activeChild.id, activitySince.toISOString()),
+  ]);
   const historyAsc = [...historyDesc].reverse();
   const scoredAsc = historyAsc.filter((h) => h.scores !== null) as (EssayHistoryItem & {
     scores: RubricScores;
@@ -100,6 +105,7 @@ export default async function DashboardPage({
         latestScores={latestScores}
         scoredAsc={scoredAsc}
         historyDesc={historyDesc}
+        activityDates={activityDates}
       />
       </main>
     </>
